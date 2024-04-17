@@ -525,9 +525,14 @@ void CloseDevices(std::map<chip_id_t, Device *> devices) {
         program.allocate_circular_buffers();
         detail::ValidateCircularBufferRegion(program, device);
 
+        const std::set<CoreCoord> &logical_storage_only_cores = device->storage_only_cores();
+
         std::unordered_map<CoreType, std::vector<CoreCoord>> logical_cores_used_in_program = program.logical_cores();
         for (const auto &[core_type, logical_cores] : logical_cores_used_in_program) {
             for (const auto &logical_core : logical_cores) {
+                TT_FATAL(logical_storage_only_cores.find(logical_core) == logical_storage_only_cores.end(),
+                    "Cannot program core {}. It is reserved for storage and no compute", logical_core.str());
+
                 KernelGroup *kernel_group = program.kernels_on_core(logical_core, core_type);
                 CoreCoord physical_core = device->physical_core_from_logical_core(logical_core, core_type);
 
