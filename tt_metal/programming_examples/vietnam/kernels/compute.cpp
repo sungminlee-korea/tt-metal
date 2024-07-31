@@ -3,11 +3,11 @@
 #include "compute_kernel_api/eltwise_unary/relu.h"
 #include "compute_kernel_api/tile_move_copy.h"
 #include "debug/dprint.h"
+
 namespace NAMESPACE {
 void MAIN {
-  DPRINT << "Hello, World! I'm compute kernel" << ENDL();
 
-  // TODO: get arguments
+  // TODO. get runtime arguments.
   uint32_t arg = 0;
   const auto cb0_id = get_arg_val<uint32_t>(arg++);
   const auto cb1_id = get_arg_val<uint32_t>(arg++);
@@ -17,13 +17,8 @@ void MAIN {
   constexpr auto first = 0;
   constexpr auto onetile = 1;
 
-  // TODO: call unary_op_init_common
   unary_op_init_common(cb0_id, cb1_id);
 
-  // TODO:
-  // 1. copy cb0 to dst0
-  // 2. relu on dst0
-  // 3. pack dst0 to cb1
   for (uint32_t i = 0; i < num_tiles; i++) {
 
     tile_regs_acquire();
