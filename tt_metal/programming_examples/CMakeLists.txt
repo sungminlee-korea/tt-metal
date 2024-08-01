@@ -12,8 +12,6 @@ set(PROGRAMMING_EXAMPLES_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/matmul_multicore_reuse/matmul_multicore_reuse
     ${CMAKE_CURRENT_SOURCE_DIR}/matmul_multicore_reuse_mcast/matmul_multicore_reuse_mcast
     ${CMAKE_CURRENT_SOURCE_DIR}/matmul_single_core/matmul_single_core
-    ${CMAKE_CURRENT_SOURCE_DIR}/vietnam/vietnam
-    ${CMAKE_CURRENT_SOURCE_DIR}/ttinfo/ttinfo
 )
 
 include(${PROJECT_SOURCE_DIR}/cmake/helper_functions.cmake)
