@@ -1,0 +1,531 @@
+
+./built/4096/kernels/moreh_norm_h_kernel/10661919710629800325/trisc1/trisc1.elf:     file format elf32-littleriscv
+
+SYMBOL TABLE:
+00007330 l    d  .init	00000000 .init
+0000733c l    d  .text	00000000 .text
+ffb00020 l    d  .ldm_data	00000000 .ldm_data
+ffb00700 l    d  .stack	00000000 .stack
+00000000 l    d  .comment	00000000 .comment
+00000000 l    d  .riscv.attributes	00000000 .riscv.attributes
+00000000 l    df *ABS*	00000000 tmu-crt0k.o
+00007330 l       .init	00000000 CRT_START
+00000000 l    df *ABS*	00000000
+0000733c l     F .text	0000017c void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)
+00000000 l    df *ABS*	00000000 memcpy.c
+00000000 l    df *ABS*	00000000
+ffb00020 l       .ldm_data	00000000 __init_array_end
+ffb00020 l       .ldm_data	00000000 __init_array_start
+ffb00020 g       .ldm_data	00000000 __ldm_data_end
+ffb00800  w      *ABS*	00000000 __global_pointer$
+00007330  w      *ABS*	00000000 _etext
+000078e8 g     F .text	00000128 memcpy
+ffb00020 g       *ABS*	00000000 __fw_export_ldm_end
+00007330 g       *ABS*	00000000 kernel_init()
+ffb00008  w    O *ABS*	00000004 crta_l1_base
+000074b8 g     F .text	00000430 kernel_launch()
+ffb0000c  w    O *ABS*	00000004 rta_l1_base
+00007338 g     F .init	00000004 _init
+ffb00800 g       .stack	00000000 __stack_top
+00007330 g       *ABS*	00000000 __fw_export_end_text
+ffb00020 g       .ldm_data	00000000 __ldm_bss_start
+00007330 g     F .init	00000008 _start
+00007330 g       *ABS*	00000000 __firmware_start
+00000100 g       *ABS*	00000000 __firmware_stack_size
+0000720c  w    F *ABS*	000000dc memset
+00006fe0  w    F *ABS*	000001f8 main
+ffb00020 g       .ldm_data	00000000 __ldm_data_start
+ffb00010  w    O *ABS*	00000004 ckernel::cfg_state_id
+00007338 g     F .init	00000004 _fini
+ffb00000  w    O *ABS*	00000004 ckernel::dest_offset_id
+ffb00700 g       .stack	00000000 __stack_bottom
+ffb00020 g       .ldm_data	00000000 _edata
+ffb00020 g       .ldm_data	00000000 _end
+ffb00020 g       .ldm_data	00000000 __ldm_bss_end
+000072f0  w    O *ABS*	00000040 l1_buffer
+ffb00020 g       *ABS*	00000000 __ldm_start
+ffb00004  w    O *ABS*	00000004 ckernel::op_info_offset
+
+
+
+Disassembly of section .init:
+
+00007330 <_start>:
+    7330:	00000317          	auipc	t1, 0x0
+    7334:	18830067          	jr	392(t1) # 74b8 <kernel_launch()>
+
+00007338 <_fini>:
+    7338:	00008067          	ret
+
+Disassembly of section .text:
+
+0000733c <void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)>:
+    733c:	c0430001          	sfpload	L1, 0, 0, 3
+    7340:	c400fe01          	sfploadi	L0, 16256, 0
+    7344:	14050063          	beqz	a0, 7484 <void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)+0x148>
+    7348:	00000713          	li	a4, 0
+    734c:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    7350:	3c000002          	sfpnop
+    7354:	00070793          	mv	a5, a4
+    7358:	00170713          	addi	a4, a4, 1
+    735c:	fee518e3          	bne	a0, a4, 734c <void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)+0x10>
+    7360:	c8030001          	sfpstore	0, L0, 0, 3
+    7364:	e0020000          	ttincrwc	0, 2, 0, 0
+    7368:	c0430001          	sfpload	L1, 0, 0, 3
+    736c:	c400fe01          	sfploadi	L0, 16256, 0
+    7370:	00000713          	li	a4, 0
+    7374:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    7378:	3c000002          	sfpnop
+    737c:	00070693          	mv	a3, a4
+    7380:	00170713          	addi	a4, a4, 1
+    7384:	fef698e3          	bne	a3, a5, 7374 <void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)+0x38>
+    7388:	c8030001          	sfpstore	0, L0, 0, 3
+    738c:	e0020000          	ttincrwc	0, 2, 0, 0
+    7390:	c0430001          	sfpload	L1, 0, 0, 3
+    7394:	c400fe01          	sfploadi	L0, 16256, 0
+    7398:	00000713          	li	a4, 0
+    739c:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    73a0:	3c000002          	sfpnop
+    73a4:	00070693          	mv	a3, a4
+    73a8:	00170713          	addi	a4, a4, 1
+    73ac:	fef698e3          	bne	a3, a5, 739c <void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)+0x60>
+    73b0:	c8030001          	sfpstore	0, L0, 0, 3
+    73b4:	e0020000          	ttincrwc	0, 2, 0, 0
+    73b8:	c0430001          	sfpload	L1, 0, 0, 3
+    73bc:	c400fe01          	sfploadi	L0, 16256, 0
+    73c0:	00000713          	li	a4, 0
+    73c4:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    73c8:	3c000002          	sfpnop
+    73cc:	00070693          	mv	a3, a4
+    73d0:	00170713          	addi	a4, a4, 1
+    73d4:	fef698e3          	bne	a3, a5, 73c4 <void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)+0x88>
+    73d8:	c8030001          	sfpstore	0, L0, 0, 3
+    73dc:	e0020000          	ttincrwc	0, 2, 0, 0
+    73e0:	c0430001          	sfpload	L1, 0, 0, 3
+    73e4:	c400fe01          	sfploadi	L0, 16256, 0
+    73e8:	00000713          	li	a4, 0
+    73ec:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    73f0:	3c000002          	sfpnop
+    73f4:	00070693          	mv	a3, a4
+    73f8:	00170713          	addi	a4, a4, 1
+    73fc:	fef698e3          	bne	a3, a5, 73ec <void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)+0xb0>
+    7400:	c8030001          	sfpstore	0, L0, 0, 3
+    7404:	e0020000          	ttincrwc	0, 2, 0, 0
+    7408:	c0430001          	sfpload	L1, 0, 0, 3
+    740c:	c400fe01          	sfploadi	L0, 16256, 0
+    7410:	00000713          	li	a4, 0
+    7414:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    7418:	3c000002          	sfpnop
+    741c:	00070693          	mv	a3, a4
+    7420:	00170713          	addi	a4, a4, 1
+    7424:	fef698e3          	bne	a3, a5, 7414 <void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)+0xd8>
+    7428:	c8030001          	sfpstore	0, L0, 0, 3
+    742c:	e0020000          	ttincrwc	0, 2, 0, 0
+    7430:	c0430001          	sfpload	L1, 0, 0, 3
+    7434:	c400fe01          	sfploadi	L0, 16256, 0
+    7438:	00000713          	li	a4, 0
+    743c:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    7440:	3c000002          	sfpnop
+    7444:	00070693          	mv	a3, a4
+    7448:	00170713          	addi	a4, a4, 1
+    744c:	fed798e3          	bne	a5, a3, 743c <void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)+0x100>
+    7450:	c8030001          	sfpstore	0, L0, 0, 3
+    7454:	e0020000          	ttincrwc	0, 2, 0, 0
+    7458:	c0430001          	sfpload	L1, 0, 0, 3
+    745c:	c400fe01          	sfploadi	L0, 16256, 0
+    7460:	00000713          	li	a4, 0
+    7464:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    7468:	3c000002          	sfpnop
+    746c:	00070693          	mv	a3, a4
+    7470:	00170713          	addi	a4, a4, 1
+    7474:	fed798e3          	bne	a5, a3, 7464 <void ckernel::sfpu::calculate_power_iterative<true, 8>(unsigned long)+0x128>
+    7478:	c8030001          	sfpstore	0, L0, 0, 3
+    747c:	e0020000          	ttincrwc	0, 2, 0, 0
+    7480:	00008067          	ret
+    7484:	1000010c          	ttreplay	0, 4, 1, 1
+    7488:	c8030001          	sfpstore	0, L0, 0, 3
+    748c:	e0020000          	ttincrwc	0, 2, 0, 0
+    7490:	c0030001          	sfpload	L0, 0, 0, 3
+    7494:	c400fe01          	sfploadi	L0, 16256, 0
+    7498:	10000100          	ttreplay	0, 4, 0, 0
+    749c:	10000100          	ttreplay	0, 4, 0, 0
+    74a0:	10000100          	ttreplay	0, 4, 0, 0
+    74a4:	10000100          	ttreplay	0, 4, 0, 0
+    74a8:	10000100          	ttreplay	0, 4, 0, 0
+    74ac:	10000100          	ttreplay	0, 4, 0, 0
+    74b0:	10000080          	ttreplay	0, 2, 0, 0
+    74b4:	00008067          	ret
+
+000074b8 <kernel_launch()>:
+    74b8:	fd010113          	addi	sp, sp, -48
+    74bc:	ffb00537          	lui	a0, 0xffb00
+    74c0:	ffb007b7          	lui	a5, 0xffb00
+    74c4:	02112623          	sw	ra, 44(sp)
+    74c8:	02812423          	sw	s0, 40(sp)
+    74cc:	02912223          	sw	s1, 36(sp)
+    74d0:	03212023          	sw	s2, 32(sp)
+    74d4:	01312e23          	sw	s3, 28(sp)
+    74d8:	01412c23          	sw	s4, 24(sp)
+    74dc:	01512a23          	sw	s5, 20(sp)
+    74e0:	02050613          	addi	a2, a0, 32 # ffb00020 <__stack_top+0xfffff820>
+    74e4:	02078793          	addi	a5, a5, 32 # ffb00020 <__stack_top+0xfffff820>
+    74e8:	00f60a63          	beq	a2, a5, 74fc <kernel_launch()+0x44>
+    74ec:	40c78633          	sub	a2, a5, a2
+    74f0:	00000593          	li	a1, 0
+    74f4:	02050513          	addi	a0, a0, 32
+    74f8:	d15ff0ef          	jal	ra, 720c <memset>
+    74fc:	ffb00737          	lui	a4, 0xffb00
+    7500:	ffb007b7          	lui	a5, 0xffb00
+    7504:	02070513          	addi	a0, a4, 32 # ffb00020 <__stack_top+0xfffff820>
+    7508:	02078793          	addi	a5, a5, 32 # ffb00020 <__stack_top+0xfffff820>
+    750c:	40a787b3          	sub	a5, a5, a0
+    7510:	005005b7          	lui	a1, 0x500
+    7514:	000116b7          	lui	a3, 0x11
+    7518:	76068693          	addi	a3, a3, 1888 # 11760 <memcpy+0x9e78>
+    751c:	0027d793          	srli	a5, a5, 0x2
+    7520:	00b505b3          	add	a1, a0, a1
+    7524:	00d585b3          	add	a1, a1, a3
+    7528:	ffb78813          	addi	a6, a5, -5
+    752c:	02070713          	addi	a4, a4, 32
+    7530:	00000613          	li	a2, 0
+    7534:	00058693          	mv	a3, a1
+    7538:	05005263          	blez	a6, 757c <kernel_launch()+0xc4>
+    753c:	0006af83          	lw	t6, 0(a3)
+    7540:	0046af03          	lw	t5, 4(a3)
+    7544:	0086ae83          	lw	t4, 8(a3)
+    7548:	00c6ae03          	lw	t3, 12(a3)
+    754c:	0106a303          	lw	t1, 16(a3)
+    7550:	0146a883          	lw	a7, 20(a3)
+    7554:	00660613          	addi	a2, a2, 6
+    7558:	01f72023          	sw	t6, 0(a4)
+    755c:	01e72223          	sw	t5, 4(a4)
+    7560:	01d72423          	sw	t4, 8(a4)
+    7564:	01c72623          	sw	t3, 12(a4)
+    7568:	00672823          	sw	t1, 16(a4)
+    756c:	01172a23          	sw	a7, 20(a4)
+    7570:	01868693          	addi	a3, a3, 24
+    7574:	01870713          	addi	a4, a4, 24
+    7578:	fd0642e3          	blt	a2, a6, 753c <kernel_launch()+0x84>
+    757c:	00f65e63          	bge	a2, a5, 7598 <kernel_launch()+0xe0>
+    7580:	00261713          	slli	a4, a2, 0x2
+    7584:	40c78633          	sub	a2, a5, a2
+    7588:	00261613          	slli	a2, a2, 0x2
+    758c:	00e585b3          	add	a1, a1, a4
+    7590:	00e50533          	add	a0, a0, a4
+    7594:	354000ef          	jal	ra, 78e8 <memcpy>
+    7598:	ffb004b7          	lui	s1, 0xffb00
+    759c:	ffb00437          	lui	s0, 0xffb00
+    75a0:	02048493          	addi	s1, s1, 32 # ffb00020 <__stack_top+0xfffff820>
+    75a4:	02040413          	addi	s0, s0, 32 # ffb00020 <__stack_top+0xfffff820>
+    75a8:	00947a63          	bgeu	s0, s1, 75bc <kernel_launch()+0x104>
+    75ac:	00042783          	lw	a5, 0(s0)
+    75b0:	00440413          	addi	s0, s0, 4
+    75b4:	000780e7          	jalr	a5
+    75b8:	fe946ae3          	bltu	s0, s1, 75ac <kernel_launch()+0xf4>
+    75bc:	ffb127b7          	lui	a5, 0xffb12
+    75c0:	0607a423          	sw	zero, 104(a5) # ffb12068 <__stack_top+0x11868>
+    75c4:	c8240002          	ttsetc16	9, 0
+    75c8:	c8600002          	ttsetc16	24, 0
+    75cc:	c8c40002          	ttsetc16	49, 0
+    75d0:	ffe407b7          	lui	a5, 0xffe40
+    75d4:	10188737          	lui	a4, 0x10188
+    75d8:	00e7a023          	sw	a4, 0(a5) # ffe40000 <__stack_top+0x33f800>
+    75dc:	00012423          	sw	zero, 8(sp)
+    75e0:	ffb007b7          	lui	a5, 0xffb00
+    75e4:	00c7a783          	lw	a5, 12(a5) # ffb0000c <__stack_top+0xfffff80c>
+    75e8:	00812683          	lw	a3, 8(sp)
+    75ec:	ffe80737          	lui	a4, 0xffe80
+    75f0:	0007aa03          	lw	s4, 0(a5)
+    75f4:	0047af83          	lw	t6, 4(a5)
+    75f8:	00c7ae03          	lw	t3, 12(a5)
+    75fc:	00d72223          	sw	a3, 4(a4) # ffe80004 <__stack_top+0x37f804>
+    7600:	00472783          	lw	a5, 4(a4)
+    7604:	00f12423          	sw	a5, 8(sp)
+    7608:	02472783          	lw	a5, 36(a4)
+    760c:	0ff7f793          	zext.b	a5, a5
+    7610:	fe079ce3          	bnez	a5, 7608 <kernel_launch()+0x150>
+    7614:	8c800022          	ttseminit	2, 0, 2
+    7618:	ffb006b7          	lui	a3, 0xffb00
+    761c:	0006a023          	sw	zero, 0(a3) # ffb00000 <__stack_top+0xfffff800>
+    7620:	ffe407b7          	lui	a5, 0xffe40
+    7624:	b2010737          	lui	a4, 0xb2010
+    7628:	00e7a023          	sw	a4, 0(a5) # ffe40000 <__stack_top+0x33f800>
+    762c:	1a0a0c63          	beqz	s4, 77e4 <kernel_launch()+0x32c>
+    7630:	1a0f8a63          	beqz	t6, 77e4 <kernel_launch()+0x32c>
+    7634:	b20103b7          	lui	t2, 0xb2010
+    7638:	37c00eb7          	lui	t4, 0x37c00
+    763c:	00000913          	li	s2, 0
+    7640:	ffe80337          	lui	t1, 0xffe80
+    7644:	ffb807b7          	lui	a5, 0xffb80
+    7648:	00400493          	li	s1, 4
+    764c:	00200413          	li	s0, 2
+    7650:	02000537          	lui	a0, 0x2000
+    7654:	003e8e93          	addi	t4, t4, 3 # 37c00003 <memcpy+0x37bf871b>
+    7658:	120125b7          	lui	a1, 0x12012
+    765c:	20038893          	addi	a7, t2, 512 # b2010200 <__stack_top+0xb250fa00>
+    7660:	ffe40637          	lui	a2, 0xffe40
+    7664:	00100293          	li	t0, 1
+    7668:	00000813          	li	a6, 0
+    766c:	00c78993          	addi	s3, a5, 12 # ffb8000c <__stack_top+0x7f80c>
+    7670:	9a84002a          	ttsemwait	322, 2, 2
+    7674:	c81c0006          	ttsetc16	7, 1
+    7678:	c85c0006          	ttsetc16	23, 1
+    767c:	c8c00002          	ttsetc16	48, 0
+    7680:	c82c0022          	ttsetc16	11, 8
+    7684:	c8640022          	ttsetc16	25, 8
+    7688:	c8c80002          	ttsetc16	50, 0
+    768c:	00012623          	sw	zero, 12(sp)
+    7690:	00c12703          	lw	a4, 12(sp)
+    7694:	00e32423          	sw	a4, 8(t1) # ffe80008 <__stack_top+0x37f808>
+    7698:	00832703          	lw	a4, 8(t1)
+    769c:	00e12623          	sw	a4, 12(sp)
+    76a0:	0097a023          	sw	s1, 0(a5)
+    76a4:	0087a223          	sw	s0, 4(a5)
+    76a8:	00a7a423          	sw	a0, 8(a5)
+    76ac:	01d9a023          	sw	t4, 0(s3)
+    76b0:	00a7a823          	sw	a0, 16(a5)
+    76b4:	00b7aa23          	sw	a1, 20(a5)
+    76b8:	00a7ac23          	sw	a0, 24(a5)
+    76bc:	00b7ae23          	sw	a1, 28(a5)
+    76c0:	02b7a023          	sw	a1, 32(a5)
+    76c4:	c8140002          	ttsetc16	5, 0
+    76c8:	dc00003c          	ttsetrwc	0, 0, 0, 0, 0, 15
+    76cc:	0006af03          	lw	t5, 0(a3)
+    76d0:	00088713          	mv	a4, a7
+    76d4:	000f1463          	bnez	t5, 76dc <kernel_launch()+0x224>
+    76d8:	b2010737          	lui	a4, 0xb2010
+    76dc:	00e62023          	sw	a4, 0(a2) # ffe40000 <__stack_top+0x33f800>
+    76e0:	06000000          	ttmop	1, 0, 0
+    76e4:	dc000010          	ttsetrwc	0, 0, 0, 0, 0, 4
+    76e8:	c4280001          	sfploadi	L0, 0, 10
+    76ec:	c4200001          	sfploadi	L0, 0, 8
+    76f0:	440003c2          	sfpconfig	L15, 0, 0
+    76f4:	c8540002          	ttsetc16	21, 0
+    76f8:	c8780002          	ttsetc16	30, 0
+    76fc:	c8dc0002          	ttsetc16	55, 0
+    7700:	dc00003c          	ttsetrwc	0, 0, 0, 0, 0, 15
+    7704:	0006af03          	lw	t5, 0(a3)
+    7708:	00088713          	mv	a4, a7
+    770c:	000f1463          	bnez	t5, 7714 <kernel_launch()+0x25c>
+    7710:	b2010737          	lui	a4, 0xb2010
+    7714:	00e62023          	sw	a4, 0(a2)
+    7718:	c8080006          	ttsetc16	2, 1
+    771c:	8a000202          	ttstallwait	256, 128
+    7720:	00400f13          	li	t5, 4
+    7724:	c0430001          	sfpload	L1, 0, 0, 3
+    7728:	c400fe01          	sfploadi	L0, 16256, 0
+    772c:	0c0e0e63          	beqz	t3, 7808 <kernel_launch()+0x350>
+    7730:	00000713          	li	a4, 0
+    7734:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    7738:	3c000002          	sfpnop
+    773c:	00170713          	addi	a4, a4, 1 # b2010001 <__stack_top+0xb250f801>
+    7740:	feee1ae3          	bne	t3, a4, 7734 <kernel_launch()+0x27c>
+    7744:	c8030001          	sfpstore	0, L0, 0, 3
+    7748:	e0020000          	ttincrwc	0, 2, 0, 0
+    774c:	c0430001          	sfpload	L1, 0, 0, 3
+    7750:	c400fe01          	sfploadi	L0, 16256, 0
+    7754:	00000713          	li	a4, 0
+    7758:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    775c:	3c000002          	sfpnop
+    7760:	00170713          	addi	a4, a4, 1
+    7764:	feee1ae3          	bne	t3, a4, 7758 <kernel_launch()+0x2a0>
+    7768:	c8030001          	sfpstore	0, L0, 0, 3
+    776c:	e0020000          	ttincrwc	0, 2, 0, 0
+    7770:	c0430001          	sfpload	L1, 0, 0, 3
+    7774:	c400fe01          	sfploadi	L0, 16256, 0
+    7778:	00000713          	li	a4, 0
+    777c:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    7780:	3c000002          	sfpnop
+    7784:	00170713          	addi	a4, a4, 1
+    7788:	feee1ae3          	bne	t3, a4, 777c <kernel_launch()+0x2c4>
+    778c:	0940006f          	j	7820 <kernel_launch()+0x368>
+    7790:	c8030001          	sfpstore	0, L0, 0, 3
+    7794:	e0020000          	ttincrwc	0, 2, 0, 0
+    7798:	dc480010          	ttsetrwc	0, 4, 8, 8, 0, 4
+    779c:	dc480010          	ttsetrwc	0, 4, 8, 8, 0, 4
+    77a0:	ffff0f13          	addi	t5, t5, -1
+    77a4:	f80f10e3          	bnez	t5, 7724 <kernel_launch()+0x26c>
+    77a8:	dc000010          	ttsetrwc	0, 0, 0, 0, 0, 4
+    77ac:	89010002          	ttstallwait	128, 16384
+    77b0:	c8080002          	ttsetc16	2, 0
+    77b4:	88050202          	ttstallwait	2, 16512
+    77b8:	90000022          	ttsempost	2
+    77bc:	0006a703          	lw	a4, 0(a3)
+    77c0:	40e28733          	sub	a4, t0, a4
+    77c4:	00e6a023          	sw	a4, 0(a3)
+    77c8:	10071663          	bnez	a4, 78d4 <kernel_launch()+0x41c>
+    77cc:	89010202          	ttstallwait	128, 16512
+    77d0:	00762023          	sw	t2, 0(a2)
+    77d4:	00180813          	addi	a6, a6, 1
+    77d8:	e90f9ce3          	bne	t6, a6, 7670 <kernel_launch()+0x1b8>
+    77dc:	00190913          	addi	s2, s2, 1
+    77e0:	e92a14e3          	bne	s4, s2, 7668 <kernel_launch()+0x1b0>
+    77e4:	02c12083          	lw	ra, 44(sp)
+    77e8:	02812403          	lw	s0, 40(sp)
+    77ec:	02412483          	lw	s1, 36(sp)
+    77f0:	02012903          	lw	s2, 32(sp)
+    77f4:	01c12983          	lw	s3, 28(sp)
+    77f8:	01812a03          	lw	s4, 24(sp)
+    77fc:	01412a83          	lw	s5, 20(sp)
+    7800:	03010113          	addi	sp, sp, 48
+    7804:	00008067          	ret
+    7808:	1000010c          	ttreplay	0, 4, 1, 1
+    780c:	c8030001          	sfpstore	0, L0, 0, 3
+    7810:	e0020000          	ttincrwc	0, 2, 0, 0
+    7814:	c0030001          	sfpload	L0, 0, 0, 3
+    7818:	c400fe01          	sfploadi	L0, 16256, 0
+    781c:	10000100          	ttreplay	0, 4, 0, 0
+    7820:	c8030001          	sfpstore	0, L0, 0, 3
+    7824:	e0020000          	ttincrwc	0, 2, 0, 0
+    7828:	c0430001          	sfpload	L1, 0, 0, 3
+    782c:	c400fe01          	sfploadi	L0, 16256, 0
+    7830:	00000713          	li	a4, 0
+    7834:	00ee0863          	beq	t3, a4, 7844 <kernel_launch()+0x38c>
+    7838:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    783c:	00170713          	addi	a4, a4, 1
+    7840:	ff5ff06f          	j	7834 <kernel_launch()+0x37c>
+    7844:	c8030001          	sfpstore	0, L0, 0, 3
+    7848:	e0020000          	ttincrwc	0, 2, 0, 0
+    784c:	c0430001          	sfpload	L1, 0, 0, 3
+    7850:	c400fe01          	sfploadi	L0, 16256, 0
+    7854:	00000a93          	li	s5, 0
+    7858:	01570863          	beq	a4, s5, 7868 <kernel_launch()+0x3b0>
+    785c:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    7860:	001a8a93          	addi	s5, s5, 1
+    7864:	ff5ff06f          	j	7858 <kernel_launch()+0x3a0>
+    7868:	c8030001          	sfpstore	0, L0, 0, 3
+    786c:	e0020000          	ttincrwc	0, 2, 0, 0
+    7870:	c0430001          	sfpload	L1, 0, 0, 3
+    7874:	c400fe01          	sfploadi	L0, 16256, 0
+    7878:	00000a93          	li	s5, 0
+    787c:	01570863          	beq	a4, s5, 788c <kernel_launch()+0x3d4>
+    7880:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    7884:	001a8a93          	addi	s5, s5, 1
+    7888:	ff5ff06f          	j	787c <kernel_launch()+0x3c4>
+    788c:	c8030001          	sfpstore	0, L0, 0, 3
+    7890:	e0020000          	ttincrwc	0, 2, 0, 0
+    7894:	c0430001          	sfpload	L1, 0, 0, 3
+    7898:	c400fe01          	sfploadi	L0, 16256, 0
+    789c:	00000a93          	li	s5, 0
+    78a0:	01570863          	beq	a4, s5, 78b0 <kernel_launch()+0x3f8>
+    78a4:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    78a8:	001a8a93          	addi	s5, s5, 1
+    78ac:	ff5ff06f          	j	78a0 <kernel_launch()+0x3e8>
+    78b0:	c8030001          	sfpstore	0, L0, 0, 3
+    78b4:	e0020000          	ttincrwc	0, 2, 0, 0
+    78b8:	c0430001          	sfpload	L1, 0, 0, 3
+    78bc:	c400fe01          	sfploadi	L0, 16256, 0
+    78c0:	00000a93          	li	s5, 0
+    78c4:	ed5706e3          	beq	a4, s5, 7790 <kernel_launch()+0x2d8>
+    78c8:	18006402          	sfpmul	L0, L0, L1, L9, 0
+    78cc:	001a8a93          	addi	s5, s5, 1
+    78d0:	ff5ff06f          	j	78c4 <kernel_launch()+0x40c>
+    78d4:	89010202          	ttstallwait	128, 16512
+    78d8:	01162023          	sw	a7, 0(a2)
+    78dc:	00180813          	addi	a6, a6, 1
+    78e0:	d90f98e3          	bne	t6, a6, 7670 <kernel_launch()+0x1b8>
+    78e4:	ef9ff06f          	j	77dc <kernel_launch()+0x324>
+
+000078e8 <memcpy>:
+    78e8:	00a5c7b3          	xor	a5, a1, a0
+    78ec:	0037f793          	andi	a5, a5, 3
+    78f0:	00c508b3          	add	a7, a0, a2
+    78f4:	06079663          	bnez	a5, 7960 <memcpy+0x78>
+    78f8:	00300793          	li	a5, 3
+    78fc:	06c7f263          	bgeu	a5, a2, 7960 <memcpy+0x78>
+    7900:	00357793          	andi	a5, a0, 3
+    7904:	00050713          	mv	a4, a0
+    7908:	0c079a63          	bnez	a5, 79dc <memcpy+0xf4>
+    790c:	ffc8f613          	andi	a2, a7, -4
+    7910:	40e606b3          	sub	a3, a2, a4
+    7914:	02000793          	li	a5, 32
+    7918:	02000293          	li	t0, 32
+    791c:	06d7c263          	blt	a5, a3, 7980 <memcpy+0x98>
+    7920:	00058693          	mv	a3, a1
+    7924:	00070793          	mv	a5, a4
+    7928:	02c77863          	bgeu	a4, a2, 7958 <memcpy+0x70>
+    792c:	0006a803          	lw	a6, 0(a3)
+    7930:	00478793          	addi	a5, a5, 4
+    7934:	00468693          	addi	a3, a3, 4
+    7938:	ff07ae23          	sw	a6, -4(a5)
+    793c:	fec7e8e3          	bltu	a5, a2, 792c <memcpy+0x44>
+    7940:	fff60793          	addi	a5, a2, -1
+    7944:	40e787b3          	sub	a5, a5, a4
+    7948:	ffc7f793          	andi	a5, a5, -4
+    794c:	00478793          	addi	a5, a5, 4
+    7950:	00f70733          	add	a4, a4, a5
+    7954:	00f585b3          	add	a1, a1, a5
+    7958:	01176863          	bltu	a4, a7, 7968 <memcpy+0x80>
+    795c:	00008067          	ret
+    7960:	00050713          	mv	a4, a0
+    7964:	ff157ce3          	bgeu	a0, a7, 795c <memcpy+0x74>
+    7968:	0005c783          	lbu	a5, 0(a1) # 12012000 <memcpy+0x1200a718>
+    796c:	00170713          	addi	a4, a4, 1
+    7970:	00158593          	addi	a1, a1, 1
+    7974:	fef70fa3          	sb	a5, -1(a4)
+    7978:	ff1768e3          	bltu	a4, a7, 7968 <memcpy+0x80>
+    797c:	00008067          	ret
+    7980:	0045a683          	lw	a3, 4(a1)
+    7984:	01c5a783          	lw	a5, 28(a1)
+    7988:	0005af83          	lw	t6, 0(a1)
+    798c:	0085af03          	lw	t5, 8(a1)
+    7990:	00c5ae83          	lw	t4, 12(a1)
+    7994:	0105ae03          	lw	t3, 16(a1)
+    7998:	0145a303          	lw	t1, 20(a1)
+    799c:	0185a803          	lw	a6, 24(a1)
+    79a0:	00d72223          	sw	a3, 4(a4)
+    79a4:	0205a683          	lw	a3, 32(a1)
+    79a8:	01f72023          	sw	t6, 0(a4)
+    79ac:	01e72423          	sw	t5, 8(a4)
+    79b0:	01d72623          	sw	t4, 12(a4)
+    79b4:	01c72823          	sw	t3, 16(a4)
+    79b8:	00672a23          	sw	t1, 20(a4)
+    79bc:	01072c23          	sw	a6, 24(a4)
+    79c0:	00f72e23          	sw	a5, 28(a4)
+    79c4:	02470713          	addi	a4, a4, 36
+    79c8:	40e607b3          	sub	a5, a2, a4
+    79cc:	fed72e23          	sw	a3, -4(a4)
+    79d0:	02458593          	addi	a1, a1, 36
+    79d4:	faf2c6e3          	blt	t0, a5, 7980 <memcpy+0x98>
+    79d8:	f49ff06f          	j	7920 <memcpy+0x38>
+    79dc:	0005c683          	lbu	a3, 0(a1)
+    79e0:	00170713          	addi	a4, a4, 1
+    79e4:	00377793          	andi	a5, a4, 3
+    79e8:	fed70fa3          	sb	a3, -1(a4)
+    79ec:	00158593          	addi	a1, a1, 1
+    79f0:	f0078ee3          	beqz	a5, 790c <memcpy+0x24>
+    79f4:	0005c683          	lbu	a3, 0(a1)
+    79f8:	00170713          	addi	a4, a4, 1
+    79fc:	00377793          	andi	a5, a4, 3
+    7a00:	fed70fa3          	sb	a3, -1(a4)
+    7a04:	00158593          	addi	a1, a1, 1
+    7a08:	fc079ae3          	bnez	a5, 79dc <memcpy+0xf4>
+    7a0c:	f01ff06f          	j	790c <memcpy+0x24>
+
+Disassembly of section .stack:
+
+ffb00700 <__stack_bottom>:
+	...
+
+Disassembly of section .comment:
+
+00000000 <.comment>:
+   0:	3a434347          	fmsub.d	ft6, ft6, ft4, ft7, rmm
+   4:	4e472820          	ttmovb2d	1, 8, 3, 0, 2568
+   8:	31202955          	0x4c480a55
+   c:	2e322e30          	ttmovb2a	70, 1, 0, 2956
+  10:	          	0xc
+
+Disassembly of section .riscv.attributes:
+
+00000000 <.riscv.attributes>:
+   0:	00002541          	ttxmov	0, 2384
+   4:	73697200          	ttsetashrmv	14310528
+   8:	01007663          	bgeu	zero, a6, 14 <__firmware_stack_size-0xec>
+   c:	0000001b          	sfpload	L0, 27, 0
+  10:	72051004          	ttsetashrmv	8471553
+  14:	69323376          	0x9a4c8cdd
+  18:	5f307032          	0x97cc1c0c
+  1c:	3070326d          	0x4c1c0c9b
+  20:	7032775f          	0x7032775f
+  24:	          	0xc

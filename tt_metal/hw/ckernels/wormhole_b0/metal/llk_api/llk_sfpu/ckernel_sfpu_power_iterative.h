@@ -23,6 +23,7 @@ inline void calculate_power_iterative(const uint exponent)
         vFloat result = 1.0f;
         for (uint i = 0; i < exponent; i++) {
             result *= in;
+	    // TTI_SFPNOP;
         }
 	    dst_reg[0]=result;
         dst_reg++;

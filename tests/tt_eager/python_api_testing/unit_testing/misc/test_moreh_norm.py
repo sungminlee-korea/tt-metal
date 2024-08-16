@@ -20,6 +20,7 @@ from tests.tt_eager.python_api_testing.unit_testing.misc.test_utils import (
     TILE_WIDTH,
 )
 
+
 @pytest.mark.parametrize("p", [1.0])
 @pytest.mark.parametrize(
     "dim_rtol_atol",
@@ -54,8 +55,14 @@ def test_moreh_norm(input_shape, p, dim_rtol_atol, keepdim, device):
 
     npu_y = ttl.operations.primary.moreh_norm(npu_x, p=p, dim=dim)
 
+    cpu_tensor_x = npu_x.cpu().to(ttl.tensor.Layout.ROW_MAJOR).unpad_from_tile([1, 1, 32, 32]).to_torch()
+
+    torch.set_printoptions(precision=5, sci_mode=False, linewidth=500, threshold=10000, edgeitems=32)
+    print("cpu_npu_x", cpu_tensor_x)
+
+    print("npu_x", npu_x)
     print("npu_y", npu_y)
 
-    cpu_tensor = npu_y.cpu().to(ttl.tensor.Layout.ROW_MAJOR).unpad_from_tile([1, 1, 7, 7]).to_torch()
+    cpu_tensor = npu_y.cpu().to(ttl.tensor.Layout.ROW_MAJOR).unpad_from_tile([1, 1, 32, 32]).to_torch()
 
     print("cpu_tensor", cpu_tensor)

@@ -3,7 +3,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ttnn/cpp/ttnn/deprecated/tt_dnn/kernels/dataflow/moreh_common.hpp"
+/*
+#include "debug/dprint.h"
 
+inline void print_full_tile(uint32_t cb_id, uint32_t tile_id = 0, bool untilize = false) {
+    DPRINT << "======" << ENDL();
+    for (int32_t r = 0; r < 32; ++ r) {
+        SliceRange sr = SliceRange{.h0 = r, .h1 = r+1, .hs = 1, .w0 = 0, .w1 = 64, .ws = 2};
+        DPRINT << (uint) r << TileSlice(cb_id, tile_id, sr, true, untilize) << ENDL();
+    }
+    DPRINT << "++++++" << ENDL();
+}
+*/
 void kernel_main() {
     int i{0};
     const auto input_addr = get_arg_val<uint32_t>(i++);
