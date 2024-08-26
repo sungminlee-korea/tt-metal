@@ -459,3 +459,44 @@ def test_moreh_test1(shape, compute_kernel_options, device):
     logger.debug(f"tt_output {tt_output}")
     passing = torch.equal(torch_input, tt_output_cpu)
     logger.debug(f"passing {passing}")
+
+
+@pytest.mark.parametrize(
+    "shape",
+    ([32, 32],),
+    ids=["32, 32"],
+)
+@pytest.mark.parametrize("compute_kernel_options", compute_kernel_options, ids=compute_kernel_ids)
+def test_moreh_test2(shape, compute_kernel_options, device):
+    passing = True
+    npu_dtype = ttnn.bfloat16
+    npu_dtype2 = ttnn.uint8
+    npu_layout = ttnn.TILE_LAYOUT
+    torch_input = torch.randint(0, 256, shape)
+    tt_input = ttnn.Tensor(torch_input, npu_dtype).to(npu_layout).to(device)
+
+    torch_input2 = torch.randint(0, 256, shape)
+    tt_input2 = ttnn.Tensor(torch_input2, npu_dtype2).to(npu_layout).to(device)
+
+    torch_output = torch.zeros(shape)
+    tt_output = ttnn.Tensor(torch_output, npu_dtype).to(npu_layout).to(device)
+
+    compute_kernel_config = get_compute_kernel_options(compute_kernel_options)
+
+    cpu_layout = ttnn.ROW_MAJOR_LAYOUT
+    ttnn.experimental.operations.primary.moreh_test(
+        tt_input,
+        tt_input2,
+        output=tt_output,
+        compute_kernel_config=compute_kernel_config,
+    )
+    tt_output_cpu = tt_output.cpu().to(cpu_layout).to_torch()
+
+    torch.set_printoptions(threshold=1000000, linewidth=100000000, sci_mode=False)
+    logger.debug(f"fp32_dest_acc_en = {compute_kernel_options}")
+    logger.debug(f"torch_input {torch_input}")
+    logger.debug(f"tt_output_cpu {tt_output_cpu}")
+    logger.debug(f"tt_input {tt_input}")
+    logger.debug(f"tt_output {tt_output}")
+    passing = torch.equal(torch_input, tt_output_cpu)
+    logger.debug(f"passing {passing}")

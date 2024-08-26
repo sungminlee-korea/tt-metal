@@ -23,14 +23,22 @@ void kernel_main() {
     const InterleavedAddrGenFast<output_is_dram> output_addrg = {
         .bank_base_address = output_addr, .page_size = output_tile_bytes, .data_format = output_data_format};
 
-    DPRINT <<" writer ! " << output_addr << " "  << num_output_tiles << " " << output_tile_bytes << "\n";
     for (uint32_t i = 0; i < num_output_tiles; ++i) {
         uint32_t write_tile_id{start_id + i};
         cb_wait_front(cb_id_out0, onetile);
+        // {
+        //     auto l1_read_addr = get_read_ptr(16);
+        //     auto l1_ptr = reinterpret_cast<volatile tt_l1_ptr uint16_t *>(l1_read_addr);
+        //     for (int k = 512; k < 512 + 16; ++k) {
+        //         DPRINT << i <<  " l1_ptr[" << k << "] =" << BF16(l1_ptr[k]) << "\n";
+        //     }
+        //     for (int k = 768; k < 768 + 16; ++k) {
+        //         DPRINT << i <<  " l1_ptr[" << k << "] =" << BF16(l1_ptr[k]) << "\n";
+        //     }
+        // }
         l1_read_addr = get_read_ptr(cb_id_out0);
         noc_async_write_tile(write_tile_id, output_addrg, l1_read_addr);
         noc_async_write_barrier();
         cb_pop_front(cb_id_out0, onetile);
     }
-    DPRINT <<" writer done! \n";
 }

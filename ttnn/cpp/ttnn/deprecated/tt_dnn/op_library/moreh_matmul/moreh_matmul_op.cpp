@@ -314,12 +314,14 @@ operation::ProgramWithCallbacks MorehTest::create_program(
     const std::vector<Tensor>& input_tensors,
     std::vector<Tensor>& output_tensors) const {
     const auto &input{input_tensors.at(0)};
+    const auto &input2{input_tensors.at(1)};
     const auto& output{output_tensors.at(0)};
-    return moreh_test_impl(input, output, this->compute_kernel_config);
+    return moreh_test_impl(input, input2, output, this->compute_kernel_config);
 }
 
 Tensor moreh_test(
     const Tensor& input,
+    const Tensor& input2,
     const std::optional<const Tensor> output,
     std::optional<const DeviceComputeKernelConfig> compute_kernel_config) {
     auto kernel_config_val =
@@ -336,7 +338,7 @@ Tensor moreh_test(
                 optional_input_tensors,
                 optional_output_tensors);
         },
-        {input},
+        {input, input2},
         output_tensors,
         {},
         {output});

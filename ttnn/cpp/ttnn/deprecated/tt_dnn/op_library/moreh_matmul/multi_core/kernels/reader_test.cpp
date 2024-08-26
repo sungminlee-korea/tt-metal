@@ -12,11 +12,13 @@ void kernel_main() {
     // runtime args
     ArgFetcher arg_fetcher;
     const auto input_addr {arg_fetcher.get_next_arg_val<uint32_t>()};
+    const auto input2_addr {arg_fetcher.get_next_arg_val<uint32_t>()};
     const auto num_input_tiles{arg_fetcher.get_next_arg_val<uint32_t>()};
-    const auto input_start_id{arg_fetcher.get_next_arg_val<uint32_t>()};
+    const auto start_id{arg_fetcher.get_next_arg_val<uint32_t>()};
 
     constexpr uint32_t onetile{1};
     constexpr uint32_t cb_id_in0{0};
+    constexpr uint32_t cb_id_in1{1};
 
     uint32_t input_tile_bytes{static_cast<uint32_t>(get_tile_size(cb_id_in0))};
     const auto input_data_format{get_dataformat(cb_id_in0)};
@@ -25,14 +27,31 @@ void kernel_main() {
         .page_size = input_tile_bytes,
         .data_format = input_data_format};
 
+    uint32_t input2_tile_bytes{static_cast<uint32_t>(get_tile_size(cb_id_in1))};
+    const auto input2_data_format{get_dataformat(cb_id_in1)};
+    const InterleavedAddrGenFast<input_is_dram> input2_addrg = {
+        .bank_base_address = input2_addr,
+        .page_size = input2_tile_bytes,
+        .data_format = input2_data_format};
+
+    DPRINT << " +_+ " << input_addr << " " <<input2_addr << " " << num_input_tiles << " \n" ;
+
     uint32_t l1_write_addr;
     for (uint32_t i = 0; i < num_input_tiles; ++i) {
-        uint32_t read_input_tile_id{input_start_id + i};
+        uint32_t read_input_tile_id{start_id + i};
         // read input tile
         cb_reserve_back(cb_id_in0, onetile);
         l1_write_addr = get_write_ptr(cb_id_in0);
         noc_async_read_tile(read_input_tile_id, input_addrg, l1_write_addr);
         noc_async_read_barrier();
         cb_push_back(cb_id_in0, onetile);
+
+        cb_reserve_back(cb_id_in1, onetile);
+        l1_write_addr = get_write_ptr(cb_id_in1);
+        noc_async_read_tile(read_input_tile_id, input2_addrg, l1_write_addr);
+        noc_async_read_barrier();
+        cb_push_back(cb_id_in1, onetile);
     }
+
+    DPRINT << "+_+ reader done\n";
 }
