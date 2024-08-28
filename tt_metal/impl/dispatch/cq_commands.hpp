@@ -50,7 +50,20 @@ enum CQDispatchCmdId : uint8_t {
     CQ_DISPATCH_CMD_REMOTE_WRITE = 13,      // dispatch_d issues write to address on L-Chip through dispatch_h
     CQ_DISPATCH_CMD_SET_WRITE_OFFSET = 14,  // set the offset to add to all non-host destination addresses (relocation)
     CQ_DISPATCH_CMD_TERMINATE = 15,         // quit
+    CQ_DISPATCH_CMD_GO_SIGNAL_MCAST = 16,
+    CQ_DISPATCH_CMD_SEM_UPDATE = 17,
+    CQ_DISPATCH_SET_UNICAST_ONLY_CORES = 18,
     CQ_DISPATCH_CMD_MAX_COUNT,              // for checking legal IDs
+};
+
+enum GoSignalMcastSettings : uint8_t {
+    SEND_MCAST = 1,
+    SEND_UNICAST = 2,
+};
+
+enum DispatcherSelect : uint8_t {
+    DISPATCH_MASTER = 0,
+    DISPATCH_SLAVE = 1,
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -109,7 +122,7 @@ struct CQPrefetchRelayPagedPackedSubCmd {
 constexpr uint32_t CQ_PREFETCH_CMD_RELAY_PAGED_PACKED_MAX_SUB_CMDS = 35;
 
 struct CQPrefetchRelayInlineCmd {
-    uint8_t pad1;
+    uint8_t dispatcher_type;
     uint16_t pad2;
     uint32_t length;
     uint32_t stride;          // explicit stride saves a few insns on device
@@ -261,6 +274,25 @@ struct CQDispatchSetWriteOffsetCmd {
     uint32_t offset2;
 } __attribute__((packed));
 
+struct CQDispatchSetUnicastOnlyCoresCmd {
+    uint8_t pad1;
+    uint16_t pad2;
+    uint32_t num_unicast_only_cores;
+} __attribute__ ((packed));
+
+struct CQDispatchGoSignalMcastCmd {
+    uint32_t go_signal;
+    uint8_t mcast_flag; // mcast or unicast or both
+    uint32_t wait_count;
+    uint32_t wait_addr;
+} __attribute__((packed));
+
+struct CQDispatchSemUpdate {
+    uint8_t pad1;
+    uint16_t pad2;
+    uint32_t pad3;
+} __attribute__((packed));
+
 struct CQDispatchCmd {
     CQDispatchBaseCmd base;
 
@@ -275,6 +307,8 @@ struct CQDispatchCmd {
         CQGenericDebugCmd debug;
         CQDispatchDelayCmd delay;
         CQDispatchSetWriteOffsetCmd set_write_offset;
+        CQDispatchGoSignalMcastCmd mcast;
+        CQDispatchSetUnicastOnlyCoresCmd set_unicast_only_cores;
     } __attribute__((packed));
 };
 

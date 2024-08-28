@@ -155,4 +155,17 @@ inline CoreCoord get_physical_core_coordinate(const tt_cxy_pair &logical_locatio
     return soc_desc.get_physical_core_from_logical_core(CoreCoord(logical_location.x, logical_location.y), core_type);
 }
 
+inline std::tuple<uint32_t, CoreRange> get_physical_worker_grid_config(chip_id_t chip, uint8_t num_hw_cqs, CoreType dispatch_core_type) {
+    // Get logical compute grid dimensions and num workers
+    auto worker_grid = tt::get_compute_grid_size(chip, num_hw_cqs, dispatch_core_type);
+    std::size_t tensix_num_worker_cols = worker_grid.x;
+    std::size_t tensix_num_worker_rows = worker_grid.y;
+    uint32_t tensix_num_worker_cores = tensix_num_worker_cols * tensix_num_worker_rows;
+    const metal_SocDescriptor &soc_desc = tt::Cluster::instance().get_soc_desc(chip);
+    // Get physical compute grid range based on SOC Desc and Logical Coords
+    CoreCoord tensix_worker_start_phys = soc_desc.get_physical_core_from_logical_core(CoreCoord(0, 0), CoreType::WORKER); // Logical Worker Coords start at 0,0
+    CoreCoord tensix_worker_end_phys = soc_desc.get_physical_core_from_logical_core(CoreCoord(tensix_num_worker_cols - 1, tensix_num_worker_rows - 1), CoreType::WORKER);
+    CoreRange tensix_worker_physical_grid = CoreRange(tensix_worker_start_phys, tensix_worker_end_phys);
+    return std::make_tuple(tensix_num_worker_cores, tensix_worker_physical_grid);
+}
 }   // namespace tt

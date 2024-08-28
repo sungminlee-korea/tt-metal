@@ -43,6 +43,7 @@ struct KernelGroup {
     uint32_t rta_sizes[DISPATCH_CLASS_MAX];
     uint32_t total_rta_size;
     launch_msg_t launch_msg;
+    go_msg_t go_msg;
 
     KernelGroup();
     KernelGroup(

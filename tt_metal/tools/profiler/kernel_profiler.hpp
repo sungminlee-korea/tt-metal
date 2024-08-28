@@ -361,21 +361,26 @@ namespace kernel_profiler{
 
         static_assert (start_index < CUSTOM_MARKERS);
         static_assert (end_index < CUSTOM_MARKERS);
-
-        inline __attribute__((always_inline)) profileScopeGuaranteed ()
+        bool condition = true;
+        inline __attribute__((always_inline)) profileScopeGuaranteed (bool condition)
         {
-            if constexpr  (index == 0)
-            {
-                init_profiler();
+            this->condition = condition;
+            if (this->condition) {
+                if constexpr  (index == 0)
+                {
+                    init_profiler();
+                }
+                mark_time_at_index_inlined(start_index, timer_id);
             }
-            mark_time_at_index_inlined(start_index, timer_id);
         }
         inline __attribute__((always_inline))  ~profileScopeGuaranteed ()
         {
-            mark_time_at_index_inlined(end_index, get_end_timer_id(timer_id));
-            if constexpr  (index == 0)
-            {
-                finish_profiler();
+            if (this->condition) {
+                mark_time_at_index_inlined(end_index, get_end_timer_id(timer_id));
+                if constexpr  (index == 0)
+                {
+                    finish_profiler();
+                }
             }
         }
     };
@@ -412,9 +417,11 @@ namespace kernel_profiler{
 
 #endif
 
-#define DeviceZoneScopedMainN( name ) DO_PRAGMA(message(PROFILER_MSG_NAME(name))); auto constexpr hash = kernel_profiler::Hash16_CT(PROFILER_MSG_NAME(name)); kernel_profiler::profileScopeGuaranteed<hash, 0> zone = kernel_profiler::profileScopeGuaranteed<hash, 0>();
+#define DeviceConditionalZoneScopedMainN( name, condition ) DO_PRAGMA(message(PROFILER_MSG_NAME(name))); auto constexpr hash = kernel_profiler::Hash16_CT(PROFILER_MSG_NAME(name)); kernel_profiler::profileScopeGuaranteed<hash, 0> zone = kernel_profiler::profileScopeGuaranteed<hash, 0>(condition);
 
-#define DeviceZoneScopedMainChildN( name ) DO_PRAGMA(message(PROFILER_MSG_NAME(name))); auto constexpr hash = kernel_profiler::Hash16_CT(PROFILER_MSG_NAME(name));kernel_profiler::profileScopeGuaranteed<hash, 1> zone = kernel_profiler::profileScopeGuaranteed<hash, 1>();
+#define DeviceZoneScopedMainN( name ) DO_PRAGMA(message(PROFILER_MSG_NAME(name))); auto constexpr hash = kernel_profiler::Hash16_CT(PROFILER_MSG_NAME(name)); kernel_profiler::profileScopeGuaranteed<hash, 0> zone = kernel_profiler::profileScopeGuaranteed<hash, 0>(true);
+
+#define DeviceZoneScopedMainChildN( name ) DO_PRAGMA(message(PROFILER_MSG_NAME(name))); auto constexpr hash = kernel_profiler::Hash16_CT(PROFILER_MSG_NAME(name));kernel_profiler::profileScopeGuaranteed<hash, 1> zone = kernel_profiler::profileScopeGuaranteed<hash, 1>(true);
 
 #define DeviceZoneScopedSumN1( name ) DO_PRAGMA(message(PROFILER_MSG_NAME(name))); auto constexpr hash = kernel_profiler::Hash16_CT(PROFILER_MSG_NAME(name)); kernel_profiler::profileScopeAccumulate<hash, 0> zone = kernel_profiler::profileScopeAccumulate<hash, 0>();
 
@@ -422,7 +429,10 @@ namespace kernel_profiler{
 
 #define DeviceZoneSetCounter( counter ) kernel_profiler::set_host_counter(counter);
 
+#define DeviceConditionalZoneSetCounter( counter, condition ) if (condition) { kernel_profiler::set_host_counter(counter); }
 #else
+
+#define DeviceConditionalZoneScopedMainN( name, condition )
 
 #define DeviceZoneScopedMainN( name )
 
@@ -438,4 +448,5 @@ namespace kernel_profiler{
 
 #define DeviceZoneSetCounter( counter )
 
+#define DeviceConditionalZoneSetCounter( counter, condition )
 #endif
