@@ -28,41 +28,32 @@ void MAIN {
     for (uint32_t i = 0; i < num_tiles; ++i) {
         uint32_t input_tile_id{start_id + i};
 
-        // dst0 = bf16 type input
         tile_regs_acquire();
-        cb_wait_front(cb_in0, onetile);
-        unpack_reconfig_data_format_srca(cb_in0);
-        copy_tile_to_dst_init_short(cb_in0);
-        copy_tile(cb_in0, 0, 0);
-
         // dst1 = uint8 type input2
         cb_wait_front(cb_in1, onetile);
         unpack_reconfig_data_format_srca(cb_in1);
         copy_tile_to_dst_init_short(cb_in1);
         copy_tile(cb_in1, 0, 1);
 
-        // SFPU function: write input to dst2
+        // SFPU function: write values 0.0 or 1.0 to dst2
         simple_tile_init();
         simple_tile(0, 0);
-// template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
 // inline void calculate_simple_tile(uint bit_index) {
 // #pragma GCC unroll 0
 //     for (int d = 0; d < ITERATIONS; d++) {
-//         vFloat input = dst_reg[0];
 //         vUInt mask = dst_reg[32];
 //         v_if (mask == 0) {
 //             dst_reg[64] = vConst0;
 //         }
-//         v_else { dst_reg[64] = input; } // always comes here
+//         v_else { dst_reg[64] = vConst1; }
 //         v_endif;
 //         dst_reg++;
 //     }
 // }
-        cb_pop_front(cb_in0, onetile);
         cb_pop_front(cb_in1, onetile);
         tile_regs_commit();
 
-        // intermed0 = pack input from dst2
+        // intermed0 = pack from dst2 to intermed0
         tile_regs_wait();
         cb_reserve_back(cb_intermed0, onetile);
         pack_reconfig_data_format(cb_intermed0);
@@ -70,7 +61,26 @@ void MAIN {
         cb_push_back(cb_intermed0, onetile);
         tile_regs_release();
 
-        // output (dst0) = input x 1.0f;
+        // output (dst0) = input x intermed0
+        tile_regs_acquire();
+        cb_wait_front(cb_in0, onetile);
+        cb_wait_front(cb_intermed0, onetile);
+        unpack_reconfig_data_format(cb_intermed0, cb_in0);
+        mul_tiles_init_with_dt(cb_intermed0, cb_in0);
+        mul_tiles(cb_intermed0, cb_in0, 0, 0, 0);
+        cb_pop_front(cb_intermed0, onetile);
+        cb_pop_front(cb_in0, onetile);
+        tile_regs_commit();
+
+        // intermed0 = pack from dst0 to intermed0 again
+        tile_regs_wait();
+        cb_reserve_back(cb_intermed0, onetile);
+        pack_reconfig_data_format(cb_intermed0);
+        pack_tile(0, cb_intermed0);
+        cb_push_back(cb_intermed0, onetile);
+        tile_regs_release();
+
+        // output (dst0) = intermed0 x 1.0f;
         tile_regs_acquire();
         cb_wait_front(cb_intermed0, onetile);
         unpack_reconfig_data_format(cb_intermed0, cb_in2);

@@ -21,12 +21,11 @@ template <bool APPROXIMATION_MODE, int ITERATIONS = 8>
 inline void calculate_simple_tile(uint bit_index) {
 #pragma GCC unroll 0
     for (int d = 0; d < ITERATIONS; d++) {
-        vFloat input = dst_reg[0];
         vUInt mask = dst_reg[32];
         v_if (mask == 0) {
             dst_reg[64] = vConst0;
         }
-        v_else { dst_reg[64] = input; }
+        v_else { dst_reg[64] = vConst1; }
         v_endif;
         dst_reg++;
     }
