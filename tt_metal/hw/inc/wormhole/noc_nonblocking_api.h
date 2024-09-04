@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include "noc_parameters.h"
+#include "debug/dprint.h"
 
 ////
 
@@ -58,11 +59,16 @@ inline __attribute__((always_inline)) void ncrisc_noc_fast_read(uint32_t noc, ui
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_TARG_ADDR_MID, src_addr >> 32);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_AT_LEN_BE, len_bytes);
   NOC_CMD_BUF_WRITE_REG(noc, cmd_buf, NOC_CMD_CTRL, NOC_CTRL_SEND_REQ);
+  DPRINT << "ncrisc fast read " << noc << " Before " << noc_reads_num_issued[noc] << " src address " << (uint32_t)src_addr << " dest address " << dest_addr << " len " << len_bytes << "\n";
   noc_reads_num_issued[noc] += 1;
+  DPRINT << "ncrisc fast read " << noc << " After " << noc_reads_num_issued[noc] << "\n";
 }
 
 inline __attribute__((always_inline)) bool ncrisc_noc_reads_flushed(uint32_t noc) {
-  return (NOC_STATUS_READ_REG(noc, NIU_MST_RD_RESP_RECEIVED) == noc_reads_num_issued[noc]);
+  uint32_t rcvd = NOC_STATUS_READ_REG(noc, NIU_MST_RD_RESP_RECEIVED);
+  bool res =  (rcvd == noc_reads_num_issued[noc]);
+  DPRINT << "Read Sync noc : " << noc << " val found " << rcvd << " checked against " << noc_reads_num_issued[noc] << " res " << (uint32_t)res << "\n";
+  return res;
 }
 
 inline __attribute__((always_inline)) bool ncrisc_noc_read_with_transaction_id_flushed(uint32_t noc, uint32_t transcation_id) {
@@ -136,7 +142,10 @@ inline __attribute__((always_inline)) bool ncrisc_noc_posted_writes_sent(uint32_
 }
 
 inline __attribute__((always_inline)) bool ncrisc_noc_nonposted_writes_flushed(uint32_t noc) {
-  return (NOC_STATUS_READ_REG(noc, NIU_MST_WR_ACK_RECEIVED) == noc_nonposted_writes_acked[noc]);
+  uint32_t wrote = NOC_STATUS_READ_REG(noc, NIU_MST_WR_ACK_RECEIVED);
+  bool res =  (wrote== noc_nonposted_writes_acked[noc]);
+  DPRINT << "Write Sync noc : " << noc << " val found " << wrote << " checked against " << noc_nonposted_writes_acked[noc] << " res " << (uint32_t) res << "\n";
+  return res;
 }
 
 inline __attribute__((always_inline)) bool ncrisc_noc_nonposted_atomics_flushed(uint32_t noc) {

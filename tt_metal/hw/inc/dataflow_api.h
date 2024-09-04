@@ -25,6 +25,7 @@
 #include "third_party/umd/device/tt_silicon_driver_common.hpp"
 #include "debug/assert.h"
 #include "dev_msgs.h"
+#include "debug/dprint.h"
 
 extern uint8_t noc_index;
 
@@ -939,7 +940,9 @@ struct InterleavedAddrGenFast {
         NOC_CMD_BUF_WRITE_REG(noc_index, NCRISC_RD_CMD_BUF, NOC_TARG_ADDR_MID, src_noc_xy);   // src_addr >> 32
         NOC_CMD_BUF_WRITE_REG(noc_index, NCRISC_RD_CMD_BUF, NOC_AT_LEN_BE, this->page_size);  // len_bytes
         NOC_CMD_BUF_WRITE_REG(noc_index, NCRISC_RD_CMD_BUF, NOC_CMD_CTRL, NOC_CTRL_SEND_REQ);
+	DPRINT <<" Read Noc index tile " << (uint32_t) noc_index << " Before inc " << noc_reads_num_issued[noc_index] << " dest addr " << dest_addr << "\n";
         noc_reads_num_issued[noc_index] += 1;
+	DPRINT <<" Read Noc index tile " << (uint32_t) noc_index << " After inc " <<  noc_reads_num_issued[noc_index] << "\n";
     }
 
 
@@ -992,8 +995,10 @@ struct InterleavedAddrGenFast {
         NOC_CMD_BUF_WRITE_REG(noc_index, NCRISC_WR_CMD_BUF, NOC_RET_ADDR_MID, dest_noc_xy);   // dest_addr >> 32
         NOC_CMD_BUF_WRITE_REG(noc_index, NCRISC_WR_CMD_BUF, NOC_AT_LEN_BE, this->page_size);  // len_bytes
         NOC_CMD_BUF_WRITE_REG(noc_index, NCRISC_WR_CMD_BUF, NOC_CMD_CTRL, NOC_CTRL_SEND_REQ);
+	DPRINT <<" Write Noc index tile " << (uint32_t) noc_index << " Before inc " << noc_nonposted_writes_num_issued[noc_index] <<  " src addres " << src_addr << "\n";
         noc_nonposted_writes_num_issued[noc_index] += 1;
         noc_nonposted_writes_acked[noc_index] += 1;  // num_dests
+	DPRINT <<" Write Noc index tile " << (uint32_t) noc_index << " After inc " << noc_nonposted_writes_num_issued[noc_index] << "\n";
     }
 };
 
