@@ -152,7 +152,7 @@ def test_moreh_sgd(
 
         dev_momentum_buffer_out = create_tt_tensor(cpu_param_in, device)
 
-    dev_param_out, dev_momentum_buffer_out = ttnn.experimental.operations.primary.moreh_sgd(
+    dev_param_out, dev_momentum_buffer_out = ttnn.operations.moreh.sgd(
         dev_param_in,
         dev_grad,
         dev_momentum_buffer_in,
@@ -288,8 +288,7 @@ def test_moreh_sgd_callback(
                     dev_momentum_buffer_in = create_tt_tensor(cpu_param_in, device)
 
             dev_momentum_buffer_out = create_tt_tensor(cpu_param_in, device)
-
-        dev_param_out, dev_momentum_buffer_out = ttnn.experimental.operations.primary.moreh_sgd(
+        dev_param_out, dev_momentum_buffer_out = ttnn.operations.moreh.sgd(
             dev_param_in,
             dev_grad,
             dev_momentum_buffer_in,
@@ -305,7 +304,6 @@ def test_moreh_sgd_callback(
         )
 
     assert dev_param_in.get_legacy_shape() == list(model.weight.shape)
-
     # check param_out
     param_result = dev_param_out.cpu().to(ttnn.ROW_MAJOR_LAYOUT).to_torch().to(torch.bfloat16)
 
@@ -314,7 +312,6 @@ def test_moreh_sgd_callback(
 
     logger.debug(f"Out passing (param)={passing}")
     logger.debug(f"Output pcc={out}")
-
     assert passing
 
     # check momentum_out
