@@ -12,6 +12,7 @@ on:
           - ALL SWEEPS (Nightly)
           - add
           - line_all_gather
+          - all_gather_t3k_sharded
           - logical_and_
           - eltwise.unary.relu.relu_interleaved
           - eltwise.unary.gelu.gelu_interleaved
