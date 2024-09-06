@@ -13,6 +13,7 @@ from pathlib import Path
 import json
 import yaml
 from datetime import datetime
+import copy
 
 import click
 from loguru import logger
@@ -39,6 +40,7 @@ OPS_CSV_HEADER = [
     "OP TYPE",
     "GLOBAL CALL COUNT",
     "DEVICE ID",
+    "TRACE ID",
     "ATTRIBUTES",
     "MATH FIDELITY",
     "CORE COUNT",
@@ -93,37 +95,66 @@ def import_tracy_op_logs():
     with open(tracyOpDataLog, "r", newline="") as csvFile:
         opDataDicts = csv.DictReader(csvFile, delimiter=";", quotechar="`")
         opsData = []
+        traceIDs = {}
+        traceReplays = {}
         for opDataDict in opDataDicts:
             opDataStr = opDataDict["MessageName"]
             opDataTime = opDataDict["total_ns"]
             if "TT_DNN" in opDataStr:
-                tmpStrs = opDataStr.split(" ->\n", 1)
-                opData = {}
-                if len(tmpStrs) > 1:  # uncached device op, host op, or fallback op
-                    jsonStr = tmpStrs[-1]
-                    opData = json.loads(jsonStr)
-                    if "op_hash" in opData.keys():
-                        assert "device_id" in opData.keys()
-                        deviceID = int(opData["device_id"])
-                        opHash = int(opData["op_hash"])
-                        if deviceID in cached_ops.keys():
-                            cached_ops[deviceID][opHash] = opData.copy()
+                if "OP" in opDataStr:
+                    tmpStrs = opDataStr.split(" ->\n", 1)
+                    opData = {}
+                    if len(tmpStrs) > 1:  # uncached device op, host op, or fallback op
+                        jsonStr = tmpStrs[-1]
+                        opData = json.loads(jsonStr)
+                        if "op_hash" in opData.keys():
+                            assert "device_id" in opData.keys()
+                            deviceID = int(opData["device_id"])
+                            opHash = int(opData["op_hash"])
+                            if deviceID in cached_ops.keys():
+                                cached_ops[deviceID][opHash] = opData.copy()
+                            else:
+                                cached_ops[deviceID] = {opHash: opData.copy()}
+                            del cached_ops[deviceID][opHash]["global_call_count"]
+                    else:  # cached device op
+                        opDataList = opDataStr.split(":", 1)[-1].split(",")
+                        assert len(opDataList) > 3, "Wrong cached op info format"
+                        opCode = opDataList[0].strip()
+                        opHash = int(opDataList[1])
+                        deviceID = int(opDataList[2])
+                        opID = int(opDataList[3])
+                        assert deviceID in cached_ops.keys(), "Expected hashed op info is not found"
+                        assert opHash in cached_ops[deviceID].keys(), "Expected hashed op info is not found"
+                        opData = cached_ops[deviceID][opHash].copy()
+                        opData["global_call_count"] = opID
+                    opData["tracy_time"] = opDataTime
+                    opData["trace_id"] = ""
+                    if deviceID in traceIDs:
+                        opData["trace_id"] = traceIDs[deviceID]
+                    opsData.append(opData)
+                elif "TRACE" in opDataStr:
+                    IDs = opDataStr.split(":")[-1].strip().split(",")
+                    assert len(IDs) == 2, (
+                        "Wrong number of IDs is provided in trace message. "
+                        "Device and trace are the two IDs that should be provided. "
+                        f"But IDs {IDs} were provided"
+                    )
+                    deviceID = int(IDs[0].strip())
+                    traceID = int(IDs[1].strip())
+                    if "BEGIN" in opDataStr:
+                        traceIDs[deviceID] = traceID
+                    elif "END" in opDataStr:
+                        assert traceIDs[deviceID] == traceID, (
+                            f"Wrong trace ID, device {deviceID} should finish on trace ID "
+                            f"{traceIDs[deviceID]} but it is finishing on trace ID {traceID}"
+                        )
+                        traceIDs[deviceID] = None
+                    elif "REPLAY" in opDataStr:
+                        replayIDTime = (traceID, opDataTime)
+                        if deviceID in traceReplays:
+                            traceReplays[deviceID].append(replayIDTime)
                         else:
-                            cached_ops[deviceID] = {opHash: opData.copy()}
-                        del cached_ops[deviceID][opHash]["global_call_count"]
-                else:  # cached device op
-                    opDataList = opDataStr.split(":", 1)[-1].split(",")
-                    assert len(opDataList) > 3, "Wrong cached op info format"
-                    opCode = opDataList[0].strip()
-                    opHash = int(opDataList[1])
-                    deviceID = int(opDataList[2])
-                    opID = int(opDataList[3])
-                    assert deviceID in cached_ops.keys(), "Expected hashed op info is not found"
-                    assert opHash in cached_ops[deviceID].keys(), "Expected hashed op info is not found"
-                    opData = cached_ops[deviceID][opHash].copy()
-                    opData["global_call_count"] = opID
-                opData["tracy_time"] = opDataTime
-                opsData.append(opData)
+                            traceReplays[deviceID] = [replayIDTime]
 
             if "TT_SIGNPOST" in opDataStr:
                 signpostsCount += 1
@@ -160,6 +191,7 @@ def import_tracy_op_logs():
 def get_device_op_data(ops):
     logger.info(f"Getting device ops")
     deviceOps = {}
+    hasTraceRuns = False
     for opID, opData in ops.items():
         if "device_id" in opData.keys():
             deviceID = opData["device_id"]
@@ -167,6 +199,8 @@ def get_device_op_data(ops):
                 deviceOps[deviceID] = [opData]
             else:
                 deviceOps[deviceID].append(opData)
+        if "trace_id" in opData.keys() and opData["trace_id"] is not None:
+            hasTraceRuns = True
 
     def device_ops_compare(op):
         return int(op["global_call_count"])
@@ -174,12 +208,12 @@ def get_device_op_data(ops):
     for deviceID in deviceOps:
         deviceOps[deviceID].sort(key=device_ops_compare)
 
-    return deviceOps
+    return deviceOps, hasTraceRuns
 
 
 # Append device data to device ops and return the list of mapped device op ref list
 def append_device_data(ops, deviceLogFolder):
-    deviceOps = get_device_op_data(ops)
+    deviceOps, hasTraceRuns = get_device_op_data(ops)
     logger.info(f"Appending device data")
     deviceTimesLog = os.path.join(deviceLogFolder, PROFILER_DEVICE_SIDE_LOG)
     if os.path.isfile(deviceTimesLog):
@@ -190,6 +224,27 @@ def append_device_data(ops, deviceLogFolder):
         for device in deviceOps:
             assert device in deviceData["devices"].keys()
             deviceOpsTime = deviceData["devices"][device]["cores"]["DEVICE"]["riscs"]["TENSIX"]["ops"]
+            if hasTraceRuns:
+                generatedHostData = []
+                opIDHostDataDict = {}
+                for deviceOp in deviceOps[device]:
+                    opID = deviceOp["global_call_count"]
+                    assert (
+                        opID not in opIDHostDataDict
+                    ), f"Host op ID cannot be repeated: op ID {opID} was reported twice by the host"
+                    opIDHostDataDict[opID] = copy.deepcopy(deviceOp)
+
+                for deviceOpTime in deviceOpsTime:
+                    if len(deviceOpTime["timeseries"]) > 0:
+                        timeID, ts, statData, risc, core = deviceOpTime["timeseries"][0]
+                        assert "run_host_id" in timeID.keys(), "Device op ID missing: Device data must provide op ID"
+                        deviceOpID = timeID["run_host_id"]
+                        assert (
+                            deviceOpID in opIDHostDataDict
+                        ), f"Device op ID not present: Device op ID {deviceOpID} not present in host data"
+                        generatedHostData.append(opIDHostDataDict[deviceOpID])
+                deviceOps[device] = generatedHostData
+
             if len(deviceOps[device]) != len(deviceOpsTime):
                 deviceOPId = None
                 hostOPId = None
@@ -204,21 +259,27 @@ def append_device_data(ops, deviceLogFolder):
                                     break
 
                 if deviceOPId and hostOPId:
-                    assert (
-                        False
-                    ), f"Device data mismatch: Expected {len(deviceOps[device])} but received {len(deviceOpsTime)} ops on device {device}. Device is showing op ID {deviceOPId} when host is showing op ID {hostOPId}"
+                    assert False, (
+                        f"Device data mismatch: Expected {len(deviceOps[device])} "
+                        f"but received {len(deviceOpsTime)} ops on device {device}. "
+                        f"Device is showing op ID {deviceOPId} when host is showing op ID {hostOPId}"
+                    )
                 else:
-                    assert (
-                        True
-                    ), f"Device data mismatch: Expected {len(deviceOps[device])} but received {len(deviceOpsTime)} ops on device {device}"
+                    assert False, (
+                        f"Device data mismatch: Expected {len(deviceOps[device])} but "
+                        f"received {len(deviceOpsTime)} ops on device {device}"
+                    )
+
             for deviceOp, deviceOpTime in zip(deviceOps[device], deviceOpsTime):
                 cores = set()
                 for timeID, ts, statData, risc, core in deviceOpTime["timeseries"]:
                     if "zone_name" in timeID.keys() and "FW" in timeID["zone_name"]:
                         if "run_host_id" in timeID.keys():
-                            assert (
-                                timeID["run_host_id"] == deviceOp["global_call_count"]
-                            ), f"op id {timeID['run_host_id']} reproted by device is not matching assigned op id {deviceOp['global_call_count']}"
+                            assert timeID["run_host_id"] == deviceOp["global_call_count"], (
+                                f"Device and host op ID mismatch: "
+                                f"op id {timeID['run_host_id']} reproted by device is "
+                                f"not matching assigned op id {deviceOp['global_call_count']}"
+                            )
                         if core not in cores:
                             cores.add(core)
                 deviceOp["core_usage"] = {"count": len(cores), "cores": [str(core) for core in cores]}
