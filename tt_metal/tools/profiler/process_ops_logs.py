@@ -128,7 +128,7 @@ def import_tracy_op_logs():
                         opData = cached_ops[deviceID][opHash].copy()
                         opData["global_call_count"] = opID
                     opData["tracy_time"] = opDataTime
-                    opData["trace_id"] = ""
+                    opData["trace_id"] = None
                     if deviceID in traceIDs:
                         opData["trace_id"] = traceIDs[deviceID]
                     opsData.append(opData)
@@ -150,11 +150,14 @@ def import_tracy_op_logs():
                         )
                         traceIDs[deviceID] = None
                     elif "REPLAY" in opDataStr:
-                        replayIDTime = (traceID, opDataTime)
+                        replayIDTime = opDataTime
                         if deviceID in traceReplays:
-                            traceReplays[deviceID].append(replayIDTime)
+                            if traceID in traceReplays[deviceID]:
+                                traceReplays[deviceID][traceID].append(replayIDTime)
+                            else:
+                                traceReplays[deviceID][traceID] = [replayIDTime]
                         else:
-                            traceReplays[deviceID] = [replayIDTime]
+                            traceReplays[deviceID] = {traceID: [replayIDTime]}
 
             if "TT_SIGNPOST" in opDataStr:
                 signpostsCount += 1
@@ -184,7 +187,7 @@ def import_tracy_op_logs():
                 else:
                     ops[parentOpID]["child_calls"] = {op["name"]: int(op["exec_time_ns"])}
 
-    return ops, signposts
+    return ops, signposts, traceReplays
 
 
 # Generate a map of OP reference list per device.
@@ -212,7 +215,7 @@ def get_device_op_data(ops):
 
 
 # Append device data to device ops and return the list of mapped device op ref list
-def append_device_data(ops, deviceLogFolder):
+def append_device_data(ops, traceReplays, deviceLogFolder):
     deviceOps, hasTraceRuns = get_device_op_data(ops)
     logger.info(f"Appending device data")
     deviceTimesLog = os.path.join(deviceLogFolder, PROFILER_DEVICE_SIDE_LOG)
@@ -234,6 +237,7 @@ def append_device_data(ops, deviceLogFolder):
                     ), f"Host op ID cannot be repeated: op ID {opID} was reported twice by the host"
                     opIDHostDataDict[opID] = copy.deepcopy(deviceOp)
 
+                traceOps = {}
                 for deviceOpTime in deviceOpsTime:
                     if len(deviceOpTime["timeseries"]) > 0:
                         timeID, ts, statData, risc, core = deviceOpTime["timeseries"][0]
@@ -242,6 +246,23 @@ def append_device_data(ops, deviceLogFolder):
                         assert (
                             deviceOpID in opIDHostDataDict
                         ), f"Device op ID not present: Device op ID {deviceOpID} not present in host data"
+                        traceID = opIDHostDataDict[deviceOpID]["trace_id"]
+                        if traceID is not None:
+                            if device in traceOps:
+                                if traceID in traceOps[device]:
+                                    if device in traceOps[device][traceID]:
+                                        traceReplays[device][traceID].pop(0)
+                                        traceOps[device][traceID] = set([deviceOpID])
+                                    else:
+                                        traceOps[device][traceID].add(deviceOpID)
+                                else:
+                                    traceOps[device][traceID] = set([deviceOpID])
+                            else:
+                                traceOps[device] = {traceID: set([deviceOpID])}
+                            assert (
+                                len(traceReplays[device][traceID]) > 0
+                            ), "Wrong trace replay count: Device has more ops than trace replay issued commands"
+                            opIDHostDataDict[deviceOpID]["tracy_time"] = traceReplays[device][traceID][0]
                         generatedHostData.append(opIDHostDataDict[deviceOpID])
                 deviceOps[device] = generatedHostData
 
@@ -607,10 +628,10 @@ def generate_reports(ops, deviceOps, signposts, outputFolder, date, nameAppend):
 
 
 def process_ops(output_folder, name_append, date):
-    ops, signposts = import_tracy_op_logs()
+    ops, signposts, traceReplays = import_tracy_op_logs()
 
     if ops:
-        deviceOps = append_device_data(ops, PROFILER_LOGS_DIR)
+        deviceOps = append_device_data(ops, traceReplays, PROFILER_LOGS_DIR)
         generate_reports(ops, deviceOps, signposts, output_folder, date, name_append)
 
     else:
