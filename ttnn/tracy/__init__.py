@@ -143,7 +143,7 @@ def generate_report(outFolder, nameAppend, childCalls):
         if childCallsList:
             childCallStr = f"-x {','.join(childCallsList)}"
         subprocess.run(
-            f"{PROFILER_BIN_DIR / TRACY_CSVEXPROT_TOOL} -u -p TT_DNN {childCallStr} {PROFILER_LOGS_DIR / TRACY_FILE_NAME}",
+            f"{PROFILER_BIN_DIR / TRACY_CSVEXPROT_TOOL} -u -p TT_ {childCallStr} {PROFILER_LOGS_DIR / TRACY_FILE_NAME}",
             shell=True,
             check=True,
             stdout=csvFile,
