@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include "ttnn/deprecated/tt_dnn/op_library/moreh_dot/moreh_dot_op.hpp"
 #include "ttnn/deprecated/tt_dnn/op_library/moreh_matmul/moreh_matmul_op.hpp"
-#include "ttnn/deprecated/tt_dnn/op_library/moreh_helper_functions.hpp"
+
 #include "tt_metal/common/constants.hpp"
 #include "tt_metal/host_api.hpp"
+#include "ttnn/deprecated/tt_dnn/op_library/moreh_dot/moreh_dot_op.hpp"
+#include "ttnn/deprecated/tt_dnn/op_library/moreh_helper_functions.hpp"
 
 using namespace tt::constants;
 
@@ -208,7 +209,12 @@ void MorehMatmul::validate_with_output_tensors(
     get_tensor_dim(other_dim, other_shape);
     for (auto i = 2; i < tt::tt_metal::MAX_NUM_DIMENSIONS; ++i) {
         if (input_dim[i] != other_dim[i]) {
-            TT_FATAL(input_dim[i] == 1 || other_dim[i] ==1, "one of dim must be one. {}th dim input_dim {}, other_dim {}", i, input_dim[i], other_dim[i]);
+            TT_FATAL(
+                input_dim[i] == 1 || other_dim[i] == 1,
+                "one of dim must be one. {}th dim input_dim {}, other_dim {}",
+                i,
+                input_dim[i],
+                other_dim[i]);
         }
     }
 
@@ -225,7 +231,12 @@ void MorehMatmul::validate_with_output_tensors(
         get_tensor_dim(output_dim, output_shape);
 
         for (auto i = 2; i < tt::tt_metal::MAX_NUM_DIMENSIONS; ++i) {
-            TT_FATAL(std::max(input_dim[i], other_dim[i]) == output_dim[i], "{}th max(input_dim[i], other_dim[i]) {} must be the same as output_dim[i] {}", i, std::max(input_dim[i], other_dim[i]), output_dim[i]);
+            TT_FATAL(
+                std::max(input_dim[i], other_dim[i]) == output_dim[i],
+                "{}th max(input_dim[i], other_dim[i]) {} must be the same as output_dim[i] {}",
+                i,
+                std::max(input_dim[i], other_dim[i]),
+                output_dim[i]);
         }
     }
 
@@ -235,7 +246,11 @@ void MorehMatmul::validate_with_output_tensors(
         uint32_t bias_rank = bias_wo_shape.rank();
         uint32_t bias_w = bias_wo_shape[-1];
         TT_FATAL(bias_rank == 2, "bias rank {} must be 2 (tilized).", bias_rank);
-        TT_FATAL(bias_w == 1 || bias_w == other_n, "bias_w must be one or the same as other_n. bias_w {}, other_n {}", bias_w, other_n);
+        TT_FATAL(
+            bias_w == 1 || bias_w == other_n,
+            "bias_w must be one or the same as other_n. bias_w {}, other_n {}",
+            bias_w,
+            other_n);
     }
 }
 
@@ -251,7 +266,8 @@ Tensor moreh_matmul_(
     log_debug(LogOp, "{}:{} run matmul {} {}", __func__, __LINE__, transpose_input, transpose_other);
 
     TT_FATAL(input.storage_type() == StorageType::DEVICE, "Error");
-    auto kernel_config_val = init_device_compute_kernel_config(input.device()->arch(), compute_kernel_config, MathFidelity::HiFi4);
+    auto kernel_config_val =
+        init_device_compute_kernel_config(input.device()->arch(), compute_kernel_config, MathFidelity::HiFi4);
 
     std::vector<Tensor> output_tensors = {Tensor(operation::get_workers_for_op_output({input, other}, {bias}))};
 
@@ -287,13 +303,13 @@ Tensor moreh_matmul(
     const std::optional<const Tensor> bias,
     const MemoryConfig& output_mem_config,
     std::optional<const ttnn::DeviceComputeKernelConfig> compute_kernel_config) {
-
     // TODO(seunghwan100): Add the argument "output_tensor" to moreh_dot.
     if (is_dot_forward(input, other, transpose_input, transpose_other)) {
         TT_ASSERT(!bias.has_value());
         return moreh_dot(input, other, output_mem_config);
     }
-    return moreh_matmul_(input, other, transpose_input, transpose_other, output, bias, output_mem_config, compute_kernel_config);
+    return moreh_matmul_(
+        input, other, transpose_input, transpose_other, output, bias, output_mem_config, compute_kernel_config);
 }
 
 }  // namespace primary

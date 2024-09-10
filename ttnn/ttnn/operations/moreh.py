@@ -12,6 +12,7 @@ getitem = ttnn._ttnn.operations.moreh.moreh_getitem
 logsoftmax = ttnn._ttnn.operations.moreh.moreh_logsoftmax
 logsoftmax_backward = ttnn._ttnn.operations.moreh.moreh_logsoftmax_backward
 matmul = ttnn._ttnn.operations.moreh.moreh_matmul
+matmul_backward = ttnn._ttnn.operations.moreh.moreh_matmul_backward
 mean = ttnn._ttnn.operations.moreh.moreh_mean
 mean_backward = ttnn._ttnn.operations.moreh.moreh_mean_backward
 norm = ttnn._ttnn.operations.moreh.moreh_norm
