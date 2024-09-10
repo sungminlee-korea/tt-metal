@@ -11,8 +11,9 @@ on:
         options:
           - ALL SWEEPS (Nightly)
           - add
-          - line_all_gather
-          - all_gather_t3k_sharded
+          - ccl.line_all_gather
+          - ccl.all_gather_t3k_sharded
+          - ccl.all_gather_t3k_non_sharded
           - logical_and_
           - eltwise.unary.relu.relu_interleaved
           - eltwise.unary.gelu.gelu_interleaved
