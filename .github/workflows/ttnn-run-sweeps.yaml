@@ -14,6 +14,7 @@ on:
           - ccl.line_all_gather
           - ccl.all_gather_t3k_sharded
           - ccl.all_gather_t3k_non_sharded
+          - ccl.all_gather_t3k_non_sharded_multi_instances
           - logical_and_
           - eltwise.unary.relu.relu_interleaved
           - eltwise.unary.gelu.gelu_interleaved
