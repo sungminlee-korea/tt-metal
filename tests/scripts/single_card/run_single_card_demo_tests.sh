@@ -22,6 +22,8 @@ run_common_func_tests() {
   # Distilbert
   pytest --disable-warnings models/demos/distilbert/demo/demo.py --timeout 600; fail+=$?
 
+  pytest --disable-warnings models/demos/wormhole/distilbert/demo/demo.py --timeout 600; fail+=$?
+
   return $fail
 }
 
