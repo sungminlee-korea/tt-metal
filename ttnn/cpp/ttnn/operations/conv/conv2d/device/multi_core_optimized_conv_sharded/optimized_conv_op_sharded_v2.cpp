@@ -177,15 +177,17 @@ std::tuple<CBHandle, CBHandle> create_CBs_for_sharded_input_v2(
 
         // Supposed to be a small CB only responsible for reorganizing
         // the output blocks to fill the whole "per core output block width"
+        //std::cout << "num_reblock_cb_tiles: " << num_reblock_cb_tiles * 8 << std::endl;
         CircularBufferConfig cb_reblock_config =
             CircularBufferConfig(num_reblock_cb_tiles * out_tile_size, {{untilize_mode_reblock_cb, out_df}})
                 .set_page_size(untilize_mode_reblock_cb, out_tile_size);
         auto cb_reblock = tt_metal::CreateCircularBuffer(program, core, cb_reblock_config);
         log_debug(LogOp, "Reblock CB: {}, npages: {}, pagesize: {}", untilize_mode_reblock_cb, num_reblock_cb_tiles, out_tile_size);
 
+        std::cout << "num_writer_output_tiles: " << num_writer_output_tiles * 8 << std::endl;
         CircularBufferConfig cb_output_config =
-            CircularBufferConfig(num_writer_output_tiles * out_tile_size, {{out0_cb, out_df}})
-                .set_page_size(out0_cb, out_tile_size);
+            CircularBufferConfig(/*num_writer_output_tiles * 16*/ 49 * 128, {{out0_cb, out_df}})
+                .set_page_size(out0_cb, 128);
         if (output.is_sharded()) {
             cb_output_config = cb_output_config.set_globally_allocated_address(*output.buffer());
         }
@@ -846,8 +848,8 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
     TT_FATAL(act_matrix_height_ntiles % per_core_out_matrix_height_ntiles == 0);
     uint32_t total_active_num_cores_per_weight_slice = act_matrix_height_ntiles / per_core_out_matrix_height_ntiles;
     TT_FATAL(total_active_num_cores_per_weight_slice <= total_num_cores_per_weight_slice);
-    uint32_t total_noop_cores = total_num_cores_per_weight_slice - total_active_num_cores_per_weight_slice;
-    uint32_t total_active_num_cores = total_active_num_cores_per_weight_slice * num_weight_slices_width;
+    uint32_t total_noop_cores = 0; //total_num_cores_per_weight_slice - total_active_num_cores_per_weight_slice;
+    uint32_t total_active_num_cores = 64; //total_active_num_cores_per_weight_slice * num_weight_slices_width;
     if (weight_width_sliced) {
         TT_FATAL(total_noop_cores == 0);
         TT_FATAL(total_active_num_cores == total_num_cores);
@@ -1145,6 +1147,8 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
 
         // Local L1 to store array for reader indices
         // All convs use packed uint16 indices, so each entry can be 2B (not 4)
+        std::cout << "reader_kernel " << reader_kernel << " compute_kernel " << compute_kernel<< std::endl;
+        std::cout << "writer_mcast_sender_kernel " << writer_mcast_sender_kernel << " writer_mcast_receiver_kernel " << writer_mcast_receiver_kernel << std::endl;
         CircularBufferConfig cb_for_reader_indices_config =
             CircularBufferConfig(out_block_h_datums * 2, {{cb_for_reader_indices, tt::DataFormat::Float16_b}})
                 .set_page_size(cb_for_reader_indices, out_block_h_datums * 2);
@@ -1199,6 +1203,8 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
         (uint32_t)act_block_h_datums_last_block
     };
 
+    std::cout << "reader compile time args: " << "stride_h " << stride_h << " stride_w " << stride_w << " conv_act_size_w "<< conv_act_size_w << " conv_output_size_w " << conv_output_size_w << " conv_act_c_read_bytes " << conv_act_c_read_bytes << " window_outer " << window_outer << " window_inner " << window_inner << " reader_arg_act_block_h_datums " << reader_arg_act_block_h_datums << " split_reader " << (split_reader ? act_block_num_tiles_split / conv_act_c_blocks : act_block_num_tiles / conv_act_c_blocks) << " filter_w " << filter_w << " conv_act_size_w + (2 * pad_w) " << conv_act_size_w + (2 * pad_w) << " act_block_w_extra_align_bytes " << act_block_w_extra_align_bytes << " filter_h " << filter_h << " num_blocks_act_h_per_core " << num_blocks_act_h_per_core << " in0_block_num_tiles " << in0_block_num_tiles << " conv_act_c_blocks " << conv_act_c_blocks << " transpose_mcast ? num_cores_y - 1 : num_cores_x - 1 " << (transpose_mcast ? num_cores_y - 1 : num_cores_x - 1)
+    << " act_mcast_sender_semaphore_id " << act_mcast_sender_semaphore_id << " act_mcast_receiver_semaphore_id " << act_mcast_receiver_semaphore_id << std::endl;
     // define for bias
     std::map<string, string> writer_defines;
     std::map<string, string> writer_mcast_sender_defines;

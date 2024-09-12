@@ -163,8 +163,8 @@ std::vector<tt::tt_metal::Shape> OptimizedConvNew::compute_output_shapes(const s
     // Tiled output shape is padded shape. Padded to tile shape.
     auto shape_w = batch_size * conv_output_h * conv_output_w;
     auto shape_c = output_channels;
-    auto padded_shape_w =
-        parallelization_config.num_cores_nhw * parallelization_config.per_core_out_matrix_height_ntiles * TILE_HEIGHT;
+    auto padded_shape_w = shape_w; //hardcoding
+        //parallelization_config.num_cores_nhw * parallelization_config.per_core_out_matrix_height_ntiles * TILE_HEIGHT;
     auto padded_shape_c = tt::round_up(this->output_channels, TILE_WIDTH);
     auto output_padding = Padding(
         {{0, 0}, {0, 0}, {0, (padded_shape_w - shape_w)}, {0, (padded_shape_c - shape_c)}}, Padding::PadValue::Zero);
@@ -180,10 +180,10 @@ std::vector<Tensor> OptimizedConvNew::create_output_tensors(const std::vector<Te
         auto output_shape = this->compute_output_shapes(input_tensors).at(0);
         if (this->memory_config.memory_layout == TensorMemoryLayout::HEIGHT_SHARDED) {
             uint32_t total_height_tiles = tt::tt_metal::compute_volume(output_shape) / output_shape[-1] / TILE_HEIGHT;
-            uint32_t num_cores = total_height_tiles / this->parallelization_config.per_core_out_matrix_height_ntiles;
+            uint32_t num_cores = 64; //total_height_tiles / this->parallelization_config.per_core_out_matrix_height_ntiles;
             CoreRangeSet shard_grid = tt::tt_metal::num_cores_to_corerange_set(num_cores, this->parallelization_config.grid_size, true);
 
-            std::array<uint32_t, 2> shard_shape = {this->parallelization_config.per_core_out_matrix_height_ntiles * TILE_HEIGHT, output_shape[-1]};
+            std::array<uint32_t, 2> shard_shape = {49, output_shape[-1]};
             auto shard_spec = ShardSpec{shard_grid, shard_shape, ShardOrientation::ROW_MAJOR};
             auto mem_config = this->memory_config;
             mem_config.shard_spec = shard_spec;

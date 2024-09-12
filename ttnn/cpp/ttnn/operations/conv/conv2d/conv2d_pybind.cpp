@@ -185,7 +185,8 @@ void py_bind_conv2d(py::module& module) {
             py::arg("output_layout") = Layout::TILE,
             py::arg("enable_act_double_buffer") = false,
             py::arg("enable_split_reader") = false,
-            py::arg("enable_subblock_padding") = false
+            py::arg("enable_subblock_padding") = false,
+            py::arg("use_max_cores") = false);
         );
         py_conv_config.def_readwrite("math_fidelity", &Conv2dConfig::math_fidelity);
         py_conv_config.def_readwrite("dtype", &Conv2dConfig::dtype);
@@ -208,6 +209,7 @@ void py_bind_conv2d(py::module& module) {
         py_conv_config.def_readwrite("enable_act_double_buffer", &Conv2dConfig::enable_act_double_buffer);
         py_conv_config.def_readwrite("enable_split_reader", &Conv2dConfig::enable_split_reader);
         py_conv_config.def_readwrite("enable_subblock_padding", &Conv2dConfig::enable_subblock_padding);
+        py_conv_config.def_readwrite("use_max_cores", &Conv2dConfig::use_max_cores);
 
     py::class_<OptimizedConvParallelizationConfig>(module, "OptimizedConvParallelizationConfig")
         .def(

@@ -4,8 +4,17 @@
 
 #include "dataflow_api.h"
 
-// #include "debug/dprint.h"
-
+#include "debug/dprint.h"
+inline void print_pages(uint32_t l1_addr, uint32_t pagelen, uint32_t npages, uint32_t start = 0) {
+    volatile tt_l1_ptr uint16_t* ptr = reinterpret_cast<volatile tt_l1_ptr uint16_t*>(l1_addr) + start * pagelen;
+    for (uint32_t page = 0; page < npages; ++ page) {
+        DPRINT << start + page << ": ";
+        for (uint32_t j = 0; j < pagelen; ++ j, ++ ptr) {
+            DPRINT << BF16(*ptr) << " ";
+        }
+        DPRINT << ENDL();
+    }
+}
 
 void kernel_main() {
     // This writer is for output tensor in tile format
@@ -212,6 +221,9 @@ void kernel_main() {
     } // out_num_blocks_w
 
     #ifdef SHARDED_OUT
-    cb_wait_front(cb_id_out0, out_subblock_tile_count * out_num_subblocks_h * out_num_subblocks_w * out_num_blocks_w * out_num_blocks_h);
+    DPRINT << "SHARDED_OUT_NOT_SUPPORTED" << ENDL();
+    DPRINT << out_subblock_tile_count * out_num_subblocks_h * out_num_subblocks_w * out_num_blocks_w * out_num_blocks_h << ENDL();
+    //print_pages( get_read_ptr(cb_id_out0), 64, 64, 0);
+    //cb_wait_front(cb_id_out0, out_subblock_tile_count * out_num_subblocks_h * out_num_subblocks_w * out_num_blocks_w * out_num_blocks_h);
     #endif
 }

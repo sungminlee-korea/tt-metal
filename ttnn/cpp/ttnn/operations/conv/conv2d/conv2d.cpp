@@ -60,7 +60,8 @@ ParallelConfig determine_parallel_config(
     uint32_t conv_out_2d_matrix_height_ntiles = 0;
     uint32_t conv_out_2d_matrix_width_ntiles = 0;
     if (is_out_tiled) {
-        conv_out_2d_matrix_height_ntiles = (int)(conv_out_2d_matrix_height / 32);
+        std::cout << "is out tiled" << std::endl;
+        conv_out_2d_matrix_height_ntiles = (int)(conv_out_2d_matrix_height);
         conv_out_2d_matrix_width_ntiles = (int)(tt::round_up(output_channels, 32) / 32);
     } else {
         conv_out_2d_matrix_height_ntiles = conv_out_2d_matrix_height;
@@ -379,7 +380,7 @@ std::tuple<ttnn::Shape, ttnn::MemoryConfig, bool> get_conv_padded_input_shape_an
         uint32_t input_num_cores_nhw = get_num_cores_nhw_from_parallel_config(parallel_config);
         // TT_ASSERT(input_tensor.get_legacy_shape() == input_tensor.get_shape());
         uint32_t tensor_height = input_tensor.get_shape()[0] * input_tensor.get_shape()[1] * input_tensor.get_shape()[2];
-        uint32_t input_tensor_height_snapped_to_tile = (conv_config.shard_layout == TensorMemoryLayout::WIDTH_SHARDED)? tensor_height : tt::round_up(tensor_height, input_num_cores_nhw * 32);
+        uint32_t input_tensor_height_snapped_to_tile = (conv_config.shard_layout == TensorMemoryLayout::WIDTH_SHARDED)? tensor_height : tt::round_up(tensor_height, input_num_cores_nhw);
         TT_ASSERT(input_tensor_height_snapped_to_tile >= tensor_height);
         uint32_t tensor_width = input_tensor.get_shape()[3];
         uint32_t input_tensor_width_snapped_to_channels_alignment =
@@ -733,7 +734,7 @@ std::tuple<ttnn::Tensor, uint32_t, uint32_t, ttnn::Tensor, std::optional<ttnn::T
             .dilation_hw = {dilation[0], dilation[1]},
             .num_cores_nhw = opt_conv_op_parallel_config.num_cores_nhw,
             .core_range_set = input_tensor_post_tm.memory_config().shard_spec.value().grid,
-            .snap_to_tile = true
+            .snap_to_tile = false
         };
 
         bool bypass_halo = (parallel_config.shard_scheme == TensorMemoryLayout::WIDTH_SHARDED &&

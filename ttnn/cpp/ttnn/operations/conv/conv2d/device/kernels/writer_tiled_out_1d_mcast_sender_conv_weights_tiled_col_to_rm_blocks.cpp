@@ -4,7 +4,7 @@
 
 #include "dataflow_api.h"
 
-// #include "debug/dprint.h"
+#include "debug/dprint.h"
 
 
 void kernel_main() {
@@ -323,6 +323,8 @@ void kernel_main() {
         weight_start_tile_id += weight_next_block_stride_w;
     } // out_num_blocks_w
     #ifdef SHARDED_OUT
-    cb_wait_front(cb_id_out0, out_subblock_tile_count * out_num_subblocks_h * out_num_subblocks_w * out_num_blocks_w * out_num_blocks_h);
+    DPRINT << "1 SHARDED_OUT_NOT_SUPPORTED" << ENDL();
+    //DPRINT << out_subblock_tile_count * out_num_subblocks_h * out_num_subblocks_w * out_num_blocks_w * out_num_blocks_h << ENDL();
+    //cb_wait_front(cb_id_out0, out_subblock_tile_count * out_num_subblocks_h * out_num_subblocks_w * out_num_blocks_w * out_num_blocks_h);
     #endif
 }
