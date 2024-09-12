@@ -360,22 +360,28 @@ TEST_F(DeviceFixture, ComputeReduceH) {
     }
     std::vector<uint32_t> shape = {1, 3, 19*TILE_HEIGHT, 17*TILE_WIDTH};
     std::vector<uint32_t> result_shape = {shape[0], shape[1], TILE_HEIGHT, shape[3]};
-    for (uint8_t reduce_type = uint8_t(ReduceType::SUM); reduce_type <= uint8_t(ReduceType::MAX); reduce_type++) {
-        // Currently AVG is not tested
-        if (reduce_type == ReduceType::AVG) continue;
-        ReduceConfig test_config = {
-            .shape = shape,
-            .reduce_dim = ReduceDim::H,
-            .reduce_type = ReduceType(reduce_type),
-            .data_gen_rand_max = 10.0f,
-            .data_gen_seed = 0x1234,
-            .data_gen_offset = -4.5f,
-            .atol = 1e-2f,
-            .rtol = 0.06f,
-            .golden_function = unit_tests::compute::gold_reduce_h,
-            .result_shape = result_shape
-        };
-        run_single_core_reduce_program(this->devices_.at(0), test_config);
+    for (uint8_t math_fid = uint8_t(MathFidelity::HiFi4); math_fid <= uint8_t(MathFidelity::HiFi4); math_fid++) {
+        // MathFidelity : {0, 2, 3, 4}; so skip value 1
+        if (math_fid == 1) continue;
+        tt::log_info(tt::LogTest, "Math Fidelity = {}", math_fid);
+        for (uint8_t reduce_type = uint8_t(ReduceType::SUM); reduce_type <= uint8_t(ReduceType::MAX); reduce_type++) {
+            // Currently AVG is not tested
+            if (reduce_type == ReduceType::AVG) continue;
+            ReduceConfig test_config = {
+                .shape = shape,
+                .reduce_dim = ReduceDim::H,
+                .reduce_type = ReduceType(reduce_type),
+                .data_gen_rand_max = 10.0f,
+                .data_gen_seed = 0x1234,
+                .data_gen_offset = -4.5f,
+                .atol = 1e-2f,
+                .rtol = 0.06f,
+                .golden_function = unit_tests::compute::gold_reduce_h,
+                .result_shape = result_shape,
+                .math_fidelity = MathFidelity(math_fid)
+            };
+            run_single_core_reduce_program(this->devices_.at(0), test_config);
+        }
     }
 }
 
@@ -411,23 +417,62 @@ TEST_F(DeviceFixture, ComputeReduceW) {
 TEST_F(DeviceFixture, ComputeReduceHW) {
     std::vector<uint32_t> shape = {1, 2, 7*TILE_HEIGHT, 5*TILE_WIDTH};
     std::vector<uint32_t> result_shape = {shape[0], shape[1], 32, 32};
-    for (uint8_t reduce_type = uint8_t(ReduceType::SUM); reduce_type <= uint8_t(ReduceType::MAX); reduce_type++) {
-        // Currently AVG is not tested
-        if (reduce_type == ReduceType::AVG) continue;
-        tt::log_info(tt::LogTest, "Reduce type = {}", reduce_type);
-        ReduceConfig test_config = {
-            .shape = shape,
-            .reduce_dim = ReduceDim::HW,
-            .reduce_type = ReduceType(reduce_type),
-            .data_gen_rand_max = 1.0f,
-            .data_gen_seed = 0x1234,
-            .data_gen_offset = -0.48f,
-            .atol = 1e-2f,
-            .rtol = 0.06f,
-            .golden_function = unit_tests::compute::gold_reduce_hw,
-            .result_shape = result_shape
-        };
-        run_single_core_reduce_program(this->devices_.at(0), test_config);
+    for (uint8_t math_fid = uint8_t(MathFidelity::LoFi); math_fid <= uint8_t(MathFidelity::HiFi4); math_fid++) {
+        // MathFidelity : {0, 2, 3, 4}; so skip value 1
+        if (math_fid == 1) continue;
+            tt::log_info(tt::LogTest, "Math Fidelity = {}", math_fid);
+        for (uint8_t reduce_type = uint8_t(ReduceType::SUM); reduce_type <= uint8_t(ReduceType::MAX); reduce_type++) {
+            // Currently AVG is not tested
+            if (reduce_type == ReduceType::AVG) continue;
+            tt::log_info(tt::LogTest, "Reduce type = {}", reduce_type);
+            ReduceConfig test_config = {
+                .shape = shape,
+                .reduce_dim = ReduceDim::HW,
+                .reduce_type = ReduceType(reduce_type),
+                .data_gen_rand_max = 1.0f,
+                .data_gen_seed = 0x1234,
+                .data_gen_offset = -0.48f,
+                .atol = 1e-2f,
+                .rtol = 0.06f,
+                .golden_function = unit_tests::compute::gold_reduce_hw,
+                .result_shape = result_shape,
+                .math_fidelity = MathFidelity(math_fid)
+            };
+            run_single_core_reduce_program(this->devices_.at(0), test_config);
+        }
+    }
+}
+
+TEST_F(DeviceFixture, ComputeReduceHMathOnly) {
+    if (this->arch_ != tt::ARCH::BLACKHOLE) {
+        // (issue #10181: disabling due to sporadic failures in slow dispatch mode)
+        GTEST_SKIP();
+    }
+    std::vector<uint32_t> shape = {1, 3, 19*TILE_HEIGHT, 17*TILE_WIDTH};
+    std::vector<uint32_t> result_shape = {shape[0], shape[1], TILE_HEIGHT, shape[3]};
+    for (uint8_t math_fid = uint8_t(MathFidelity::HiFi4); math_fid <= uint8_t(MathFidelity::HiFi4); math_fid++) {
+        // MathFidelity : {0, 2, 3, 4}; so skip value 1
+        if (math_fid == 1) continue;
+        tt::log_info(tt::LogTest, "Math Fidelity = {}", math_fid);
+        for (uint8_t reduce_type = uint8_t(ReduceType::SUM); reduce_type <= uint8_t(ReduceType::MAX); reduce_type++) {
+            // Currently AVG is not tested
+            if (reduce_type == ReduceType::AVG) continue;
+            ReduceConfig test_config = {
+                .shape = shape,
+                .reduce_dim = ReduceDim::H,
+                .reduce_type = ReduceType(reduce_type),
+                .data_gen_rand_max = 10.0f,
+                .data_gen_seed = 0x1234,
+                .data_gen_offset = -4.5f,
+                .atol = 1e-2f,
+                .rtol = 0.06f,
+                .golden_function = unit_tests::compute::gold_reduce_h,
+                .result_shape = result_shape,
+                .math_only_reduce = true,
+                .math_fidelity = MathFidelity(math_fid)
+            };
+            run_single_core_reduce_program(this->devices_.at(0), test_config);
+        }
     }
 }
 
@@ -461,6 +506,36 @@ TEST_F(DeviceFixture, ComputeReduceWMathOnly) {
     }
 }
 
+TEST_F(DeviceFixture, ComputeReduceHWMathOnly) {
+    std::vector<uint32_t> shape = {1, 2, 7*TILE_HEIGHT, 5*TILE_WIDTH};
+    std::vector<uint32_t> result_shape = {shape[0], shape[1], 32, 32};
+    for (uint8_t math_fid = uint8_t(MathFidelity::LoFi); math_fid <= uint8_t(MathFidelity::HiFi4); math_fid++) {
+        // MathFidelity : {0, 2, 3, 4}; so skip value 1
+        if (math_fid == 1) continue;
+            tt::log_info(tt::LogTest, "Math Fidelity = {}", math_fid);
+        for (uint8_t reduce_type = uint8_t(ReduceType::SUM); reduce_type <= uint8_t(ReduceType::MAX); reduce_type++) {
+            // Currently AVG is not tested
+            if (reduce_type == ReduceType::AVG) continue;
+            tt::log_info(tt::LogTest, "Reduce type = {}", reduce_type);
+            ReduceConfig test_config = {
+                .shape = shape,
+                .reduce_dim = ReduceDim::HW,
+                .reduce_type = ReduceType(reduce_type),
+                .data_gen_rand_max = 1.0f,
+                .data_gen_seed = 0x1234,
+                .data_gen_offset = -0.48f,
+                .atol = 1e-2f,
+                .rtol = 0.06f,
+                .golden_function = unit_tests::compute::gold_reduce_hw,
+                .result_shape = result_shape,
+                .math_only_reduce = true,
+                .math_fidelity = MathFidelity(math_fid)
+            };
+            run_single_core_reduce_program(this->devices_.at(0), test_config);
+        }
+    }
+}
+
 TEST_F(DeviceFixture, ComputeReduceHShortInit) {
     if (this->arch_ != tt::ARCH::BLACKHOLE) {
         // (issue #10181: disabling due to sporadic failures in slow dispatch mode)
@@ -468,24 +543,30 @@ TEST_F(DeviceFixture, ComputeReduceHShortInit) {
     }
     std::vector<uint32_t> shape = {1, 3, 19*TILE_HEIGHT, 17*TILE_WIDTH};
     std::vector<uint32_t> result_shape = {shape[0], shape[1], TILE_HEIGHT, shape[3]};
-    for (uint8_t reduce_type = uint8_t(ReduceType::SUM); reduce_type <= uint8_t(ReduceType::MAX); reduce_type++) {
-        // Currently AVG is not tested
-        if (reduce_type == ReduceType::AVG) continue;
-        tt::log_info(tt::LogTest, "Reduce type = {}", reduce_type);
-        ReduceConfig test_config = {
-            .short_init = true,
-            .shape = shape,
-            .reduce_dim = ReduceDim::H,
-            .reduce_type = ReduceType(reduce_type),
-            .data_gen_rand_max = 10.0f,
-            .data_gen_seed = 0x1234,
-            .data_gen_offset = -4.5f,
-            .atol = 1e-2f,
-            .rtol = 0.06f,
-            .golden_function = unit_tests::compute::gold_reduce_h,
-            .result_shape = result_shape
-        };
-        run_single_core_reduce_program(this->devices_.at(0), test_config);
+    for (uint8_t math_fid = uint8_t(MathFidelity::HiFi4); math_fid <= uint8_t(MathFidelity::HiFi4); math_fid++) {
+        // MathFidelity : {0, 2, 3, 4}; so skip value 1
+        if (math_fid == 1) continue;
+        tt::log_info(tt::LogTest, "Math Fidelity = {}", math_fid);
+        for (uint8_t reduce_type = uint8_t(ReduceType::SUM); reduce_type <= uint8_t(ReduceType::MAX); reduce_type++) {
+            // Currently AVG is not tested
+            if (reduce_type == ReduceType::AVG) continue;
+            tt::log_info(tt::LogTest, "Reduce type = {}", reduce_type);
+            ReduceConfig test_config = {
+                .short_init = true,
+                .shape = shape,
+                .reduce_dim = ReduceDim::H,
+                .reduce_type = ReduceType(reduce_type),
+                .data_gen_rand_max = 10.0f,
+                .data_gen_seed = 0x1234,
+                .data_gen_offset = -4.5f,
+                .atol = 1e-2f,
+                .rtol = 0.06f,
+                .golden_function = unit_tests::compute::gold_reduce_h,
+                .result_shape = result_shape,
+                .math_fidelity = MathFidelity(math_fid)
+            };
+            run_single_core_reduce_program(this->devices_.at(0), test_config);
+        }
     }
 }
 
@@ -522,23 +603,29 @@ TEST_F(DeviceFixture, ComputeReduceWShortInit) {
 TEST_F(DeviceFixture, ComputeReduceHWShortInit) {
     std::vector<uint32_t> shape = {1, 2, 7*TILE_HEIGHT, 5*TILE_WIDTH};
     std::vector<uint32_t> result_shape = {shape[0], shape[1], 32, 32};
-    for (uint8_t reduce_type = uint8_t(ReduceType::SUM); reduce_type <= uint8_t(ReduceType::MAX); reduce_type++) {
-        // Currently AVG is not tested
-        if (reduce_type == ReduceType::AVG) continue;
-        tt::log_info(tt::LogTest, "Reduce type = {}", reduce_type);
-        ReduceConfig test_config = {
-            .short_init = true,
-            .shape = shape,
-            .reduce_dim = ReduceDim::HW,
-            .reduce_type = ReduceType(reduce_type),
-            .data_gen_rand_max = 1.0f,
-            .data_gen_seed = 0x1234,
-            .data_gen_offset = -0.48f,
-            .atol = 1e-2f,
-            .rtol = 0.06f,
-            .golden_function = unit_tests::compute::gold_reduce_hw,
-            .result_shape = result_shape
-        };
-        run_single_core_reduce_program(this->devices_.at(0), test_config);
+    for (uint8_t math_fid = uint8_t(MathFidelity::LoFi); math_fid <= uint8_t(MathFidelity::HiFi4); math_fid++) {
+        // MathFidelity : {0, 2, 3, 4}; so skip value 1
+        if (math_fid == 1) continue;
+        tt::log_info(tt::LogTest, "Math Fidelity = {}", math_fid);
+        for (uint8_t reduce_type = uint8_t(ReduceType::SUM); reduce_type <= uint8_t(ReduceType::MAX); reduce_type++) {
+            // Currently AVG is not tested
+            if (reduce_type == ReduceType::AVG) continue;
+            tt::log_info(tt::LogTest, "Reduce type = {}", reduce_type);
+            ReduceConfig test_config = {
+                .short_init = true,
+                .shape = shape,
+                .reduce_dim = ReduceDim::HW,
+                .reduce_type = ReduceType(reduce_type),
+                .data_gen_rand_max = 1.0f,
+                .data_gen_seed = 0x1234,
+                .data_gen_offset = -0.48f,
+                .atol = 1e-2f,
+                .rtol = 0.06f,
+                .golden_function = unit_tests::compute::gold_reduce_hw,
+                .result_shape = result_shape,
+                .math_fidelity = MathFidelity(math_fid)
+            };
+            run_single_core_reduce_program(this->devices_.at(0), test_config);
+        }
     }
 }
