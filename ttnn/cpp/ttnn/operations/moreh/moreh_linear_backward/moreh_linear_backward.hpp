@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "ttnn/decorators.hpp"
 #include "device/moreh_linear_backward_device_operation.hpp"
+#include "ttnn/decorators.hpp"
 
 namespace ttnn::operations::moreh::moreh_linear_backward {
 struct MorehLinearBackward {
@@ -15,11 +15,11 @@ struct MorehLinearBackward {
         const Tensor& output_grad,
         const Tensor& input,
         const Tensor& weight,
-        std::vector<bool> &are_required_outputs,
-        const std::optional<const Tensor> bias,
-        const std::optional<const Tensor> input_grad,
-        const std::optional<const Tensor> weight_grad,
-        const std::optional<const Tensor> bias_grad,
+        const std::vector<bool>& are_required_outputs,
+        const std::optional<Tensor>& bias,
+        const std::optional<Tensor>& input_grad,
+        const std::optional<Tensor>& weight_grad,
+        const std::optional<Tensor>& bias_grad,
         const std::optional<ttnn::MemoryConfig>& input_grad_mem_config,
         const std::optional<ttnn::MemoryConfig>& weight_grad_mem_config,
         const std::optional<ttnn::MemoryConfig>& bias_grad_mem_config,
@@ -28,6 +28,7 @@ struct MorehLinearBackward {
 }  // namespace ttnn::operations::moreh::moreh_linear_backward
 
 namespace ttnn {
-constexpr auto moreh_linear_backward =
-    ttnn::register_operation<"ttnn::moreh_linear_backward", ttnn::operations::moreh::moreh_linear_backward::MorehLinearBackward>();
+constexpr auto moreh_linear_backward = ttnn::register_operation<
+    "ttnn::moreh_linear_backward",
+    ttnn::operations::moreh::moreh_linear_backward::MorehLinearBackward>();
 }

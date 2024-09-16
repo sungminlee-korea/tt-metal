@@ -16,11 +16,11 @@
 namespace ttnn::operations::moreh::moreh_linear_backward {
 struct MorehBiasAddBackwardOperation {
     struct operation_attributes_t {
-        std::vector<bool> &are_required_outputs;
+        const std::vector<bool> are_required_outputs;
 
-        const std::optional<ttnn::MemoryConfig>& input_grad_mem_config;
-        const std::optional<ttnn::MemoryConfig>& weight_grad_mem_config;
-        const std::optional<ttnn::MemoryConfig>& bias_grad_mem_config;
+        const MemoryConfig input_grad_mem_config;
+        const MemoryConfig weight_grad_mem_config;
+        const MemoryConfig bias_grad_mem_config;
         const DeviceComputeKernelConfig compute_kernel_config;
     };
 
@@ -90,16 +90,16 @@ struct MorehBiasAddBackwardOperation {
         const Tensor& output_grad,
         const Tensor& input,
         const Tensor& weight,
-        std::vector<bool> &are_required_outputs,
-        const std::optional<const Tensor> bias,
-        const std::optional<const Tensor> input_grad,
-        const std::optional<const Tensor> weight_grad,
-        const std::optional<const Tensor> bias_grad,
+        const std::vector<bool>& are_required_outputs,
+        const std::optional<Tensor>& bias,
+        const std::optional<Tensor>& input_grad,
+        const std::optional<Tensor>& weight_grad,
+        const std::optional<Tensor>& bias_grad,
 
-        const std::optional<ttnn::MemoryConfig>& input_grad_mem_config,
-        const std::optional<ttnn::MemoryConfig>& weight_grad_mem_config,
-        const std::optional<ttnn::MemoryConfig>& bias_grad_mem_config,
-        const DeviceComputeKernelConfig compute_kernel_config);
+        const std::optional<MemoryConfig>& input_grad_mem_config,
+        const std::optional<MemoryConfig>& weight_grad_mem_config,
+        const std::optional<MemoryConfig>& bias_grad_mem_config,
+        const std::optional<DeviceComputeKernelConfig>& compute_kernel_config);
 };
 }  // namespace ttnn::operations::moreh::moreh_linear_backward
 
@@ -107,4 +107,4 @@ namespace ttnn::prim {
 constexpr auto moreh_linear_backward = ttnn::register_operation<
     "ttnn::prim::moreh_linear_backward",
     ttnn::operations::moreh::moreh_linear_backward::MorehBiasAddBackwardOperation>();
-} // namespace ttnn::prim
+}  // namespace ttnn::prim
