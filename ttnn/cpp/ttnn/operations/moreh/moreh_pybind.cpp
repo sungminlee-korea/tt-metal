@@ -6,6 +6,7 @@
 
 #include "ttnn/operations/moreh/moreh_adam/moreh_adam_pybind.hpp"
 #include "ttnn/operations/moreh/moreh_arange/moreh_arange_pybind.hpp"
+#include "ttnn/operations/moreh/moreh_clip_grad_norm/moreh_clip_grad_norm_pybind.hpp"
 #include "ttnn/operations/moreh/moreh_dot_op/moreh_dot_pybind.hpp"
 #include "ttnn/operations/moreh/moreh_dot_op_backward/moreh_dot_backward_pybind.hpp"
 #include "ttnn/operations/moreh/moreh_getitem/moreh_getitem_pybind.hpp"
@@ -29,5 +30,6 @@ void bind_moreh_operations(py::module &module) {
     moreh_nll_loss_unreduced_backward::bind_moreh_nll_loss_unreduced_backward_operation(module);
     moreh_nll_loss_backward::bind_moreh_nll_loss_backward_operation(module);
     moreh_matmul::bind_moreh_matmul_operation(module);
+    moreh_clip_grad_norm::bind_moreh_clip_grad_norm_operation(module);
 }
 }  // namespace ttnn::operations::moreh

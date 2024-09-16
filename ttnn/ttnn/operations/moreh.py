@@ -11,3 +11,4 @@ sum = ttnn._ttnn.operations.moreh.moreh_sum
 mean = ttnn._ttnn.operations.moreh.moreh_mean
 mean_backward = ttnn._ttnn.operations.moreh.moreh_mean_backward
 matmul = ttnn._ttnn.operations.moreh.moreh_matmul
+clip_grad_norm = ttnn._ttnn.operations.moreh.moreh_clip_grad_norm
