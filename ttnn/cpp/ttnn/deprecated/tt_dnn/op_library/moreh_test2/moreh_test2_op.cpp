@@ -63,7 +63,7 @@ Tensor moreh_test2(
     const Tensor &input2,
     const std::optional<const Tensor> output,
     const MemoryConfig &output_mem_config,
-    std::optional<const DeviceComputeKernelConfig> compute_kernel_config) {
+    std::optional<const ttnn::DeviceComputeKernelConfig> compute_kernel_config) {
 
     float p = 0.5;
     std::vector<Tensor> output_tensors = {Tensor(operation::get_workers_for_op_output({input, input2}))};

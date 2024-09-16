@@ -32,6 +32,7 @@ void MAIN {
         // dst1 = uint8 type input2
         cb_wait_front(cb_in1, onetile);
         unpack_reconfig_data_format_srca(cb_in1);
+        math_reconfig_data_format_srca(cb_in1);
         copy_tile_to_dst_init_short(cb_in1);
         copy_tile(cb_in1, 0, 1);
 
@@ -66,6 +67,7 @@ void MAIN {
         cb_wait_front(cb_in0, onetile);
         cb_wait_front(cb_intermed0, onetile);
         unpack_reconfig_data_format(cb_intermed0, cb_in0);
+        math_reconfig_data_format(cb_intermed0, cb_in0);
         mul_tiles_init_with_dt(cb_intermed0, cb_in0);
         mul_tiles(cb_intermed0, cb_in0, 0, 0, 0);
         cb_pop_front(cb_intermed0, onetile);
@@ -84,6 +86,7 @@ void MAIN {
         tile_regs_acquire();
         cb_wait_front(cb_intermed0, onetile);
         unpack_reconfig_data_format(cb_intermed0, cb_in2);
+        math_reconfig_data_format(cb_intermed0, cb_in2);
         mul_tiles_bcast_scalar_init_short(cb_intermed0, cb_in2);
         mul_tiles_bcast_scalar(cb_intermed0, cb_in2, 0, 0, 0);
         cb_pop_front(cb_intermed0, onetile);

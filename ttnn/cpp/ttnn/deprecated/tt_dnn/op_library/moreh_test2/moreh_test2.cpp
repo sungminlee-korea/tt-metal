@@ -18,7 +18,7 @@ operation::ProgramWithCallbacks moreh_test2_impl(
     const Tensor &input2,
     const Tensor &output,
     float p,
-    const DeviceComputeKernelConfig &compute_kernel_config) {
+    const ttnn::DeviceComputeKernelConfig &compute_kernel_config) {
     ////////////////////////////////////////////////////////////////////////////
     //                      Device Setup
     ////////////////////////////////////////////////////////////////////////////

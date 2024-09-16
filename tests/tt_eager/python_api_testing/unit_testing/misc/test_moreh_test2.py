@@ -57,7 +57,7 @@ def test_uint8_and_bfloat16(shape, device):
     # prepare tensors
     torch_input, tt_input = get_tensor(shape, device)
     _, tt_output = get_tensor(shape, device)
-    torch_uint8_tensor = torch.full(torch_input.shape, 1, dtype=torch.uint8)
+    torch_uint8_tensor = torch.full(torch_input.shape, 254, dtype=torch.uint8)
     tt_uint8_tensor = (
         ttnn.Tensor(torch_uint8_tensor, ttnn.uint8).pad_to_tile(float("nan")).to(ttnn.TILE_LAYOUT).to(device)
     )

@@ -59,10 +59,10 @@ Tensor moreh_matmul(
 
 // test
 operation::ProgramWithCallbacks moreh_test_impl(
-    const Tensor &input, const Tensor &input2, const Tensor &output, const DeviceComputeKernelConfig &compute_kernel_config);
+    const Tensor &input, const Tensor &input2, const Tensor &output, const ttnn::DeviceComputeKernelConfig &compute_kernel_config);
 
 struct MorehTest {
-    const DeviceComputeKernelConfig compute_kernel_config;
+    const ttnn::DeviceComputeKernelConfig compute_kernel_config;
     void validate_with_output_tensors(
         const std::vector<Tensor> &input_tensors, const std::vector<std::optional<Tensor>> &output_tensors) const;
     std::vector<Shape> compute_output_shapes(const std::vector<Tensor> &input_tensors) const;
@@ -76,7 +76,7 @@ Tensor moreh_test(
     const Tensor &input,
     const Tensor &input2,
     const std::optional<const Tensor> output = std::nullopt,
-    std::optional<const DeviceComputeKernelConfig> compute_kernel_config = std::nullopt);
+    std::optional<const ttnn::DeviceComputeKernelConfig> compute_kernel_config = std::nullopt);
 
 }  // namespace primary
 

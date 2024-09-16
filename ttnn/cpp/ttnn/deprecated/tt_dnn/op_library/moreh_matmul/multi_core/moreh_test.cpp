@@ -20,7 +20,7 @@ namespace operations {
 namespace primary {
 
 operation::ProgramWithCallbacks moreh_test_impl(
-    const Tensor &input, const Tensor &input2, const Tensor &output, const DeviceComputeKernelConfig &compute_kernel_config) {
+    const Tensor &input, const Tensor &input2, const Tensor &output, const ttnn::DeviceComputeKernelConfig &compute_kernel_config) {
     ////////////////////////////////////////////////////////////////////////////
     //                      Device Setup
     ////////////////////////////////////////////////////////////////////////////

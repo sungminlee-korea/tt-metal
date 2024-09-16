@@ -7,7 +7,7 @@
 #pragma once
 #include <optional>
 
-#include "tt_dnn/op_library/compute_kernel_config.hpp"
+#include "ttnn/operations/core/compute_kernel/compute_kernel_config.hpp"
 #include "ttnn/cpp/ttnn/operation.hpp"
 #include "ttnn/cpp/ttnn/tensor/tensor.hpp"
 
@@ -22,12 +22,12 @@ operation::ProgramWithCallbacks moreh_test2_impl(
     const Tensor &input2,
     const Tensor &output,
     float p,
-    const DeviceComputeKernelConfig &compute_kernel_config);
+    const ttnn::DeviceComputeKernelConfig &compute_kernel_config);
 
 struct MorehTest2 {
     float p;
     MemoryConfig output_mem_config;
-    const DeviceComputeKernelConfig compute_kernel_config;
+    const ttnn::DeviceComputeKernelConfig compute_kernel_config;
 
     void validate_with_output_tensors(
         const std::vector<Tensor> &input_tensors, const std::vector<std::optional<Tensor>> &output_tensors) const;
@@ -49,7 +49,7 @@ Tensor moreh_test2(
     const Tensor &input2,
     const std::optional<const Tensor> output = std::nullopt,
     const MemoryConfig &output_mem_config = operation::DEFAULT_OUTPUT_MEMORY_CONFIG,
-    std::optional<const DeviceComputeKernelConfig> compute_kernel_config = std::nullopt);
+    std::optional<const ttnn::DeviceComputeKernelConfig> compute_kernel_config = std::nullopt);
 
 }  // namespace primary
 }  // namespace operations

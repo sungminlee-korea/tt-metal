@@ -323,7 +323,7 @@ Tensor moreh_test(
     const Tensor& input,
     const Tensor& input2,
     const std::optional<const Tensor> output,
-    std::optional<const DeviceComputeKernelConfig> compute_kernel_config) {
+    std::optional<const ttnn::DeviceComputeKernelConfig> compute_kernel_config) {
     auto kernel_config_val =
         init_device_compute_kernel_config(input.device()->arch(), compute_kernel_config, MathFidelity::HiFi4);
     std::vector<Tensor> output_tensors = {Tensor(operation::get_workers_for_op_output({input}))};
