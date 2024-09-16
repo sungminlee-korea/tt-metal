@@ -45,6 +45,7 @@ FORCE_INLINE void transpose_wh_tile_to_cb(uint32_t icb, uint32_t ocb, uint32_t i
 {
     #if defined FP32_DEST_ACC_EN
         unpack_reconfig_data_format_srca(icb);
+        math_reconfig_data_format_srca(icb);
     #endif
     transpose_wh_init_short(icb);
     tile_regs_acquire();
@@ -136,6 +137,7 @@ FORCE_INLINE void mask_tile_to_cb(uint32_t& mm_src, bool& need_mask, bool need_m
         tile_regs_acquire();
         #if defined FP32_DEST_ACC_EN
             unpack_reconfig_data_format(cb_in0, cb_mask);
+            math_reconfig_data_format(cb_in0, cb_mask);
         #endif
         mul_tiles_init(cb_in, cb_mask);
         mul_tiles(cb_in, cb_mask, 0, mask_tidx, 0);
@@ -165,6 +167,7 @@ FORCE_INLINE void bias_add(bool is_scalar_bias)
     if (is_scalar_bias) {
         #if defined FP32_DEST_ACC_EN
             unpack_reconfig_data_format(cb_intermed0, bias_cb_id);
+            math_reconfig_data_format(cb_intermed0, bias_cb_id);
         #endif
         add_bcast_scalar_init_short(cb_intermed0, bias_cb_id);
         add_tiles_bcast_scalar(cb_intermed0, bias_cb_id, 0, 0, 0);
@@ -172,6 +175,7 @@ FORCE_INLINE void bias_add(bool is_scalar_bias)
     else {
         #if defined FP32_DEST_ACC_EN
             unpack_reconfig_data_format(cb_intermed0, bias_cb_id);
+            math_reconfig_data_format(cb_intermed0, bias_cb_id);
         #endif
         add_bcast_rows_init_short(cb_intermed0, bias_cb_id);
         add_tiles_bcast_rows(cb_intermed0, bias_cb_id, 0, 0, 0);
@@ -247,6 +251,7 @@ FORCE_INLINE void matmul_with_transpose_and_mask(uint32_t output_tidx, uint32_t 
                 cb_wait_front(cb_intermed0, onetile);
                 #if defined FP32_DEST_ACC_EN
                     unpack_reconfig_data_format_srca(cb_intermed0);
+                    math_reconfig_data_format_srca(cb_intermed0);
                 #endif
                 copy_tile_to_dst_init_short(cb_intermed0);
                 copy_tile(cb_intermed0, 0, 0);
@@ -264,6 +269,7 @@ FORCE_INLINE void matmul_with_transpose_and_mask(uint32_t output_tidx, uint32_t 
             mm_init_short(mm_src0, mm_src1);
             #if defined FP32_DEST_ACC_EN
                 unpack_reconfig_data_format(mm_src0, mm_src1);
+                math_reconfig_data_format(mm_src0, mm_src1);
             #endif
             matmul_tiles(mm_src0, mm_src1, 0, 0, 0, false);
             tile_regs_commit();

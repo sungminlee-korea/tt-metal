@@ -43,6 +43,7 @@ void MAIN {
         #if FUSED_SCALE_MASK
             // fused scale
             unpack_reconfig_data_format(cb_in0, cb_fused_scale);
+            math_reconfig_data_format(cb_in0, cb_fused_scale);
             pack_reconfig_data_format(cb_scale_mask);
             cb_wait_front(cb_fused_scale, 1);
             // UNPACK(( DPRINT  << TSLICE(cb_fused_scale, 0, SliceRange::h0_w0_32()) << ENDL() ));
@@ -62,6 +63,7 @@ void MAIN {
             }
             cb_pop_front(cb_in0, block_w);
             unpack_reconfig_data_format(cb_scale_mask, cb_fused_attn);
+            math_reconfig_data_format(cb_scale_mask, cb_fused_attn);
 
             // fused attn
             cb_wait_front(cb_scale_mask, block_w);
@@ -107,9 +109,11 @@ void MAIN {
                 cb_pop_front(cb_fused_attn, block_w);
             #endif
             unpack_reconfig_data_format(cb_exps, cb_bcast_scaler);
+            math_reconfig_data_format(cb_exps, cb_bcast_scaler);
 
         #else
             unpack_reconfig_data_format(cb_in0, cb_in0);
+            math_reconfig_data_format(cb_in0, cb_in0);
             pack_reconfig_data_format(cb_exps);
             // exp(x)
             index_subblock_w_offset = 0;
@@ -132,6 +136,7 @@ void MAIN {
             }
             cb_pop_front(cb_in0, block_w);
             unpack_reconfig_data_format(cb_exps, cb_bcast_scaler);
+            math_reconfig_data_format(cb_exps, cb_bcast_scaler);
         #endif // FUSED_SCALE_MASK
 
         // sum(exp(x))
@@ -153,6 +158,7 @@ void MAIN {
 
         // exp(x) / (sum(exp(x)))
         unpack_reconfig_data_format(cb_exps, cb_recipsumexps);
+        math_reconfig_data_format(cb_exps, cb_recipsumexps);
         pack_reconfig_data_format(cb_out0);
         cb_wait_front(cb_recipsumexps, 1);
         mul_bcast_cols_init_short();

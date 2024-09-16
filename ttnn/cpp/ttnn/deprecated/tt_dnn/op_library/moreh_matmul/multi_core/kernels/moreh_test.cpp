@@ -27,11 +27,13 @@ void MAIN {
         tile_regs_acquire();
         cb_wait_front(cb_in0, onetile);
         unpack_reconfig_data_format_srca(cb_in0);
+        math_reconfig_data_format_srca(cb_in0);
         copy_tile_to_dst_init_short(cb_in0);
         copy_tile(cb_in0, 0, 0);
 
         cb_wait_front(cb_in1, onetile);
         unpack_reconfig_data_format_srca(cb_in1);
+        math_reconfig_data_format_srca(cb_in1);
         copy_tile_to_dst_init_short(cb_in1);
         copy_tile(cb_in1, 0, 1);
         tile_regs_commit();
