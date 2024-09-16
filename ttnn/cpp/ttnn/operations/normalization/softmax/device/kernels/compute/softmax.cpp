@@ -64,6 +64,7 @@ void MAIN {
     for (uint32_t ncht = 0; ncht < NCHt; ncht++) {
         #if FUSED_SCALE_MASK
             unpack_reconfig_data_format(cb_in0, cb_fused_scale);
+            math_reconfig_data_format(cb_in0, cb_fused_scale);
             pack_reconfig_data_format(cb_scale_mask);
             mul_tiles_bcast_scalar_init_short();
             for (uint32_t wt = 0; wt < Wt; wt+=ndst) {
@@ -80,6 +81,7 @@ void MAIN {
                 REL();
             }
             unpack_reconfig_data_format(cb_scale_mask, cb_fused_attn);
+            math_reconfig_data_format(cb_scale_mask, cb_fused_attn);
 
             exp_tile_init<EXP_APPROX>();
             #ifdef CAUSAL_MASK
@@ -128,8 +130,10 @@ void MAIN {
             #endif // CAUSAL_MASK
 
             unpack_reconfig_data_format(cb_exps, cb_bcast_scaler);
+            math_reconfig_data_format(cb_exps, cb_bcast_scaler);
         #else
             unpack_reconfig_data_format(cb_in0, cb_in0);
+            math_reconfig_data_format(cb_in0, cb_in0);
             pack_reconfig_data_format(cb_exps);
             copy_tile_to_dst_init_short(); // need to copy from CB to DST to be able to run sfpu math
             exp_tile_init<EXP_APPROX>();
@@ -140,6 +144,7 @@ void MAIN {
                     for (uint32_t wt8 = 0; wt8 < ndst; ++wt8) {
                         if (wt == (Wt - ndst) && (wt8 == ndst - 1)) {
                             unpack_reconfig_data_format(cb_in0, cb_mask_padded);
+                            math_reconfig_data_format(cb_in0, cb_mask_padded);
                             add_bcast_rows_init_short();
                             cb_wait_front(cb_mask_padded, 1);
                             add_tiles_bcast_rows(cb_in0, cb_mask_padded, wt8, 0, wt8);
@@ -178,6 +183,7 @@ void MAIN {
             }
 
             unpack_reconfig_data_format(cb_exps, cb_bcast_scaler);
+            math_reconfig_data_format(cb_exps, cb_bcast_scaler);
         #endif
 
         ACQ();
@@ -199,6 +205,7 @@ void MAIN {
         cb_wait_front(cb_recipsumexps, 1); // will reuse Wt times for bcast
 
         unpack_reconfig_data_format(cb_exps, cb_recipsumexps);
+        math_reconfig_data_format(cb_exps, cb_recipsumexps);
         pack_reconfig_data_format(cb_out0);
         // now cb_sumexps has exp tiles, need to multiply by our DST[2]
         // by now we already did a umulative wait for Wt tiles in cb_exps
