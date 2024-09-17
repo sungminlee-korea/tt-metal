@@ -28,10 +28,10 @@ struct MorehBiasAddBackwardOperation {
         const Tensor& output_grad;
         const Tensor& input;
         const Tensor& weight;
-        const std::optional<const Tensor> bias;
-        const std::optional<const Tensor> input_grad;
-        const std::optional<const Tensor> weight_grad;
-        const std::optional<const Tensor> bias_grad;
+        const std::optional<Tensor>& bias;
+        const std::optional<Tensor>& input_grad;
+        const std::optional<Tensor>& weight_grad;
+        const std::optional<Tensor>& bias_grad;
     };
 
     using shape_return_value_t = std::vector<std::optional<Shape>>;

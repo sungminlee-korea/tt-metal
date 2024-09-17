@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "moreh_linear.hpp"
-#include "ttnn/cpp/ttnn/operations/moreh/moreh_matmul/moreh_matmul.hpp"
+// #include "ttnn/cpp/ttnn/operations/moreh/moreh_matmul/moreh_matmul.hpp"
+#include "ttnn/cpp/ttnn/deprecated/tt_dnn/op_library/moreh_matmul/moreh_matmul_op.hpp"
 
 namespace ttnn::operations::moreh::moreh_linear {
 std::optional<Tensor> MorehLinear::invoke(
@@ -13,7 +14,8 @@ std::optional<Tensor> MorehLinear::invoke(
     std::optional<Tensor> output,
     const std::optional<MemoryConfig>& output_mem_config,
     const DeviceComputeKernelConfig compute_kernel_config) {
-    output = ttnn::moreh_matmul(input, weight, false, true, output, bias.value(), output_mem_config, compute_kernel_config);
+    // output = ttnn::moreh_matmul(input, weight, false, true, output, bias, output_mem_config, compute_kernel_config);
+    output = tt::operations::primary::moreh_matmul(input, weight, false, true, output, bias, output_mem_config.value(), compute_kernel_config);
     return output.value();
 }
 }  // namespace ttnn::operations::moreh::moreh_linear

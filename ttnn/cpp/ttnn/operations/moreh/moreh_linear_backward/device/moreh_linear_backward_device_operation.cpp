@@ -138,10 +138,14 @@ MorehBiasAddBackwardOperation::invoke(
     return {
         MorehBiasAddBackwardOperation::operation_attributes_t{
             are_required_outputs,
-            input_grad_mem_config.value_or(input.memory_config()),
-            weight_grad_mem_config.value_or(input.memory_config()),
-            bias_grad_mem_config.value_or(input.memory_config()),
-            init_device_compute_kernel_config(input_grad->device()->arch(), ck)},
+            input_grad_mem_config.value_or(output_grad.memory_config()),
+            weight_grad_mem_config.value_or(output_grad.memory_config()),
+            bias_grad_mem_config.value_or(output_grad.memory_config()),
+            // input_grad_mem_config.value_or(input.memory_config()),
+            // weight_grad_mem_config.value_or(input.memory_config()),
+            // bias_grad_mem_config.value_or(input.memory_config()),
+            ck.value()},
+            // init_device_compute_kernel_config(input_grad->device()->arch(), ck)},
         MorehBiasAddBackwardOperation::tensor_args_t{
             output_grad, input, weight, bias, input_grad, weight_grad, bias_grad}};
 }

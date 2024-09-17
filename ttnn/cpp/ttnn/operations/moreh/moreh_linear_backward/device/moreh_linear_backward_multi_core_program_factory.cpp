@@ -49,6 +49,8 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     auto arch = device->arch();
     const auto num_cores_y = grid.y;
     auto [math_fidelity, math_approx_mode, fp32_dest_acc_en, packer_l1_acc] = get_compute_kernel_config_args(arch, compute_kernel_config);
+    std::cout << "MorehBiasAddBackwardOperation::MultiCoreProgramFactory::create fp32_dest_acc_en " << fp32_dest_acc_en << std::endl;
+    std::cout << "MorehBiasAddBackwardOperation::MultiCoreProgramFactory::create math_fidelity " << math_fidelity << std::endl;
     const auto [num_cores_to_be_used, all_cores, core_group_1, core_group_2, num_cols_per_core_group_1, num_cols_per_core_group_2] =
         tt::tt_metal::split_work_to_cores(grid, Wt);
 
@@ -100,11 +102,13 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     std::map<string, string> compute_defines;
     compute_defines["REDUCE_OP"] = "PoolType::SUM";
     compute_defines["REDUCE_DIM"] = "ReduceDim::REDUCE_COL";
+    bool preserve_fp32_precision = false;
     if (fp32_dest_acc_en) {
         compute_defines["FP32_DEST_ACC_EN"] = "1";
+        preserve_fp32_precision = true;
     }
     const auto compute_kernel_file =
-        "ttnn/cpp/ttnn/operations/moreh/moreh_linear_backward/device/kernels/moreh_bias_backward_single_core_h.cpp";
+        "ttnn/cpp/ttnn/operations/moreh/moreh_linear_backward/device/kernels/moreh_bias_backward_multi_core_h.cpp";
 
     const auto compute_kernel_1_id = tt::operations::primary::CreateComputeKernel(
         program,
@@ -113,7 +117,8 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
         compute_defines,
         math_fidelity,
         fp32_dest_acc_en,
-        math_approx_mode);
+        math_approx_mode,
+        preserve_fp32_precision);
 
     std::optional<KernelHandle> compute_kernel_2_id = std::nullopt;
     if (!core_group_2.ranges().empty()) {
@@ -125,7 +130,8 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
             compute_defines,
             math_fidelity,
             fp32_dest_acc_en,
-            math_approx_mode);
+            math_approx_mode,
+            preserve_fp32_precision);
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -186,6 +192,7 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
         }
         tile_offset += num_cols_per_core;
     }
+    std::cout << "MorehBiasAddBackwardOperation::MultiCoreProgramFactory::create std::move(program) 0" << std::endl;
 
     return {std::move(program), {reader_kernel_id, writer_kernel_id, num_cores_to_be_used, num_cores_y}};
 }
@@ -202,6 +209,7 @@ void MorehBiasAddBackwardOperation::MultiCoreProgramFactory::override_runtime_ar
     auto num_cores_y = cached_program.shared_variables.num_cores_y;
 
     auto output_grad_buffer  = tensor_args.output_grad.buffer();
+    // auto bias_grad_buffer = tensor_args.bias_grad.value().buffer();
     auto bias_grad_buffer = tensor_return_value.at(0)->buffer();
 
     for (uint32_t i = 0; i < num_cores_to_be_used; ++i) {
