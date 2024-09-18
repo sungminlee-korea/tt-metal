@@ -49,8 +49,6 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     auto arch = device->arch();
     const auto num_cores_y = grid.y;
     auto [math_fidelity, math_approx_mode, fp32_dest_acc_en, packer_l1_acc] = get_compute_kernel_config_args(arch, compute_kernel_config);
-    std::cout << "MorehBiasAddBackwardOperation::MultiCoreProgramFactory::create fp32_dest_acc_en " << fp32_dest_acc_en << std::endl;
-    std::cout << "MorehBiasAddBackwardOperation::MultiCoreProgramFactory::create math_fidelity " << math_fidelity << std::endl;
     const auto [num_cores_to_be_used, all_cores, core_group_1, core_group_2, num_cols_per_core_group_1, num_cols_per_core_group_2] =
         tt::tt_metal::split_work_to_cores(grid, Wt);
 
@@ -192,7 +190,6 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
         }
         tile_offset += num_cols_per_core;
     }
-    std::cout << "MorehBiasAddBackwardOperation::MultiCoreProgramFactory::create std::move(program) 0" << std::endl;
 
     return {std::move(program), {reader_kernel_id, writer_kernel_id, num_cores_to_be_used, num_cores_y}};
 }

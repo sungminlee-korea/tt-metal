@@ -15,25 +15,6 @@ from tests.tt_eager.python_api_testing.unit_testing.misc.test_utils import (
 )
 
 
-def find_mismatched_indices_and_values(tensor1, tensor2, atol, rtol):
-    if tensor1.shape != tensor2.shape:
-        raise ValueError("Tensors must have the same shape")
-
-    # 텐서 간의 차이 계산
-    # difference = tensor1 != tensor2
-    difference = torch.abs(tensor1 - tensor2) > atol + rtol * torch.abs(tensor2)
-
-    # 불리언 텐서에서 True의 인덱스 찾기
-    mismatched_indices = torch.nonzero(difference, as_tuple=False)
-
-    # 틀린 위치와 그 값들을 리스트로 저장
-    mismatched_values = [
-        (idx.tolist(), tensor1[tuple(idx)].item(), tensor2[tuple(idx)].item()) for idx in mismatched_indices
-    ]
-
-    return mismatched_indices, mismatched_values
-
-
 # TODO: add this feature in get_tensors method
 def get_bias_tensors(bias_shape, require_bias_grad, device):
     npu_dtype = ttnn.bfloat16
@@ -88,67 +69,67 @@ def moreh_linear(shapes, has_bias, has_output, compute_kernel_config, device):
     return passing
 
 
-# @pytest.mark.parametrize(
-#     "shapes",
-#     (
-#         # input, weight, bias(1d or scalar), output
-#         ([31, 31], [30, 31], [1, 30], [31, 30]),
-#         ([31, 31], [30, 31], [1, 1], [31, 30]),
-#         ([4, 4, 2, 31], [30, 31], [1, 30], [4, 4, 2, 30]),
-#         ([4, 4, 2, 31], [30, 31], [1, 1], [4, 4, 2, 30]),
-#         ([2, 2047], [1023, 2047], [1, 1023], [2, 1023]),
-#         ([2, 2047], [1023, 2047], [1, 1], [2, 1023]),
-#         ([32, 64], [1024, 64], [1, 1024], [32, 1024]),
-#         ([32, 64], [1024, 64], [1, 1], [32, 1024]),
-#         ([3, 32, 1023], [2047, 1023], [1, 2047], [3, 32, 2047]),
-#         ([3, 32, 1023], [2047, 1023], [1, 1], [3, 32, 2047]),
-#         ([2, 4, 4, 1024], [2047, 1024], [1, 2047], [2, 4, 4, 2047]),
-#         ([2, 4, 4, 1024], [2047, 1024], [1, 1], [2, 4, 4, 2047]),
-#         ([2, 1, 2, 3, 2, 2, 96, 95], [511, 95], [1, 1], [2, 1, 2, 3, 2, 2, 96, 511]),
-#         ([2, 1, 2, 3, 2, 2, 96, 95], [511, 95], [1, 511], [2, 1, 2, 3, 2, 2, 96, 511]),
-#     ),
-# )
-# @pytest.mark.parametrize("has_bias", [False, True])
-# @pytest.mark.parametrize("compute_kernel_options", compute_kernel_options, ids=compute_kernel_ids)
-# def test_moreh_linear(shapes, has_bias, compute_kernel_options, device):
-#     torch.manual_seed(3072)
-#     compute_kernel_config = get_compute_kernel_options(compute_kernel_options)
-#     passing = moreh_linear(shapes, has_bias, True, compute_kernel_config, device)
-#     assert passing
+@pytest.mark.parametrize(
+    "shapes",
+    (
+        # input, weight, bias(1d or scalar), output
+        ([31, 31], [30, 31], [1, 30], [31, 30]),
+        ([31, 31], [30, 31], [1, 1], [31, 30]),
+        ([4, 4, 2, 31], [30, 31], [1, 30], [4, 4, 2, 30]),
+        ([4, 4, 2, 31], [30, 31], [1, 1], [4, 4, 2, 30]),
+        ([2, 2047], [1023, 2047], [1, 1023], [2, 1023]),
+        ([2, 2047], [1023, 2047], [1, 1], [2, 1023]),
+        ([32, 64], [1024, 64], [1, 1024], [32, 1024]),
+        ([32, 64], [1024, 64], [1, 1], [32, 1024]),
+        ([3, 32, 1023], [2047, 1023], [1, 2047], [3, 32, 2047]),
+        ([3, 32, 1023], [2047, 1023], [1, 1], [3, 32, 2047]),
+        ([2, 4, 4, 1024], [2047, 1024], [1, 2047], [2, 4, 4, 2047]),
+        ([2, 4, 4, 1024], [2047, 1024], [1, 1], [2, 4, 4, 2047]),
+        ([2, 1, 2, 3, 2, 2, 96, 95], [511, 95], [1, 1], [2, 1, 2, 3, 2, 2, 96, 511]),
+        ([2, 1, 2, 3, 2, 2, 96, 95], [511, 95], [1, 511], [2, 1, 2, 3, 2, 2, 96, 511]),
+    ),
+)
+@pytest.mark.parametrize("has_bias", [False, True])
+@pytest.mark.parametrize("compute_kernel_options", compute_kernel_options, ids=compute_kernel_ids)
+def test_moreh_linear(shapes, has_bias, compute_kernel_options, device):
+    torch.manual_seed(3072)
+    compute_kernel_config = get_compute_kernel_options(compute_kernel_options)
+    passing = moreh_linear(shapes, has_bias, True, compute_kernel_config, device)
+    assert passing
 
 
-# @pytest.mark.parametrize(
-#     "shapes",
-#     (
-#         # input, weight, bias(1d or scalar), output
-#         ([31, 31], [30, 31], [1, 30], [31, 30]),
-#         ([2, 1, 2, 3, 2, 2, 96, 95], [511, 95], [1, 1], [2, 1, 2, 3, 2, 2, 96, 511]),
-#     ),
-# )
-# @pytest.mark.parametrize("has_bias", [False, True])
-# def test_moreh_linear_wo_output(shapes, has_bias, device):
-#     torch.manual_seed(3072)
-#     compute_kernel_config = get_compute_kernel_options(False)
-#     passing = moreh_linear(shapes, has_bias, False, compute_kernel_config, device)
-#     assert passing
+@pytest.mark.parametrize(
+    "shapes",
+    (
+        # input, weight, bias(1d or scalar), output
+        ([31, 31], [30, 31], [1, 30], [31, 30]),
+        ([2, 1, 2, 3, 2, 2, 96, 95], [511, 95], [1, 1], [2, 1, 2, 3, 2, 2, 96, 511]),
+    ),
+)
+@pytest.mark.parametrize("has_bias", [False, True])
+def test_moreh_linear_wo_output(shapes, has_bias, device):
+    torch.manual_seed(3072)
+    compute_kernel_config = get_compute_kernel_options(False)
+    passing = moreh_linear(shapes, has_bias, False, compute_kernel_config, device)
+    assert passing
 
 
-# @pytest.mark.parametrize(
-#     "shapes",
-#     (
-#         # input, weight, bias(1d or scalar), output
-#         ([31, 31], [30, 31], [1, 1], [31, 30]),
-#         ([2, 1, 2, 3, 2, 2, 96, 95], [511, 95], [1, 511], [2, 1, 2, 3, 2, 2, 96, 511]),
-#     ),
-# )
-# def test_moreh_linear_enable_cache(shapes, device, use_program_cache):
-#     torch.manual_seed(3072)
-#     compute_kernel_config = get_compute_kernel_options(False)
-#     for i in range(2):
-#         passing = moreh_linear(shapes, True, True, compute_kernel_config, device)
-#         assert passing
+@pytest.mark.parametrize(
+    "shapes",
+    (
+        # input, weight, bias(1d or scalar), output
+        ([31, 31], [30, 31], [1, 1], [31, 30]),
+        ([2, 1, 2, 3, 2, 2, 96, 95], [511, 95], [1, 511], [2, 1, 2, 3, 2, 2, 96, 511]),
+    ),
+)
+def test_moreh_linear_enable_cache(shapes, device, use_program_cache):
+    torch.manual_seed(3072)
+    compute_kernel_config = get_compute_kernel_options(False)
+    for i in range(2):
+        passing = moreh_linear(shapes, True, True, compute_kernel_config, device)
+        assert passing
 
-#     assert device.num_program_cache_entries() == 1
+    assert device.num_program_cache_entries() == 1
 
 
 def moreh_linear_backward(
@@ -171,10 +152,6 @@ def moreh_linear_backward(
     ) = get_tensors(input_shape, weight_shape, output_shape, requires_input_grad, requires_weight_grad, False, device)
 
     tt_bias, torch_bias, tt_bias_grad = get_bias_tensors(bias_shape, requires_bias_grad, device)
-
-    # cpu_layout = ttnn.ROW_MAJOR_LAYOUT
-    # ttcpu_input_grad = tt_input_grad.cpu().to(cpu_layout).unpad_from_tile(input_shape).to_torch()
-    # print("ttcpu_input_grad[i] before:",ttcpu_input_grad)
 
     ## tt linear backward
     tt_input_grad, tt_weight_grad, tt_bias_grad = ttnn.operations.moreh.linear_backward(
@@ -209,8 +186,6 @@ def moreh_linear_backward(
 
     if requires_weight_grad:
         ttcpu_weight_grad = tt_weight_grad.cpu().to(cpu_layout).unpad_from_tile(weight_shape).to_torch()
-        print("ttcpu_weight_grad[i]:", ttcpu_weight_grad)
-        print("torch_weight.grad[i]:", torch_weight.grad)
         passing, output_pcc = comp_allclose_and_pcc(
             torch_weight.grad, ttcpu_weight_grad, pcc=0.999, rtol=rtol, atol=atol
         )
@@ -221,11 +196,6 @@ def moreh_linear_backward(
 
     if requires_bias_grad:
         ttcpu_bias_grad = tt_bias_grad.cpu().to(cpu_layout).unpad_from_tile(bias_shape).to_torch()
-        print("ttcpu_bias_grad[i]:", ttcpu_bias_grad)
-        print("torch_bias.grad[i]:", torch_bias.grad)
-        indicies, values = find_mismatched_indices_and_values(ttcpu_bias_grad, torch_bias.grad, atol, rtol)
-        print("indicies", indicies)
-        print("values", values)
         passing, output_pcc = comp_allclose_and_pcc(torch_bias.grad, ttcpu_bias_grad, pcc=0.999, rtol=rtol, atol=atol)
         logger.debug(f"bias_grad passing={passing} pcc={output_pcc}")
         assert passing
@@ -239,19 +209,19 @@ def moreh_linear_backward(
     (
         # input, weight, bias(1d or scalar), output
         ([31, 31], [30, 31], [1, 30], [31, 30]),
-        # ([31, 31], [30, 31], [1, 1], [31, 30]),
-        # ([4, 4, 2, 31], [30, 31], [1, 30], [4, 4, 2, 30]),
-        # # ([4, 4, 2, 31], [30, 31], [1, 1], [4, 4, 2, 30]),
-        # ([2, 2047], [1023, 2047], [1, 1023], [2, 1023]),
-        # # ([2, 2047], [1023, 2047], [1, 1], [2, 1023]),
-        # ([32, 64], [1024, 64], [1, 1024], [32, 1024]),
-        # # ([32, 64], [1024, 64], [1, 1], [32, 1024]),
-        # ([3, 32, 1023], [1536, 1023], [1, 1536], [3, 32, 1536]),
-        # # ([3, 32, 1023], [1536, 1023], [1, 1], [3, 32, 1536]),
-        # ([2, 4, 4, 1024], [1536, 1024], [1, 1536], [2, 4, 4, 1536]),
-        # # ([2, 4, 4, 1024], [1200, 1024], [1, 1], [2, 4, 4, 1200]),
-        # # ([2, 1, 2, 1, 2, 2, 96, 95], [127, 95], [1, 1], [2, 1, 2, 1, 2, 2, 96, 127]),
-        # ([2, 1, 2, 3, 2, 2, 96, 95], [127, 95], [1, 127], [2, 1, 2, 3, 2, 2, 96, 127]),
+        ([31, 31], [30, 31], [1, 1], [31, 30]),
+        ([4, 4, 2, 31], [30, 31], [1, 30], [4, 4, 2, 30]),
+        ([4, 4, 2, 31], [30, 31], [1, 1], [4, 4, 2, 30]),
+        ([2, 2047], [1023, 2047], [1, 1023], [2, 1023]),
+        ([2, 2047], [1023, 2047], [1, 1], [2, 1023]),
+        ([32, 64], [1024, 64], [1, 1024], [32, 1024]),
+        ([32, 64], [1024, 64], [1, 1], [32, 1024]),
+        ([3, 32, 1023], [1536, 1023], [1, 1536], [3, 32, 1536]),
+        ([3, 32, 1023], [1536, 1023], [1, 1], [3, 32, 1536]),
+        ([2, 4, 4, 1024], [1536, 1024], [1, 1536], [2, 4, 4, 1536]),
+        ([2, 4, 4, 1024], [1200, 1024], [1, 1], [2, 4, 4, 1200]),
+        ([2, 1, 2, 1, 2, 2, 96, 95], [127, 95], [1, 1], [2, 1, 2, 1, 2, 2, 96, 127]),
+        ([2, 1, 2, 3, 2, 2, 96, 95], [127, 95], [1, 127], [2, 1, 2, 3, 2, 2, 96, 127]),
     ),
 )
 @pytest.mark.parametrize(
@@ -262,8 +232,7 @@ def moreh_linear_backward(
         (True, True),
     ),
 )
-@pytest.mark.parametrize("requires_bias_grad", [True])
-# @pytest.mark.parametrize("requires_bias_grad", [True, False])
+@pytest.mark.parametrize("requires_bias_grad", [True, False])
 @pytest.mark.parametrize("compute_kernel_options", compute_kernel_options, ids=compute_kernel_ids)
 def test_moreh_linear_backward(shapes, requires_grads, requires_bias_grad, compute_kernel_options, device):
     torch.manual_seed(3072)
@@ -280,9 +249,9 @@ def test_moreh_linear_backward(shapes, requires_grads, requires_bias_grad, compu
     (
         # input, weight, bias(1d or scalar), output
         ([31, 31], [30, 31], [1, 30], [31, 30]),
-        # ([31, 31], [30, 31], [1, 1], [31, 30]),
+        ([31, 31], [30, 31], [1, 1], [31, 30]),
         ([2, 4, 4, 1024], [1536, 1024], [1, 1536], [2, 4, 4, 1536]),
-        # ([32, 1023], [1536, 1023], [1, 1], [32, 1536]),
+        ([32, 1023], [1536, 1023], [1, 1], [32, 1536]),
     ),
 )
 def test_moreh_linear_backward_enable_cache(shapes, device, use_program_cache):

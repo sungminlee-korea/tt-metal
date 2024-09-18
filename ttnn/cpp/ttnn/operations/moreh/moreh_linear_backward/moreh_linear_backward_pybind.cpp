@@ -24,9 +24,9 @@ void bind_moreh_linear_backward_operation(py::module& module) {
             py::arg("weight_grad") = std::nullopt,
             py::arg("bias_grad") = std::nullopt,
 
-            py::arg("input_grad_mem_config") = operation::DEFAULT_OUTPUT_MEMORY_CONFIG,
-            py::arg("weight_grad_mem_config") = operation::DEFAULT_OUTPUT_MEMORY_CONFIG,
-            py::arg("bias_grad_mem_config") = operation::DEFAULT_OUTPUT_MEMORY_CONFIG,
+            py::arg("input_grad_mem_config") = std::nullopt,
+            py::arg("weight_grad_mem_config") = std::nullopt,
+            py::arg("bias_grad_mem_config") = std::nullopt,
             py::arg("compute_kernel_config") = std::nullopt});
 }
 }  // namespace ttnn::operations::moreh::moreh_linear_backward

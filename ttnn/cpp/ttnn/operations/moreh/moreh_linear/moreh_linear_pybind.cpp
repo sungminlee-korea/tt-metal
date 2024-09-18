@@ -20,7 +20,7 @@ void bind_moreh_linear_operation(py::module& module) {
             py::arg("bias") = std::nullopt,
             py::arg("output") = std::nullopt,
 
-            py::arg("output_mem_config") = operation::DEFAULT_OUTPUT_MEMORY_CONFIG,
+            py::arg("output_mem_config") = std::nullopt,
             py::arg("compute_kernel_config") = std::nullopt});
 }
 }  // namespace ttnn::operations::moreh::moreh_linear
