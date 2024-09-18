@@ -4,10 +4,12 @@
 
 import ttnn
 
-arange = ttnn._ttnn.operations.moreh.moreh_arange
 adam = ttnn._ttnn.operations.moreh.moreh_adam
+arange = ttnn._ttnn.operations.moreh.moreh_arange
 getitem = ttnn._ttnn.operations.moreh.moreh_getitem
-sum = ttnn._ttnn.operations.moreh.moreh_sum
+group_norm = ttnn._ttnn.operations.moreh.moreh_group_norm
+group_norm_backward = ttnn._ttnn.operations.moreh.moreh_group_norm_backward
+matmul = ttnn._ttnn.operations.moreh.moreh_matmul
 mean = ttnn._ttnn.operations.moreh.moreh_mean
 mean_backward = ttnn._ttnn.operations.moreh.moreh_mean_backward
-matmul = ttnn._ttnn.operations.moreh.moreh_matmul
+sum = ttnn._ttnn.operations.moreh.moreh_sum
