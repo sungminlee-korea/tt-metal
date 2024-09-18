@@ -372,8 +372,7 @@ MorehMatmulOperation::MultiCoreProgramFactory::cached_program_t MorehMatmulOpera
     bool preserve_fp32_precision = false;
     if (fp32_dest_acc_en) {
         compute_defines["FP32_DEST_ACC_EN"] = "1";
-        // TODO: Duong uncomment when https://github.com/tenstorrent/tt-metal/issues/11756 is fixed
-        // preserve_fp32_precision = true;
+        preserve_fp32_precision = true;
     }
 
     const auto compute_kernel_1_id = tt::operations::primary::CreateComputeKernel(
