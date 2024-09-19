@@ -20,5 +20,5 @@ struct MorehSumBackward {
 
 namespace ttnn {
 constexpr auto moreh_sum_backward = ttnn::
-    register_operation<"ttnn::moreh_sum_backward", ttnn::operations::moreh::moreh_sum_backward::MorehSumBackward>();
+    register_operation_with_auto_launch_op<"ttnn::moreh_sum_backward", ttnn::operations::moreh::moreh_sum_backward::MorehSumBackward>();
 }
