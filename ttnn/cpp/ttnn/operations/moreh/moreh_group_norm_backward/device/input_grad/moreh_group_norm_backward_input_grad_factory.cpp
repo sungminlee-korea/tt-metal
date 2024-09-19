@@ -216,9 +216,6 @@ MorehGroupNormBackwardInputGradOperation::MorehGroupNormBackwardInputGradFactory
 
     const auto gamma_addr = gamma_has_value ? gamma.value().buffer()->address() : 0;
 
-    // std::cout << "output_grad_addr: " << output_grad_addr << std::endl;
-
-    // std::cout << "num_cores_to_be_used: " << num_cores_to_be_used << std::endl;
     for (uint32_t i = 0, tile_offset = 0; i < num_cores_to_be_used; ++i) {
         CoreCoord core = {i / num_cores_y, i % num_cores_y};
 

@@ -26,13 +26,13 @@ void MorehGroupNormBackwardGammaBetaGradOperation::validate_tensors(
 
     using namespace tt::operations::primary;
 
-    check_tensor(output_grad, "moreh_groupnorm_backward_gamma_beta_grad", "output_grad");
-    check_tensor(input, "moreh_groupnorm_backward_gamma_beta_grad", "input");
-    check_tensor(mean, "moreh_groupnorm_backward_gamma_beta_grad", "mean");
-    check_tensor(rstd, "moreh_groupnorm_backward_gamma_beta_grad", "rstd");
+    check_tensor(output_grad, "moreh_group_norm_backward_gamma_beta_grad", "output_grad");
+    check_tensor(input, "moreh_group_norm_backward_gamma_beta_grad", "input");
+    check_tensor(mean, "moreh_group_norm_backward_gamma_beta_grad", "mean");
+    check_tensor(rstd, "moreh_group_norm_backward_gamma_beta_grad", "rstd");
 
-    check_tensor(gamma_grad, "moreh_groupnorm_backward_gamma_beta_grad", "gamma_grad");
-    check_tensor(beta_grad, "moreh_groupnorm_backward_gamma_beta_grad", "beta_grad");
+    check_tensor(gamma_grad, "moreh_group_norm_backward_gamma_beta_grad", "gamma_grad");
+    check_tensor(beta_grad, "moreh_group_norm_backward_gamma_beta_grad", "beta_grad");
 
     // output_grad (N, C, H, W)
     auto C = output_grad.get_shape().value[1];
@@ -149,8 +149,8 @@ MorehGroupNormBackwardGammaBetaGradOperation::invoke(
     operation_attributes_t operation_attributes{
         num_groups,
         are_required_outputs,
-        gamma_grad_mem_config.value_or(operation::DEFAULT_OUTPUT_MEMORY_CONFIG),
-        beta_grad_mem_config.value_or(operation::DEFAULT_OUTPUT_MEMORY_CONFIG),
+        gamma_grad_mem_config.value_or(output_grad.memory_config()),
+        beta_grad_mem_config.value_or(output_grad.memory_config()),
         compute_kernel_config};
     tensor_args_t tensor_args{output_grad, input, mean, rstd, {gamma_grad, beta_grad}};
     return {operation_attributes, tensor_args};

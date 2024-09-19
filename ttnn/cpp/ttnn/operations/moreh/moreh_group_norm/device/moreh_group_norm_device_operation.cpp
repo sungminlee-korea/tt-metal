@@ -160,9 +160,9 @@ MorehGroupNormOperation::invoke(
         num_groups,
         eps,
         are_required_outputs,
-        memory_config.value_or(operation::DEFAULT_OUTPUT_MEMORY_CONFIG),
-        mean_memory_config.value_or(operation::DEFAULT_OUTPUT_MEMORY_CONFIG),
-        rstd_memory_config.value_or(operation::DEFAULT_OUTPUT_MEMORY_CONFIG),
+        memory_config.value_or(input.memory_config()),
+        mean_memory_config.value_or(input.memory_config()),
+        rstd_memory_config.value_or(input.memory_config()),
         compute_kernel_config};
     tensor_args_t tensor_args{input, gamma, beta, {output, mean, rstd}};
     return {operation_attributes, tensor_args};
