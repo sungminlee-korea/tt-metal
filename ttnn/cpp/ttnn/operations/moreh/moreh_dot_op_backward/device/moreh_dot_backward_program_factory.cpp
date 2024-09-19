@@ -16,8 +16,6 @@ MorehDotBackwardOperation::SingleCore::cached_program_t MorehDotBackwardOperatio
     using namespace tt;
     using namespace tt::tt_metal;
 
-    printf("MorehDotBackwardOperation::SingleCore::create\n");
-
     const auto& output_grad = tensor_args.output_grad;
     const auto& input = tensor_args.input;
     const auto& other = tensor_args.other;
@@ -98,9 +96,9 @@ MorehDotBackwardOperation::SingleCore::cached_program_t MorehDotBackwardOperatio
     };
 
     const auto reader_kernel_file =
-        "ttnn/cpp/ttnn/deprecated/tt_dnn/op_library/moreh_dot_backward/kernels/reader_moreh_dot_backward.cpp";
+        "ttnn/cpp/ttnn/operations/moreh/moreh_dot_op_backward/device/kernels/reader_moreh_dot_backward.cpp";
     const auto writer_kernel_file =
-        "ttnn/cpp/ttnn/deprecated/tt_dnn/op_library/moreh_dot_backward/kernels/writer_moreh_dot_backward.cpp";
+        "ttnn/cpp/ttnn/operations/moreh/moreh_dot_op_backward/device/kernels/writer_moreh_dot_backward.cpp";
 
     const auto reader_kernel_id =
         tt::operations::primary::CreateReadKernel(program, reader_kernel_file, core, reader_compile_time_args);
@@ -111,7 +109,7 @@ MorehDotBackwardOperation::SingleCore::cached_program_t MorehDotBackwardOperatio
     std::map<string, string> compute_defines;
 
     const auto compute_kernel_file =
-        "ttnn/cpp/ttnn/deprecated/tt_dnn/op_library/moreh_dot_backward/kernels/moreh_dot_backward.cpp";
+        "ttnn/cpp/ttnn/operations/moreh/moreh_dot_op_backward/device/kernels/moreh_dot_backward.cpp";
     const auto compute_kernel_id = tt::operations::primary::CreateComputeKernel(
         program, compute_kernel_file, {core, core_num, compute_kernel_args}, compute_defines);
 
@@ -145,7 +143,6 @@ void MorehDotBackwardOperation::SingleCore::override_runtime_arguments(
     const operation_attributes_t& operation_attributes,
     const tensor_args_t& tensor_args,
     tensor_return_value_t& tensor_return_value) {
-
     auto& program = cached_program.program;
     auto& unary_reader_kernel_id = cached_program.shared_variables.unary_reader_kernel_id;
     auto& unary_writer_kernel_id = cached_program.shared_variables.unary_writer_kernel_id;

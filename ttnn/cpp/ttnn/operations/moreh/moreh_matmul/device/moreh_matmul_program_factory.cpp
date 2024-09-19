@@ -28,7 +28,8 @@ void get_tensor_dim(std::vector<uint32_t> &dim, const tt::tt_metal::LegacyShape 
     }
 }
 
-std::vector<int64_t> find_reduce_dim(const tt::tt_metal::LegacyShape &a_shape, const tt::tt_metal::LegacyShape &b_shape) {
+std::vector<int64_t> find_reduce_dim(
+    const tt::tt_metal::LegacyShape &a_shape, const tt::tt_metal::LegacyShape &b_shape) {
     std::vector<uint32_t> a_dim(tt::tt_metal::MAX_NUM_DIMENSIONS, 1);
     std::vector<uint32_t> b_dim(tt::tt_metal::MAX_NUM_DIMENSIONS, 1);
     get_tensor_dim(a_dim, a_shape);
@@ -39,7 +40,7 @@ std::vector<int64_t> find_reduce_dim(const tt::tt_metal::LegacyShape &a_shape, c
     // batch dims
     for (int i = 0; i < rank - 2; ++i) {
         int idx = rank - 1 - i;
-        TT_ASSERT(idx >= 0, "idx < 0");
+        TT_FATAL(idx >= 0, "idx < 0");
         if (a_dim[idx] != b_dim[idx]) {
             dims.push_back(i);
             log_debug(tt::LogOp, "find_reduce_dim :{} push {} dim", __LINE__, i);
