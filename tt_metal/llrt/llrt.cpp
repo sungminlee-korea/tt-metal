@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <unistd.h>
+
 #include "llrt.hpp"
 #include "hal.hpp"
 #include "hostdevcommon/common_runtime_address_map.h"
@@ -49,7 +51,16 @@ struct HexNameToMemVectorCache {
     std::mutex mutex_;
 };
 
-ll_api::memory get_risc_binary(std::string path) {
+ll_api::memory get_risc_binary(string path, uint32_t riscv_id, PackSpans  pack_spans) {
+    static const uint32_t processor_to_fw_base_addr[] = {
+        MEM_BRISC_FIRMWARE_BASE,
+        MEM_NCRISC_FIRMWARE_BASE,
+        MEM_TRISC0_FIRMWARE_BASE,
+        MEM_TRISC1_FIRMWARE_BASE,
+        MEM_TRISC2_FIRMWARE_BASE,
+        eth_l1_mem::address_map::FIRMWARE_BASE,
+        MEM_IERISC_FIRMWARE_BASE,
+    };
 
     if (HexNameToMemVectorCache::inst().exists(path)) {
         return HexNameToMemVectorCache::inst().get(path);
@@ -57,6 +68,12 @@ ll_api::memory get_risc_binary(std::string path) {
 
     std::ifstream hex_istream(path);
     ll_api::memory mem(hex_istream);
+
+    if (pack_spans == PackSpans::PACK) {
+        uint64_t data_start = MEM_LOCAL_BASE;
+        uint64_t text_start = processor_to_fw_base_addr[riscv_id];
+        mem.pack_data_into_text(text_start, data_start);
+    }
 
     // add this path to binary cache
     HexNameToMemVectorCache::inst().add(path, mem);
@@ -93,7 +110,7 @@ uint16_t get_binary_code_size16(const ll_api::memory& mem, int riscv_id) {
             break;
         case 5:
             range_min = eth_l1_mem::address_map::FIRMWARE_BASE;
-            range_max = eth_l1_mem::address_map::COMMAND_Q_BASE;
+            range_max = eth_l1_mem::address_map::FIRMWARE_BASE + eth_l1_mem::address_map::FIRMWARE_SIZE;
             break;
         case 6:
             range_min = MEM_IERISC_FIRMWARE_BASE;
@@ -216,13 +233,13 @@ bool test_load_write_read_risc_binary(ll_api::memory &mem, chip_id_t chip_id, co
 
     uint64_t local_init_addr;
     switch (riscv_id) {
-        case 0: local_init_addr = MEM_BRISC_INIT_LOCAL_L1_BASE; break;
-        case 1: local_init_addr = MEM_NCRISC_INIT_LOCAL_L1_BASE; break;
-        case 2: local_init_addr = MEM_TRISC0_INIT_LOCAL_L1_BASE; break;
-        case 3: local_init_addr = MEM_TRISC1_INIT_LOCAL_L1_BASE; break;
-        case 4: local_init_addr = MEM_TRISC2_INIT_LOCAL_L1_BASE; break;
+        case 0: local_init_addr = MEM_BRISC_INIT_LOCAL_L1_BASE_SCRATCH; break;
+        case 1: local_init_addr = MEM_NCRISC_INIT_LOCAL_L1_BASE_SCRATCH; break;
+        case 2: local_init_addr = MEM_TRISC0_INIT_LOCAL_L1_BASE_SCRATCH; break;
+        case 3: local_init_addr = MEM_TRISC1_INIT_LOCAL_L1_BASE_SCRATCH; break;
+        case 4: local_init_addr = MEM_TRISC2_INIT_LOCAL_L1_BASE_SCRATCH; break;
         case 5: local_init_addr = eth_l1_mem::address_map::FIRMWARE_BASE; break;
-        case 6: local_init_addr = MEM_IERISC_INIT_LOCAL_L1_BASE; break;
+        case 6: local_init_addr = MEM_IERISC_INIT_LOCAL_L1_BASE_SCRATCH; break;
     }
 
     log_debug(tt::LogLLRuntime, "hex_vec size = {}, size_in_bytes = {}", mem.size(), mem.size()*sizeof(uint32_t));
@@ -321,6 +338,7 @@ void wait_until_cores_done(
         // Print not-done cores
         if (loop_count % 1000 == 0) {
             log_debug(tt::LogMetal, "Not done phys cores: {}", fmt::join(not_done_phys_cores, " "));
+            usleep(100000);
         }
 
         for (auto it = not_done_phys_cores.begin(); it != not_done_phys_cores.end(); ) {
