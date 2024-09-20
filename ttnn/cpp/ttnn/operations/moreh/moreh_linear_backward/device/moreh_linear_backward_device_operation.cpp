@@ -19,7 +19,7 @@ void MorehBiasAddBackwardOperation::validate_inputs(
     if (bias_grad.has_value()) {
         auto bias_grad_shape = bias_grad->get_shape();
         auto bias_grad_tensor = bias_grad.value();
-        TT_ASSERT(
+        TT_FATAL(
             tt::operations::primary::is_scalar(bias_grad_tensor) ||
                 tt::operations::primary::is_1d_tensor(bias_grad_tensor),
             "bias_grad tensor should be 1d or scalar");
