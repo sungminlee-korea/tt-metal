@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <ranges>
 
 #include "mesh_device_view.hpp"
 #include "tt_metal/impl/device/device.hpp"
@@ -37,7 +38,7 @@ class SystemMesh {
     // Keep track of the devices that were opened so we can close them later. We shouldn't
     // to keep track of this but DevicePool seems to open all devices associated with an MMIO device id
     std::unordered_map<MeshDeviceID, std::map<chip_id_t, Device*>> opened_devices;
-    std::unordered_map<MeshDeviceID, std::vector<chip_id_t>> assigned_devices;
+    std::unordered_map<MeshDeviceID, std::unordered_set<chip_id_t>> assigned_devices;
     std::unordered_map<MeshDeviceID, std::shared_ptr<MeshDevice>> assigned_mesh_device_devices;
     std::unordered_map<chip_id_t, Device *> assigned_physical_id_to_device;
 
@@ -85,9 +86,11 @@ class SystemMesh {
 
     // Unmap MeshDevice, releasing the associated physical devices.
     void unmap_mesh_device(const std::shared_ptr<MeshDevice> &mesh_device);
+    std::shared_ptr<MeshDevice> get_mesh_device(const std::unordered_set<chip_id_t>& physical_device_ids);
 };
 
 class MeshDevice : public std::enable_shared_from_this<MeshDevice> {
+  private:
     MeshDeviceID mesh_id;
     MeshShape mesh_device_shape;
     std::shared_ptr<MeshDeviceView> primary_view;
@@ -138,6 +141,7 @@ class MeshDevice : public std::enable_shared_from_this<MeshDevice> {
 
     std::string to_string() const;
     MeshDeviceID get_mesh_id() const;
+    std::vector<Device*> get_ring_devices(const std::optional<MeshShape>& shape = std::nullopt, const Coordinate& offset = {0, 0}) const;
 
     static std::shared_ptr<MeshDevice> create(
         const MeshShape &mesh_device_shape,
@@ -147,6 +151,7 @@ class MeshDevice : public std::enable_shared_from_this<MeshDevice> {
         DispatchCoreType dispatch_core_type,
         const std::pair<size_t, size_t> &offset = {0, 0},
         const std::vector<chip_id_t> &physical_device_ids = {});
+    static std::shared_ptr<MeshDevice> fetch_mesh_device(const std::vector<Device*>& devices);
 };
 
 std::ostream &operator<<(std::ostream &os, const MeshDevice &mesh_device);

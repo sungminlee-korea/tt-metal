@@ -587,3 +587,7 @@ def test_validate_as_tensor(tmp_path, mesh_device, height, width):
     for device in mesh_device.get_devices():
         device_tensor = ttnn.get_device_tensor(tensor, device)
         assert torch.allclose(ttnn.to_torch(device_tensor), torch_input_tensor)
+
+
+def test_ttnn_visualize_mesh_device(t3k_mesh_device):
+    ttnn.visualize_mesh_device(t3k_mesh_device)

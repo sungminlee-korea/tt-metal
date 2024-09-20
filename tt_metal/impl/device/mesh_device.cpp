@@ -158,7 +158,7 @@ std::vector<Device*> SystemMesh::map_mesh_device(
     for (auto physical_device_id : physical_device_ids) {
         auto mapped_device = this->opened_devices[mesh_device->get_mesh_id()].at(physical_device_id);
         mapped_devices.push_back(mapped_device);
-        this->assigned_devices[mesh_device->get_mesh_id()].push_back(physical_device_id);
+        this->assigned_devices[mesh_device->get_mesh_id()].insert(physical_device_id);
         this->assigned_physical_id_to_device.insert({physical_device_id, mapped_device});
     }
     return mapped_devices;
@@ -296,6 +296,30 @@ std::shared_ptr<const MeshDeviceView> MeshDevice::get_view() const { return this
 std::shared_ptr<MeshDeviceView> MeshDevice::get_view() { return this->primary_view; }
 
 MeshDeviceID MeshDevice::get_mesh_id() const { return this->mesh_id; }
+
+std::shared_ptr<MeshDevice> SystemMesh::get_mesh_device(const std::unordered_set<chip_id_t>& physical_device_ids) {
+    for (const auto& [mesh_id, mesh_device] : this->assigned_mesh_device_devices) {
+        if (this->assigned_devices.at(mesh_id) == physical_device_ids) {
+            return mesh_device;
+        }
+    }
+    TT_THROW("No mesh device found for the provided devices");
+}
+
+std::vector<Device*> MeshDevice::get_ring_devices(const std::optional<MeshShape>& shape, const Coordinate& offset) const {
+    return this->primary_view->get_ring_devices(shape.value_or(this->shape()), offset);
+}
+
+std::shared_ptr<MeshDevice> MeshDevice::fetch_mesh_device(const std::vector<Device*>& devices) {
+    TT_FATAL(devices.size() > 0, "No devices provided");
+    auto& instance = SystemMesh::instance();
+
+    std::unordered_set<chip_id_t> physical_device_ids;
+    for (auto device : devices) {
+        physical_device_ids.insert(device->id());
+    }
+    return instance.get_mesh_device(physical_device_ids);
+}
 
 std::ostream& operator<<(std::ostream& os, const MeshDevice& mesh_device) { return os << mesh_device.to_string(); }
 

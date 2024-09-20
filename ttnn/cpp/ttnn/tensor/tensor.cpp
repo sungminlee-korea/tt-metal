@@ -777,6 +777,8 @@ std::vector<Device*> distribute_tensor_to_mesh(const Tensor& tensor, MeshDevice&
             if constexpr (std::is_same_v<StrategyType, ShardTensor2D>) {
                 auto mesh_view = mesh_device.get_view();
                 return mesh_view->get_devices(strategy.shard_mesh);
+            } else if constexpr (std::is_same_v<StrategyType, ShardTensor>) {
+                return mesh_device.get_ring_devices();
             } else {
                 return get_multi_device_workers(mesh_device.get_devices());
             }

@@ -1485,3 +1485,39 @@ def test_visualize_mesh_device_with_tensor_col_major(mesh_device):
     )
     ttnn_tensor = ttnn.to_device(ttnn_tensor, mesh_device)
     ttnn.visualize_mesh_device(mesh_device, tensor=ttnn_tensor)
+
+
+def test_ttnn_multi_device_all_gather_all_devices(t3k_mesh_device):
+    """Example test for running a 2x4-Ring All-Gather on galaxy"""
+    full_tensor = torch.ones((1, 1, 32, 32 * t3k_mesh_device.get_num_devices()), dtype=torch.bfloat16)
+    for i in range(t3k_mesh_device.get_num_devices()):
+        full_tensor[..., i * 32 : (i + 1) * 32] = i
+
+    ttnn_tensor = ttnn.from_torch(full_tensor, mesh_mapper=ShardTensorToMesh(t3k_mesh_device, dim=3))
+    ttnn_tensor = ttnn.to_device(ttnn_tensor, t3k_mesh_device)
+    ttnn_tensor = ttnn.all_gather(ttnn_tensor, dim=3, num_links=1)
+
+    device_tensors: typing.List[ttnn.Tensor] = ttnn.get_device_tensors(ttnn_tensor)
+    for device_tensor in device_tensors:
+        device_tensor_torch = ttnn.to_torch(device_tensor)
+        assert torch.all(device_tensor_torch == full_tensor)
+
+
+def test_ttnn_multi_device_all_gather_all_devices(t3k_mesh_device):
+    """Example test for running 2x4-Ring All-Gather on a 8x4 mesh"""
+    full_tensor = torch.ones((1, 1, 32, 32 * t3k_mesh_device.get_num_devices()), dtype=torch.bfloat16)
+    for i in range(t3k_mesh_device.get_num_devices()):
+        full_tensor[..., i * 32 : (i + 1) * 32] = i
+
+    ttnn_tensor = ttnn.from_torch(full_tensor, mesh_mapper=ShardTensorToMesh(t3k_mesh_device, dim=3))
+    ttnn_tensor = ttnn.to_device(ttnn_tensor, t3k_mesh_device)
+    ttnn_tensor = ttnn.all_gather(ttnn_tensor, dim=3, num_links=1)
+
+    device_tensors: typing.List[ttnn.Tensor] = ttnn.get_device_tensors(ttnn_tensor)
+    for device_tensor in device_tensors:
+        device_tensor_torch = ttnn.to_torch(device_tensor)
+        assert torch.all(device_tensor_torch == full_tensor)
+
+
+def test_ttnn_visualize_mesh_device(t3k_mesh_device):
+    ttnn.visualize_mesh_device(t3k_mesh_device)
