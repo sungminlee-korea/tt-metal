@@ -20,8 +20,8 @@ struct MorehLinearBackward {
         const std::optional<Tensor>& input_grad,
         const std::optional<Tensor>& weight_grad,
         const std::optional<Tensor>& bias_grad,
-        const std::optional<ttnn::MemoryConfig>& input_grad_mem_config,
-        const std::optional<ttnn::MemoryConfig>& weight_grad_mem_config,
+        const std::optional<ttnn::MemoryConfig>& input_grad_memory_config,
+        const std::optional<ttnn::MemoryConfig>& weight_grad_memory_config,
         const std::optional<ttnn::MemoryConfig>& bias_grad_memory_config,
         const DeviceComputeKernelConfig compute_kernel_config);
 };

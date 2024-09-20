@@ -16,6 +16,9 @@ MorehBiasAddBackwardOperation::SingleCoreProgramFactory::create(
     const operation_attributes_t& operation_attributes,
     const tensor_args_t& tensor_args,
     tensor_return_value_t& output_tensor) {
+    using namespace tt;
+    using namespace tt::tt_metal;
+
     auto& output_grad = tensor_args.output_grad;
     auto& bias_grad = output_tensor.at(0).value();
 
@@ -25,18 +28,18 @@ MorehBiasAddBackwardOperation::SingleCoreProgramFactory::create(
     auto bias_grad_memory_config = operation_attributes.bias_grad_memory_config;
     auto compute_kernel_config = operation_attributes.compute_kernel_config;
 
-    const bool do_mask_h = (output_grad_shape_wo_padding[-2] % tt::constants::TILE_HEIGHT) != 0;
+    const bool do_mask_h = (output_grad_shape_wo_padding[-2] % constants::TILE_HEIGHT) != 0;
     const uint32_t mask_h =
-        do_mask_h ? output_grad_shape_wo_padding[-2] % tt::constants::TILE_HEIGHT : tt::constants::TILE_HEIGHT;
-    const bool do_mask_w = (output_grad_shape_wo_padding[-1] % tt::constants::TILE_WIDTH) != 0;
+        do_mask_h ? output_grad_shape_wo_padding[-2] % constants::TILE_HEIGHT : constants::TILE_HEIGHT;
+    const bool do_mask_w = (output_grad_shape_wo_padding[-1] % constants::TILE_WIDTH) != 0;
     const uint32_t mask_w =
-        do_mask_w ? output_grad_shape_wo_padding[-1] % tt::constants::TILE_WIDTH : tt::constants::TILE_WIDTH;
+        do_mask_w ? output_grad_shape_wo_padding[-1] % constants::TILE_WIDTH : constants::TILE_WIDTH;
 
     const auto& output_grad_shape = output_grad.get_legacy_shape();
     uint32_t batch_num = output_grad.volume() / output_grad_shape[-2] / output_grad_shape[-1];
-    uint32_t Ht = output_grad_shape[-2] / tt::constants::TILE_HEIGHT;
-    uint32_t Wt = output_grad_shape[-1] / tt::constants::TILE_WIDTH;
-    uint32_t num_tiles = output_grad.volume() / tt::constants::TILE_HW;
+    uint32_t Ht = output_grad_shape[-2] / constants::TILE_HEIGHT;
+    uint32_t Wt = output_grad_shape[-1] / constants::TILE_WIDTH;
+    uint32_t num_tiles = output_grad.volume() / constants::TILE_HW;
 
     const uint32_t in0_t = 2;
     const uint32_t in1_t = 1;
@@ -53,7 +56,7 @@ MorehBiasAddBackwardOperation::SingleCoreProgramFactory::create(
     CoreCoord core = {0, 0};
     const uint32_t core_num = 1;
 
-    tt::tt_metal::Device* device = output_grad.device();
+    Device* device = output_grad.device();
     auto arch = device->arch();
     auto [math_fidelity, math_approx_mode, fp32_dest_acc_en, packer_l1_acc] =
         get_compute_kernel_config_args(arch, compute_kernel_config);
@@ -66,18 +69,18 @@ MorehBiasAddBackwardOperation::SingleCoreProgramFactory::create(
     ////////////////////////////////////////////////////////////////////////////
     //                         CircularBuffer Setup
     ////////////////////////////////////////////////////////////////////////////
-    auto cb_data_format = tt::tt_metal::datatype_to_dataformat_converter(output_grad.get_dtype());
+    auto cb_data_format = datatype_to_dataformat_converter(output_grad.get_dtype());
 
     tt::operations::primary::CreateCircularBuffer(
         program,
         std::set<CoreRange>{CoreRange(core, core)},
         cb_data_format,
-        {{tt::CB::c_in0, in0_t},    // output_grad
-         {tt::CB::c_in1, in1_t},    // scaler
-         {tt::CB::c_in2, in2_t},    // mask_h_w
-         {tt::CB::c_out0, out0_t},  // bias_grad
-         {tt::CB::c_intermed0, im0_t},
-         {tt::CB::c_intermed1, im1_t, (fp32_dest_acc_en) ? tt::DataFormat::Float32 : cb_data_format}});
+        {{CB::c_in0, in0_t},    // output_grad
+         {CB::c_in1, in1_t},    // scaler
+         {CB::c_in2, in2_t},    // mask_h_w
+         {CB::c_out0, out0_t},  // bias_grad
+         {CB::c_intermed0, im0_t},
+         {CB::c_intermed1, im1_t, (fp32_dest_acc_en) ? tt::DataFormat::Float32 : cb_data_format}});
 
     ////////////////////////////////////////////////////////////////////////////
     //                      DataMovementKernel SetUp

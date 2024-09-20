@@ -24,8 +24,8 @@ void bind_moreh_linear_backward_operation(py::module& module) {
             py::arg("weight_grad") = std::nullopt,
             py::arg("bias_grad") = std::nullopt,
 
-            py::arg("input_grad_mem_config") = std::nullopt,
-            py::arg("weight_grad_mem_config") = std::nullopt,
+            py::arg("input_grad_memory_config") = std::nullopt,
+            py::arg("weight_grad_memory_config") = std::nullopt,
             py::arg("bias_grad_memory_config") = std::nullopt,
             py::arg("compute_kernel_config") = std::nullopt});
 }

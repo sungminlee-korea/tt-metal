@@ -12,6 +12,20 @@
 
 namespace ttnn::operations::moreh::moreh_linear_backward {
 
+void MorehBiasAddBackwardOperation::validate_inputs(
+    const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
+    auto& bias_grad = tensor_args.bias_grad;
+
+    if (bias_grad.has_value()) {
+        auto bias_grad_shape = bias_grad->get_shape();
+        auto bias_grad_tensor = bias_grad.value();
+        TT_ASSERT(
+            tt::operations::primary::is_scalar(bias_grad_tensor) ||
+                tt::operations::primary::is_1d_tensor(bias_grad_tensor),
+            "bias_grad tensor should be 1d or scalar");
+    }
+}
+
 MorehBiasAddBackwardOperation::program_factory_t MorehBiasAddBackwardOperation::select_program_factory(
     const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
     const auto& bias_grad = tensor_args.bias_grad.value();

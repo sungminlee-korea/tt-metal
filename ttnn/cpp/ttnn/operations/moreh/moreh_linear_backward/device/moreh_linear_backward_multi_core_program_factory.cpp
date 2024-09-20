@@ -15,6 +15,9 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     const operation_attributes_t& operation_attributes,
     const tensor_args_t& tensor_args,
     tensor_return_value_t& output_tensor) {
+    using namespace tt;
+    using namespace tt::tt_metal;
+
     Program program{};
     auto& output_grad = tensor_args.output_grad;
     auto& bias_grad = tensor_args.bias_grad.value();
@@ -25,28 +28,35 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     auto bias_grad_memory_config = operation_attributes.bias_grad_memory_config;
     auto compute_kernel_config = operation_attributes.compute_kernel_config;
 
-    const bool do_mask_h = (output_grad_shape_wo_padding[-2] % tt::constants::TILE_HEIGHT) != 0;
-    const uint32_t mask_h = do_mask_h ? output_grad_shape_wo_padding[-2] % tt::constants::TILE_HEIGHT : tt::constants::TILE_HEIGHT;
-    const bool do_mask_w = (output_grad_shape_wo_padding[-1] % tt::constants::TILE_WIDTH) != 0;
-    const uint32_t mask_w = do_mask_w ? output_grad_shape_wo_padding[-1] % tt::constants::TILE_WIDTH : tt::constants::TILE_WIDTH;
+    const bool do_mask_h = (output_grad_shape_wo_padding[-2] % constants::TILE_HEIGHT) != 0;
+    const uint32_t mask_h =
+        do_mask_h ? output_grad_shape_wo_padding[-2] % constants::TILE_HEIGHT : constants::TILE_HEIGHT;
+    const bool do_mask_w = (output_grad_shape_wo_padding[-1] % constants::TILE_WIDTH) != 0;
+    const uint32_t mask_w =
+        do_mask_w ? output_grad_shape_wo_padding[-1] % constants::TILE_WIDTH : constants::TILE_WIDTH;
 
     const auto &output_grad_shape = output_grad.get_legacy_shape();
     uint32_t batch_num = output_grad.volume() / output_grad_shape[-2] / output_grad_shape[-1];
-    uint32_t Ht = output_grad_shape[-2] / tt::constants::TILE_HEIGHT;
-    uint32_t Wt = output_grad_shape[-1] / tt::constants::TILE_WIDTH;
+    uint32_t Ht = output_grad_shape[-2] / constants::TILE_HEIGHT;
+    uint32_t Wt = output_grad_shape[-1] / constants::TILE_WIDTH;
     uint32_t num_tiles = batch_num * Ht;
 
     ////////////////////////////////////////////////////////////////////////////
     //                         Core Setup
     ////////////////////////////////////////////////////////////////////////////
     // This should allocate a DRAM buffer on the device
-    tt::tt_metal::Device* device = output_grad.device();
+    Device* device = output_grad.device();
     auto grid = device->compute_with_storage_grid_size();
     auto arch = device->arch();
     const auto num_cores_y = grid.y;
     auto [math_fidelity, math_approx_mode, fp32_dest_acc_en, packer_l1_acc] = get_compute_kernel_config_args(arch, compute_kernel_config);
-    const auto [num_cores_to_be_used, all_cores, core_group_1, core_group_2, num_cols_per_core_group_1, num_cols_per_core_group_2] =
-        tt::tt_metal::split_work_to_cores(grid, Wt);
+    const auto
+        [num_cores_to_be_used,
+         all_cores,
+         core_group_1,
+         core_group_2,
+         num_cols_per_core_group_1,
+         num_cols_per_core_group_2] = split_work_to_cores(grid, Wt);
 
     ////////////////////////////////////////////////////////////////////////////
     //                         CircularBuffer Setup
@@ -58,20 +68,18 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     const uint32_t out0_t = 1;
     const uint32_t im0_t = 1;
     const uint32_t im1_t = 1;
-    auto cb_data_format = tt::tt_metal::datatype_to_dataformat_converter(output_grad.get_dtype());
+    auto cb_data_format = datatype_to_dataformat_converter(output_grad.get_dtype());
 
     tt::operations::primary::CreateCircularBuffer(
         program,
         all_cores,
         cb_data_format,
-        {
-            {tt::CB::c_in0, in0_t},    // output_grad
-            {tt::CB::c_in1, in1_t},    // scaler
-            {tt::CB::c_in2, in2_t},    // mask_h_w
-            {tt::CB::c_out0, out0_t},  // bias_grad
-            {tt::CB::c_intermed0, im0_t},
-            {tt::CB::c_intermed1, im1_t, (fp32_dest_acc_en) ? tt::DataFormat::Float32 : cb_data_format}
-        });
+        {{CB::c_in0, in0_t},    // output_grad
+         {CB::c_in1, in1_t},    // scaler
+         {CB::c_in2, in2_t},    // mask_h_w
+         {CB::c_out0, out0_t},  // bias_grad
+         {CB::c_intermed0, im0_t},
+         {CB::c_intermed1, im1_t, (fp32_dest_acc_en) ? tt::DataFormat::Float32 : cb_data_format}});
 
     ////////////////////////////////////////////////////////////////////////////
     //                      DataMovementKernel SetUp
