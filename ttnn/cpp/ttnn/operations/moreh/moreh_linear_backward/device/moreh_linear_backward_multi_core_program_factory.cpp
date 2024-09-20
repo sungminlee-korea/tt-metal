@@ -22,7 +22,7 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     const auto &bias_grad_shape = bias_grad.get_legacy_shape().without_padding();
     const auto &output_grad_shape_wo_padding = output_grad.get_legacy_shape().without_padding();
 
-    auto bias_grad_mem_config = operation_attributes.bias_grad_mem_config;
+    auto bias_grad_memory_config = operation_attributes.bias_grad_memory_config;
     auto compute_kernel_config = operation_attributes.compute_kernel_config;
 
     const bool do_mask_h = (output_grad_shape_wo_padding[-2] % tt::constants::TILE_HEIGHT) != 0;

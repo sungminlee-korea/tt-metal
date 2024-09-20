@@ -43,12 +43,13 @@ MorehBiasAddBackwardOperation::tensor_return_value_t MorehBiasAddBackwardOperati
     auto device = tensor_args.bias.value().device();
 
     std::vector<std::optional<Tensor>> ret;
-    auto bias_grad_mem_config = operation_attributes.bias_grad_mem_config;
+    auto bias_grad_memory_config = operation_attributes.bias_grad_memory_config;
 
     if (tensor_args.bias_grad.has_value()) {
         ret.push_back(tensor_args.bias_grad.value());
     } else {
-        ret.push_back(create_device_tensor(output_shapes.at(0).value(), dtype, layout, device, bias_grad_mem_config));
+        ret.push_back(
+            create_device_tensor(output_shapes.at(0).value(), dtype, layout, device, bias_grad_memory_config));
     }
 
     return std::move(ret);
@@ -60,11 +61,11 @@ MorehBiasAddBackwardOperation::invoke(
     const std::optional<Tensor>& bias,
     const std::optional<Tensor>& bias_grad,
 
-    const std::optional<ttnn::MemoryConfig>& bias_grad_mem_config,
+    const std::optional<ttnn::MemoryConfig>& bias_grad_memory_config,
     const std::optional<ttnn::DeviceComputeKernelConfig>& ck) {
     return {
         MorehBiasAddBackwardOperation::operation_attributes_t{
-            bias_grad_mem_config.value_or(output_grad.memory_config()), ck.value()},
+            bias_grad_memory_config.value_or(output_grad.memory_config()), ck.value()},
         MorehBiasAddBackwardOperation::tensor_args_t{output_grad, bias, bias_grad}};
 }
 }  // namespace ttnn::operations::moreh::moreh_linear_backward

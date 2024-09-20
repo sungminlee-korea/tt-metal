@@ -116,13 +116,13 @@ std::vector<std::optional<Tensor>> MorehLinearBackward::invoke(
     const std::optional<Tensor>& bias_grad,
     const std::optional<ttnn::MemoryConfig>& input_grad_mem_config,
     const std::optional<ttnn::MemoryConfig>& weight_grad_mem_config,
-    const std::optional<ttnn::MemoryConfig>& bias_grad_mem_config,
+    const std::optional<ttnn::MemoryConfig>& bias_grad_memory_config,
     const DeviceComputeKernelConfig compute_kernel_config) {
     std::vector<std::optional<Tensor>> result(3);
     const auto [input_required_grad, weight_required_grad, bias_required_grad] =
         get_required_outputs(are_required_outputs);
 
-    TT_ASSERT(
+    TT_FATAL(
         output_grad.storage_type() == StorageType::DEVICE && input.storage_type() == StorageType::DEVICE &&
             weight.storage_type() == StorageType::DEVICE,
         "input and weight tensors need to be on device");
@@ -166,7 +166,7 @@ std::vector<std::optional<Tensor>> MorehLinearBackward::invoke(
 
     if (bias_required_grad) {
         std::vector<std::optional<Tensor>> output_tensors =
-            ttnn::prim::moreh_bias_add_backward(output_grad, bias, bias_grad, bias_grad_mem_config, kernel_config_val);
+            ttnn::prim::moreh_bias_add_backward(output_grad, bias, bias_grad, bias_grad_memory_config, kernel_config_val);
         result[2] = std::make_optional(output_tensors.at(0).value());
     }
 
