@@ -22,10 +22,6 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     const auto &bias_grad_shape = bias_grad.get_legacy_shape().without_padding();
     const auto &output_grad_shape_wo_padding = output_grad.get_legacy_shape().without_padding();
 
-    auto are_required_outputs = operation_attributes.are_required_outputs;
-
-    auto input_grad_mem_config = operation_attributes.input_grad_mem_config;
-    auto weight_grad_mem_config = operation_attributes.weight_grad_mem_config;
     auto bias_grad_mem_config = operation_attributes.bias_grad_mem_config;
     auto compute_kernel_config = operation_attributes.compute_kernel_config;
 
@@ -205,8 +201,7 @@ void MorehBiasAddBackwardOperation::MultiCoreProgramFactory::override_runtime_ar
     auto num_cores_to_be_used = cached_program.shared_variables.num_cores_to_be_used;
     auto num_cores_y = cached_program.shared_variables.num_cores_y;
 
-    auto output_grad_buffer  = tensor_args.output_grad.buffer();
-    // auto bias_grad_buffer = tensor_args.bias_grad.value().buffer();
+    auto output_grad_buffer = tensor_args.output_grad.buffer();
     auto bias_grad_buffer = tensor_return_value.at(0)->buffer();
 
     for (uint32_t i = 0; i < num_cores_to_be_used; ++i) {

@@ -22,10 +22,6 @@ MorehBiasAddBackwardOperation::SingleCoreProgramFactory::create(
     const auto& bias_grad_shape = bias_grad.get_legacy_shape().without_padding();
     const auto& output_grad_shape_wo_padding = output_grad.get_legacy_shape().without_padding();
 
-    auto are_required_outputs = operation_attributes.are_required_outputs;
-
-    auto input_grad_mem_config = operation_attributes.input_grad_mem_config;
-    auto weight_grad_mem_config = operation_attributes.weight_grad_mem_config;
     auto bias_grad_mem_config = operation_attributes.bias_grad_mem_config;
     auto compute_kernel_config = operation_attributes.compute_kernel_config;
 

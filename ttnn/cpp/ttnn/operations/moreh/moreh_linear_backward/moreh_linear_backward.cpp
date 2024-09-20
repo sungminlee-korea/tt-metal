@@ -46,20 +46,20 @@ inline void moreh_linear_backward_validate(
     const std::optional<const Tensor>& bias_grad) {
     if (input_grad.has_value()) {
         const auto& input_grad_tensor = input_grad.value();
-        TT_ASSERT(
+        TT_FATAL(
             tt::operations::primary::is_same_shape(input, input_grad_tensor), "both tensors should be the same shape");
     }
 
     if (weight_grad.has_value()) {
         const auto& weight_grad_tensor = weight_grad.value();
-        TT_ASSERT(
+        TT_FATAL(
             tt::operations::primary::is_same_shape(weight, weight_grad_tensor),
             "both tensors should be the same shape");
     }
 
     if (bias_grad.has_value()) {
         const auto& bias_grad_tensor = bias_grad.value();
-        TT_ASSERT(
+        TT_FATAL(
             tt::operations::primary::is_scalar(bias_grad_tensor) ||
                 tt::operations::primary::is_1d_tensor(bias_grad_tensor),
             "bias_grad tensor should be 1d or scalar");
@@ -133,13 +133,13 @@ std::vector<std::optional<Tensor>> MorehLinearBackward::invoke(
     moreh_linear_backward_validate(output_grad, input, weight, input_grad, weight_grad, bias_grad);
 
     if (input_required_grad) {
-        TT_ASSERT(input_grad.has_value(), "input_grad tensor should not be std::nullopt");
+        TT_FATAL(input_grad.has_value(), "input_grad tensor should not be std::nullopt");
         result[0] = ttnn::moreh_matmul(
             output_grad, weight, false, false, input_grad, std::nullopt, input_grad_mem_config, kernel_config_val);
     }
 
     if (weight_required_grad) {
-        TT_ASSERT(weight_grad.has_value(), "weight_grad tensor should not be std::nullopt");
+        TT_FATAL(weight_grad.has_value(), "weight_grad tensor should not be std::nullopt");
         const auto& weight_grad_tensor = weight_grad.value();
 
         if (is_same_batch_dim(output_grad, weight_grad_tensor)) {
@@ -155,7 +155,7 @@ std::vector<std::optional<Tensor>> MorehLinearBackward::invoke(
         } else {
             const auto& temp_weight_grad = ttnn::moreh_matmul(
                 output_grad, input, true, false, std::nullopt, std::nullopt, weight_grad_mem_config, kernel_config_val);
-            TT_ASSERT(weight_grad.has_value(), "weight_grad tensor should not be std::nullopt");
+            TT_FATAL(weight_grad.has_value(), "weight_grad tensor should not be std::nullopt");
             std::vector<int64_t> dims =
                 find_reduce_dim(temp_weight_grad.get_legacy_shape(), weight_grad.value().get_legacy_shape());
             ttnn::moreh_sum(
@@ -165,19 +165,8 @@ std::vector<std::optional<Tensor>> MorehLinearBackward::invoke(
     }
 
     if (bias_required_grad) {
-        std::vector<std::optional<Tensor>> output_tensors = ttnn::prim::moreh_linear_backward(
-            output_grad,
-            input,
-            weight,
-            are_required_outputs,
-            bias,
-            input_grad,
-            weight_grad,
-            bias_grad,
-            input_grad_mem_config,
-            weight_grad_mem_config,
-            bias_grad_mem_config,
-            kernel_config_val);
+        std::vector<std::optional<Tensor>> output_tensors =
+            ttnn::prim::moreh_bias_add_backward(output_grad, bias, bias_grad, bias_grad_mem_config, kernel_config_val);
         result[2] = std::make_optional(output_tensors.at(0).value());
     }
 
