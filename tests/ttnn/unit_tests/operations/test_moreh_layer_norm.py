@@ -21,6 +21,10 @@ from tests.tt_eager.python_api_testing.unit_testing.misc.test_utils import (
 from models.utility_functions import skip_for_grayskull, skip_for_blackhole
 
 
+def create_tt_tensor(tensor: torch.Tensor, dtype, device, layout):
+    return ttnn.from_torch(tensor, dtype=dtype, layout=layout, device=device)
+
+
 def to_cpu(npu_tensor, shape, *, cpu_layout=ttnn.ROW_MAJOR_LAYOUT):
     if npu_tensor is None:
         return None
@@ -57,7 +61,7 @@ def to_npu(
     if len(cpu_tensor.shape) == 0:
         cpu_tensor = cpu_tensor.reshape([1, 1])
 
-    npu_tensor = ttnn.Tensor(cpu_tensor, npu_dtype).pad_to_tile(float("nan")).to(npu_layout).to(device)
+    npu_tensor = create_tt_tensor(cpu_tensor, npu_dtype, device, npu_layout)
     return npu_tensor
 
 
@@ -139,9 +143,8 @@ def tt_layernorm(
     # rstd for inplace update
     cpu_rstd = torch.full(mean_rstd_shape, float("nan"), dtype=cpu_dtype)
     npu_rstd = to_npu(cpu_rstd, device)
-
     # Forward
-    npu_output, npu_mean, npu_rstd = ttnn.experimental.operations.primary.moreh_layernorm(
+    npu_output, npu_mean, npu_rstd = ttnn.operations.moreh.layer_norm(
         npu_input,
         normalized_dims,
         eps,
@@ -214,7 +217,7 @@ def tt_layernorm_backward(
         npu_beta_grad = to_npu(cpu_beta_grad, device)
 
     # Backward
-    _, npu_gamma_grad, _ = ttnn.experimental.operations.primary.moreh_layernorm_backward(
+    _, npu_gamma_grad, _ = ttnn.operations.moreh.layer_norm_backward(
         npu_output_grad,
         npu_input,
         npu_mean,
