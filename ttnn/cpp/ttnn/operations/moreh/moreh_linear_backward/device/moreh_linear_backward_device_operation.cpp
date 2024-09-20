@@ -36,10 +36,12 @@ MorehBiasAddBackwardOperation::program_factory_t MorehBiasAddBackwardOperation::
 
 void MorehBiasAddBackwardOperation::validate_on_program_cache_miss(
     const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
+    validate_inputs(operation_attributes, tensor_args);
 };
 
 void MorehBiasAddBackwardOperation::validate_on_program_cache_hit(
     const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
+    validate_inputs(operation_attributes, tensor_args);
 };
 
 MorehBiasAddBackwardOperation::shape_return_value_t MorehBiasAddBackwardOperation::compute_output_shapes(

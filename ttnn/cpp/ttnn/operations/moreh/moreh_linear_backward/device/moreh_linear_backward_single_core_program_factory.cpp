@@ -61,11 +61,6 @@ MorehBiasAddBackwardOperation::SingleCoreProgramFactory::create(
     auto [math_fidelity, math_approx_mode, fp32_dest_acc_en, packer_l1_acc] =
         get_compute_kernel_config_args(arch, compute_kernel_config);
 
-    // TODO
-    if (fp32_dest_acc_en) {
-        fp32_dest_acc_en = false;
-    }
-
     ////////////////////////////////////////////////////////////////////////////
     //                         CircularBuffer Setup
     ////////////////////////////////////////////////////////////////////////////
