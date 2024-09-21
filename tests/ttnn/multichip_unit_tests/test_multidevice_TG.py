@@ -1573,3 +1573,19 @@ def test_sharded_distributed_layernorm(mesh_device, input_width, input_height, c
     is_pass, output_pcc = comp_pcc(torch_output_tensor, tt_output_tensor, pcc=0.999)
 
     assert is_pass, f"PCC value: {output_pcc}"
+
+
+def test_ttnn_multi_device_all_gather_all_devices(t3k_mesh_device):
+    """Example test for running a 2x4-Ring All-Gather on galaxy"""
+    full_tensor = torch.ones((1, 1, 32, 32 * t3k_mesh_device.get_num_devices()), dtype=torch.bfloat16)
+    for i in range(t3k_mesh_device.get_num_devices()):
+        full_tensor[..., i * 32 : (i + 1) * 32] = i
+
+    ttnn_tensor = ttnn.from_torch(full_tensor, mesh_mapper=ShardTensorToMesh(t3k_mesh_device, dim=3))
+    ttnn_tensor = ttnn.to_device(ttnn_tensor, t3k_mesh_device)
+    ttnn_tensor = ttnn.all_gather(ttnn_tensor, dim=3, num_links=1)
+
+    device_tensors: typing.List[ttnn.Tensor] = ttnn.get_device_tensors(ttnn_tensor)
+    for device_tensor in device_tensors:
+        device_tensor_torch = ttnn.to_torch(device_tensor)
+        assert torch.all(device_tensor_torch == full_tensor)

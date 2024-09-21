@@ -101,8 +101,11 @@ public:
 
     [[nodiscard]] Coordinate find_device(chip_id_t device_id) const;
     [[nodiscard]] chip_id_t find_device_id(const Coordinate& coord) const;
+    [[nodiscard]] std::vector<device_pointer> get_ring_devices(const MeshShape& shape, const Coordinate& offset);
 
 private:
+    std::vector<Coordinate> get_ring_coordinates(const MeshShape& shape, const Coordinate& offset);
+
     std::vector<device_pointer> devices_;
     std::unordered_map<chip_id_t, Coordinate> device_coordinates_;
     Coordinate top_left_;

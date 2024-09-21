@@ -6,6 +6,7 @@
 #include "ttnn/deprecated/tt_dnn/op_library/math.hpp"
 
 #include "tt_metal/host_api.hpp"
+#include "tt_metal/impl/device/mesh_device.hpp"
 
 #include "ttnn/tensor/tensor_utils.hpp"
 
@@ -196,9 +197,11 @@ Tensor all_gather(
     if (num_devices == 1){
         topology = all_gather_op::Topology::Linear;
     }
+    auto mesh_device = MeshDevice::fetch_mesh_device(devices);
+    auto ring_devices = mesh_device->get_ring_devices();
     std::vector<Tensor> output_tensors = {Tensor(operation::get_workers_for_op_output({input_tensor}))};
     operation::launch_op(
-        [dim, num_links, memory_config, user_defined_num_workers, user_defined_num_buffers_per_channel, devices, topology](
+        [dim, num_links, memory_config, user_defined_num_workers, user_defined_num_buffers_per_channel, ring_devices, topology](
             const std::vector<Tensor>& input_tensors,
             const std::vector<std::optional<const Tensor>>& optional_input_tensors,
             const std::vector<std::optional<Tensor>>& optional_output_tensors) mutable -> std::vector<Tensor> {
@@ -206,7 +209,7 @@ Tensor all_gather(
             const auto& input_tensor = input_tensors.at(0);
 
             return operation::run(
-                create_all_gather_struct(input_tensor, dim, num_links, memory_config, user_defined_num_workers, user_defined_num_buffers_per_channel, devices, topology),
+                create_all_gather_struct(input_tensor, dim, num_links, memory_config, user_defined_num_workers, user_defined_num_buffers_per_channel, ring_devices, topology),
                 {input_tensor});
         },
         {input_tensor},

@@ -199,5 +199,56 @@ void MeshDeviceView::validate_coordinates() const {
         throw std::invalid_argument("Invalid coordinates: top_left must be less than or equal to bottom_right");
     }
 }
+// Get the boundary coordinates of the subgrid defined by offset and shape
+std::vector<Coordinate> MeshDeviceView::get_ring_coordinates(const MeshShape& shape, const Coordinate& offset) {
+    std::vector<Coordinate> boundary_coords;
+
+    size_t start_row = offset.row;
+    size_t start_col = offset.col;
+    size_t end_row = offset.row + shape.first - 1;
+    size_t end_col = offset.col + shape.second - 1;
+
+    // Validate the specified subgrid
+    if (start_row >= num_rows() || start_col >= num_cols() ||
+        end_row >= num_rows() || end_col >= num_cols()) {
+        throw std::invalid_argument("Subgrid is out of mesh bounds.");
+    }
+
+    // Traverse the top row from left to right
+    for (size_t col = start_col; col <= end_col; ++col) {
+        boundary_coords.emplace_back(Coordinate{start_row, col});
+    }
+
+    // Traverse the rightmost column from top+1 to bottom
+    for (size_t row = start_row + 1; row <= end_row; ++row) {
+        boundary_coords.emplace_back(Coordinate{row, end_col});
+    }
+
+    // Traverse the bottom row from right to left, if there is more than one row
+    if (end_row > start_row) {
+        for (size_t col = end_col - 1; col + 1 > start_col; --col) {
+            boundary_coords.emplace_back(Coordinate{end_row, col});
+        }
+    }
+
+    // Traverse the leftmost column from bottom-1 to top+1, if there is more than one column
+    if (end_col > start_col) {
+        for (size_t row = end_row - 1; row > start_row; --row) {
+            boundary_coords.emplace_back(Coordinate{row, start_col});
+        }
+    }
+
+    return boundary_coords;
+}
+std::vector<MeshDeviceView::device_pointer> MeshDeviceView::get_ring_devices(const MeshShape& shape, const Coordinate& offset) {
+    auto boundary_coords = get_ring_coordinates(shape, offset);
+    std::vector<MeshDeviceView::device_pointer> ring_devices;
+    for (const auto& coord : boundary_coords) {
+        if (auto device = this->get_device(coord.row, coord.col)) {
+            ring_devices.push_back(device);
+        }
+    }
+    return ring_devices;
+}
 
 } // namespace tt::tt_metal
