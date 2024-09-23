@@ -1135,23 +1135,16 @@ def run_all_gather_sharded(
     use_program_cache,
     function_level_defaults,
     all_gather_operation,
+    devices,
     enable_async,
     n_worker=None,
     n_buffer=None,
     num_iter=1,
     trace_mode=False,
 ):
-    if len(t3k_mesh_device.get_device_ids()) != 8:
-        pytest.skip("Not T3000!")
-
-    for device_id in t3k_mesh_device.get_device_ids():
-        t3k_mesh_device.get_device(device_id).enable_async(enable_async)
-
     unchunked_input_shape, unchunked_input_tensor, input_tensors = generate_input_tensor_sharded(
         input_shape, num_devices, dim
     )
-
-    devices = [t3k_mesh_device.get_device(t3k_mesh_device.get_device_ids()[i]) for i in range(num_devices)]
 
     # num_cores =
     # compute_grid_size = devices[0].compute_with_storage_grid_size()
