@@ -30,11 +30,11 @@ using std::uint32_t;
 using std::unordered_map;
 using std::vector;
 
-struct HexNameToMemVectorCache {
+struct PathToMemVectorCache {
     using lock = std::unique_lock<std::mutex>;
     // maps from RisckCacheMapKey to hex file path
-    static HexNameToMemVectorCache &inst() {
-        static HexNameToMemVectorCache inst_;
+    static PathToMemVectorCache &inst() {
+        static PathToMemVectorCache inst_;
         return inst_;
     }
 
@@ -55,21 +55,20 @@ struct HexNameToMemVectorCache {
     std::mutex mutex_;
 };
 
-ll_api::memory get_risc_binary(string path) {
+ll_api::memory get_risc_binary(string const &path) {
 
-    if (HexNameToMemVectorCache::inst().exists(path)) {
-        return HexNameToMemVectorCache::inst().get(path);
-    }
+  // FIXME: There is a race and dangling object problem here if
+  // multiplt threads concurrently load the same path.
+  
+  if (PathToMemVectorCache::inst().exists(path))
+    return PathToMemVectorCache::inst().get(path);
 
-    fs::path bin_file(path);
+  ll_api::memory mem(path);
+  
+  // add this path to binary cache
+  PathToMemVectorCache::inst().add(path, mem);
 
-    std::ifstream hex_istream(path);
-    ll_api::memory mem(hex_istream);
-
-    // add this path to binary cache
-    HexNameToMemVectorCache::inst().add(path, mem);
-
-    return mem;
+  return mem;
 }
 
 // Return the code size in 16 byte units
