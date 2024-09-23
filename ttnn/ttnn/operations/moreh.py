@@ -8,6 +8,7 @@ adam = ttnn._ttnn.operations.moreh.moreh_adam
 arange = ttnn._ttnn.operations.moreh.moreh_arange
 bmm = ttnn._ttnn.operations.moreh.moreh_bmm
 bmm_backward = ttnn._ttnn.operations.moreh.moreh_bmm_backward
+dot = ttnn._ttnn.operations.moreh.moreh_dot
 getitem = ttnn._ttnn.operations.moreh.moreh_getitem
 logsoftmax = ttnn._ttnn.operations.moreh.moreh_logsoftmax
 logsoftmax_backward = ttnn._ttnn.operations.moreh.moreh_logsoftmax_backward

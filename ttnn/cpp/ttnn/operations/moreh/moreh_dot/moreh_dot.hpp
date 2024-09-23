@@ -8,14 +8,13 @@
 namespace ttnn::operations::moreh::moreh_dot {
 
 struct MorehDot {
-
     static Tensor invoke(
         const ttnn::Tensor& input_tensor_a,
         const ttnn::Tensor& input_tensor_b,
         const std::optional<DataType> dtype,
-        const std::optional<MemoryConfig> &memory_config);
+        const std::optional<MemoryConfig>& memory_config);
 };
-}
+}  // namespace ttnn::operations::moreh::moreh_dot
 
 namespace ttnn {
 constexpr auto moreh_dot =

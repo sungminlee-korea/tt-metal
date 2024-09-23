@@ -8,7 +8,7 @@
 #include "ttnn/operations/moreh/moreh_arange/moreh_arange_pybind.hpp"
 #include "ttnn/operations/moreh/moreh_bmm/moreh_bmm_pybind.hpp"
 #include "ttnn/operations/moreh/moreh_bmm_backward/moreh_bmm_backward_pybind.hpp"
-#include "ttnn/operations/moreh/moreh_dot_op/moreh_dot_pybind.hpp"
+#include "ttnn/operations/moreh/moreh_dot/moreh_dot_pybind.hpp"
 #include "ttnn/operations/moreh/moreh_dot_op_backward/moreh_dot_backward_pybind.hpp"
 #include "ttnn/operations/moreh/moreh_getitem/moreh_getitem_pybind.hpp"
 #include "ttnn/operations/moreh/moreh_matmul/moreh_matmul_pybind.hpp"

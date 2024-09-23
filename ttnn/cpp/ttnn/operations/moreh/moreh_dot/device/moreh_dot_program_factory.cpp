@@ -7,7 +7,6 @@
 #include "tt_metal/common/constants.hpp"
 #include "tt_metal/tt_metal.cpp"
 
-
 namespace ttnn::operations::moreh::moreh_dot_op {
 MorehDotOperation::SingleCore::cached_program_t MorehDotOperation::SingleCore::create(
     const operation_attributes_t& operation_attributes,
@@ -33,13 +32,13 @@ MorehDotOperation::SingleCore::cached_program_t MorehDotOperation::SingleCore::c
     uint32_t single_tile_size_output = tt::tt_metal::detail::TileSize(cb_data_format_output);
 
     uint32_t num_tiles = input_tensor_a.volume() / tt::constants::TILE_HW;
-    const auto &a_shape_wo_padding = input_tensor_a.get_shape().value.without_padding();
+    const auto& a_shape_wo_padding = input_tensor_a.get_shape().value.without_padding();
     uint32_t pad_h = a_shape_wo_padding[2] % tt::constants::TILE_HEIGHT;
     uint32_t pad_w = a_shape_wo_padding[3] % tt::constants::TILE_WIDTH;
     uint32_t mask_h = (pad_h == 0) ? (tt::constants::TILE_HEIGHT) : (pad_h);
     uint32_t mask_w = (pad_w == 0) ? (tt::constants::TILE_WIDTH) : (pad_w);
 
-    tt::tt_metal::Device *device = input_tensor_a.device();
+    tt::tt_metal::Device* device = input_tensor_a.device();
 
     const uint32_t in0_t = 2;   // a
     const uint32_t in1_t = 2;   // b
@@ -49,7 +48,6 @@ MorehDotOperation::SingleCore::cached_program_t MorehDotOperation::SingleCore::c
     const uint32_t im1_t = 1;
 
     CoreCoord core = {0, 0};
-
 
     tt::operations::primary::CreateCircularBuffer(
         program,
@@ -67,14 +65,17 @@ MorehDotOperation::SingleCore::cached_program_t MorehDotOperation::SingleCore::c
     std::vector<uint32_t> reader_compile_time_args = {
         (std::uint32_t)tt::operations::primary::is_dram(src0_buffer),
         (std::uint32_t)tt::operations::primary::is_dram(src1_buffer),
-        *reinterpret_cast<uint32_t *>(&scaler)};
+        *reinterpret_cast<uint32_t*>(&scaler)};
 
-    std::vector<uint32_t> writer_compile_time_args = {(std::uint32_t)CB::c_out0, (std::uint32_t)tt::operations::primary::is_dram(dst_buffer)};
-    const auto reader_kernel_file = "ttnn/cpp/ttnn/operations/moreh/moreh_dot_op/device/kernels/reader_moreh_dot.cpp";
-    const auto writer_kernel_file = "ttnn/cpp/ttnn/operations/moreh/moreh_dot_op/device/kernels/writer_moreh_dot.cpp";
+    std::vector<uint32_t> writer_compile_time_args = {
+        (std::uint32_t)CB::c_out0, (std::uint32_t)tt::operations::primary::is_dram(dst_buffer)};
+    const auto reader_kernel_file = "ttnn/cpp/ttnn/operations/moreh/moreh_dot/device/kernels/reader_moreh_dot.cpp";
+    const auto writer_kernel_file = "ttnn/cpp/ttnn/operations/moreh/moreh_dot/device/kernels/writer_moreh_dot.cpp";
 
-    const auto reader_kernel_id = tt::operations::primary::CreateReadKernel(program, reader_kernel_file, core, reader_compile_time_args);
-    const auto writer_kernel_id = tt::operations::primary::CreateWriteKernel(program, writer_kernel_file, core, writer_compile_time_args);
+    const auto reader_kernel_id =
+        tt::operations::primary::CreateReadKernel(program, reader_kernel_file, core, reader_compile_time_args);
+    const auto writer_kernel_id =
+        tt::operations::primary::CreateWriteKernel(program, writer_kernel_file, core, writer_compile_time_args);
 
     vector<uint32_t> compute_kernel_args = {};
     std::map<string, string> compute_defines;
@@ -82,9 +83,9 @@ MorehDotOperation::SingleCore::cached_program_t MorehDotOperation::SingleCore::c
     compute_defines["REDUCE_DIM"] = "ReduceDim::REDUCE_ROW";
 
     const uint32_t core_num = 1;
-    const auto compute_kernel_file = "ttnn/cpp/ttnn/operations/moreh/moreh_dot_op/device/kernels/moreh_dot.cpp";
-    const auto compute_kernel_id =
-        tt::operations::primary::CreateComputeKernel(program, compute_kernel_file, {core, core_num, compute_kernel_args}, compute_defines);
+    const auto compute_kernel_file = "ttnn/cpp/ttnn/operations/moreh/moreh_dot/device/kernels/moreh_dot.cpp";
+    const auto compute_kernel_id = tt::operations::primary::CreateComputeKernel(
+        program, compute_kernel_file, {core, core_num, compute_kernel_args}, compute_defines);
 
     SetRuntimeArgs(
         program,
@@ -97,8 +98,7 @@ MorehDotOperation::SingleCore::cached_program_t MorehDotOperation::SingleCore::c
     const std::vector<Tensor> input_tensors = {input_tensor_a, input_tensor_b};
 
     return {
-        std::move(program),
-        {.unary_reader_kernel_id = reader_kernel_id, .unary_writer_kernel_id = writer_kernel_id}};
+        std::move(program), {.unary_reader_kernel_id = reader_kernel_id, .unary_writer_kernel_id = writer_kernel_id}};
 }
 
 void MorehDotOperation::SingleCore::override_runtime_arguments(
@@ -121,7 +121,7 @@ void MorehDotOperation::SingleCore::override_runtime_arguments(
     {
         auto& runtime_args = tt::tt_metal::GetRuntimeArgs(program, unary_reader_kernel_id, CoreCoord{0, 0});
         runtime_args[0] = src_buffer_a->address();
-        runtime_args[1] = src_buffer_b->address();
+        // runtime_args[100] = src_buffer_b->address();
     }
 
     {
@@ -130,4 +130,4 @@ void MorehDotOperation::SingleCore::override_runtime_arguments(
     }
 }
 
-}  // namespace ttnn::operations::examples
+}  // namespace ttnn::operations::moreh::moreh_dot_op

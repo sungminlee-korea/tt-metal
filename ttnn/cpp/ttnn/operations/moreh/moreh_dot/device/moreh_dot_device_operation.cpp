@@ -4,8 +4,8 @@
 
 #include "moreh_dot_device_operation.hpp"
 
-#include "ttnn/tensor/tensor.hpp"
 #include "ttnn/deprecated/tt_dnn/op_library/moreh_helper_functions.hpp"
+#include "ttnn/tensor/tensor.hpp"
 
 namespace ttnn::operations::moreh::moreh_dot_op {
 MorehDotOperation::program_factory_t MorehDotOperation::select_program_factory(
@@ -14,8 +14,7 @@ MorehDotOperation::program_factory_t MorehDotOperation::select_program_factory(
     return SingleCore{};
 }
 
-void MorehDotOperation::validate(
-    const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
+void MorehDotOperation::validate(const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
     const auto& input_tensor_a = tensor_args.input_tensor_a;
     const auto& input_tensor_b = tensor_args.input_tensor_b;
 
@@ -50,7 +49,6 @@ void MorehDotOperation::validate_on_program_cache_hit(
 
 MorehDotOperation::shape_return_value_t MorehDotOperation::compute_output_shapes(
     const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
-
     const auto& input_tensor = tensor_args.input_tensor_a;
     auto output_shape = input_tensor.get_shape().value;
     auto padding = output_shape.padding();
@@ -58,7 +56,6 @@ MorehDotOperation::shape_return_value_t MorehDotOperation::compute_output_shapes
     padding[3] = Padding::PadDimension{0, 31};
     return ttnn::Shape{tt::tt_metal::LegacyShape(output_shape, padding)};
 }
-
 
 MorehDotOperation::tensor_return_value_t MorehDotOperation::create_output_tensors(
     const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
@@ -73,16 +70,15 @@ MorehDotOperation::tensor_return_value_t MorehDotOperation::create_output_tensor
         operation_attributes.output_memory_config);
 }
 
-std::tuple<MorehDotOperation::operation_attributes_t, MorehDotOperation::tensor_args_t>
-MorehDotOperation::invoke(
-        const Tensor &input_tensor_a,
-        const Tensor &input_tensor_b,
-        const std::optional<DataType> dtype,
-        const std::optional<MemoryConfig> &output_memory_config) {
+std::tuple<MorehDotOperation::operation_attributes_t, MorehDotOperation::tensor_args_t> MorehDotOperation::invoke(
+    const Tensor& input_tensor_a,
+    const Tensor& input_tensor_b,
+    const std::optional<DataType> dtype,
+    const std::optional<MemoryConfig>& output_memory_config) {
     return {
-        operation_attributes_t{dtype.value_or(input_tensor_a.dtype()), output_memory_config.value_or(input_tensor_a.memory_config())},
-        tensor_args_t{input_tensor_a, input_tensor_b}
-    };
+        operation_attributes_t{
+            dtype.value_or(input_tensor_a.dtype()), output_memory_config.value_or(input_tensor_a.memory_config())},
+        tensor_args_t{input_tensor_a, input_tensor_b}};
 }
 
-}
+}  // namespace ttnn::operations::moreh::moreh_dot_op
