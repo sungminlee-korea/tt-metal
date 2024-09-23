@@ -24,7 +24,7 @@ using std::uint16_t;
 using std::uint32_t;
 using std::uint64_t;
 
-ll_api::memory get_risc_binary(string path) {
+ll_api::memory get_risc_binary(string const &path) {
   static struct {
     std::unordered_map<std::string, std::unique_ptr<ll_api::memory>> map;
     std::mutex mutex;
@@ -36,8 +36,7 @@ ll_api::memory get_risc_binary(string path) {
   if (inserted) {
     // We're the first with PATH. Create and insert.
     lock.unlock();
-    std::ifstream hex_istream(path);
-    auto *ptr = new ll_api::memory(hex_istream);
+    auto *ptr = new ll_api::memory(path);
     lock.lock();
     // maps have iterator stability, so SLOT is still valid.
     slot->second = decltype(slot->second)(ptr);
