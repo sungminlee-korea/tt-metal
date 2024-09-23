@@ -120,6 +120,10 @@ RunTimeOptions::RunTimeOptions() {
     if (getenv("TT_METAL_SKIP_LOADING_FW")) {
         this->skip_loading_fw = true;
     }
+
+    if (getenv("TT_METAL_COMPILE_OUT_DEBUG_TOOLS_ON_DISPATCH_KERNELS")) {
+        compile_out_debug_tools_on_dispatch_kernels = true;
+    }
 }
 
 const std::string &RunTimeOptions::get_root_dir() {

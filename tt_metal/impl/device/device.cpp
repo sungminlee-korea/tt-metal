@@ -583,6 +583,9 @@ void Device::configure_kernel_variant(
         {"DOWNSTREAM_NOC_Y", std::to_string(NOC_0_Y(downstream_noc_index, grid_size.y, downstream_physical_core.y))},
         {"FD_CORE_TYPE", std::to_string(programmable_core_type_index)},
     };
+    if (llrt::OptionsG.get_compile_out_debug_tools_on_dispatch_kernels()) {
+        defines["FORCE_DEBUG_TOOLS_OFF"] = "1";
+    }
     defines.insert(defines_in.begin(), defines_in.end());
 
     if (dispatch_core_type == CoreType::WORKER) {
