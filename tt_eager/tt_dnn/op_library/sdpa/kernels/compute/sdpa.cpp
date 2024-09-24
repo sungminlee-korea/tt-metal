@@ -102,7 +102,7 @@ void reduce_c() {
     // pack_reconfig_data_format(out_cb);
 
     const uint32_t num_tiles = rows * cols;
-    cb_wait_front(scale_cb, 1);
+    // cb_wait_front(scale_cb, 1);
     cb_wait_front(in0_cb, num_tiles);
     cb_reserve_back(out_cb, rows);
 
@@ -134,7 +134,7 @@ void matmul_blocks(const uint32_t& in0_cb, const uint32_t& in1_cb, const uint32_
     mm_block_init_short(in0_cb, in1_cb, transpose /*transpose*/, subblock_w /*ct_dim*/, subblock_h /*rt_dim*/, in0_block_w /*kt_dim*/);
 
     unpack_reconfig_data_format(in1_cb, in0_cb);
-    cb_wait_front(in1_cb, K * N);
+    // cb_wait_front(in1_cb, K * N);
 
     uint32_t output_num_tiles = M * N;
     uint32_t out_subblock_num_tiles = subblock_h * subblock_w;
@@ -235,15 +235,20 @@ void MAIN {
 
     mm_init();
 
+    // Get Q chunk
+    cb_wait_front(cb_q_in, q_chunk_tiles * q_chunks_per_core);
+    cb_wait_front(cb_k_in, Sk_chunk_t * DHt * q_chunks_per_core);
+    cb_wait_front(cb_v_in, DHt * Sk_chunk_t *q_chunks_per_core);
+    cb_wait_front(cb_identity_scale_in, 1);
+
     for (uint32_t nb = local_batch_start; nb < local_batch_end; ++nb) {
         for (uint32_t nq = local_nh_start; nq < local_nh_end; ++nq) {
             for (uint32_t q_iter = 0; q_iter < q_chunks_per_core; ++q_iter) {
+
                 uint32_t q_chunk = local_q_start + q_iter;
 
-                // Get Q chunk
                 const uint32_t q_low_idx = q_chunk * Sq_chunk_t; // This is the sequence index of the first tile of this chunk
                 const uint32_t q_high_idx = q_low_idx + Sq_chunk_t;
-                cb_wait_front(cb_q_in, q_chunk_tiles);
 
                 // loop while k_low < q_high
                 for (uint32_t k_chunk = 0; (k_chunk * Sk_chunk_t) < q_high_idx; ++k_chunk) {
