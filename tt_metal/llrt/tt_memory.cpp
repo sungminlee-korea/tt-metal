@@ -10,8 +10,10 @@
 #include <stdexcept>
 
 #include "tensix.h"
+#include "tt_elffile.hpp"
 #include "tt_memory.h"
 #include "tt_hexfile.h"
+#include "common/assert.hpp"
 
 using std::numeric_limits;
 using std::runtime_error;
@@ -37,7 +39,33 @@ memory::memory() {
 }
 
 memory::memory(std::string const &path) : memory() {
-  fill_from_discontiguous_hex(path);
+  // FIXME: Eventually we'll have only elf, and this hack can go away.
+  if (path.ends_with(".elf")) {
+    ElfFile elf(path);
+
+    // The ELF file puts the text segment first, but memory wants ordered spans
+    // FIXME: Does memory need the spans ordered?
+    auto emitSegment =
+      [&] (ElfFile::Segment const &segment) {
+	auto words = segment.Contents.size() >> 2;
+	auto begin = reinterpret_cast<word_t const *>(segment.Contents.data());
+	link_spans_.emplace_back(segment.Address, words);
+	data_.insert(data_.end(), begin, begin + words);
+      };
+    auto *text = &elf.getSegments()[0];
+    if (text->EntryOrBss != 0)
+      TT_THROW("{}: entry point is not at start", path);
+    for (auto &segment : std::span(elf.getSegments()).subspan(1)) {
+      if (text && segment.Address > text->Address) {
+	emitSegment(*text);
+	text = nullptr;
+      }
+      emitSegment(segment);
+    }
+    if (text)
+      emitSegment(*text);
+  } else
+    fill_from_discontiguous_hex(path);
 }
 
 bool memory::operator==(const memory& other) const {
