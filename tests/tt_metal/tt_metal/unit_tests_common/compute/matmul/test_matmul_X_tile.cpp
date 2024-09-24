@@ -188,7 +188,7 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     std::map<string, string> compute_defines;
 
     compute_defines["WITH_DT"] = cfg.with_dt ? "1" : "0";
-    compute_defines["TEST_INIT_SHORT"] = cfg.test_init_short ? "1" "0";
+    compute_defines["TEST_INIT_SHORT"] = cfg.test_init_short ? "1" : "0";
     if (cfg.fp32_dest_acc_en)
         compute_defines["DST_ACCUM_MODE"] = "1";
 
@@ -209,8 +209,8 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
         cfg.compute_kernel,
         core,
         tt_metal::ComputeConfig{
-            .fp32_dest_acc_en = cfg.fp32_dest_acc_en,
             .math_fidelity = cfg.math_fidelity,
+            .fp32_dest_acc_en = cfg.fp32_dest_acc_en,
             .compile_args = cfg.compute_kernel_args,
             .defines = compute_defines});
 
@@ -262,6 +262,7 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     // Generate golden:
     std::vector<float> golden0_fp32(result_bfp16.size());
     std::vector<bfloat16> golden0_bfp16(result_bfp16.size());
+    std::vector<uint32_t> golden(result_bfp16.size());
 
     golden0_bfp16 = tensor.get_values();
     // auto golden = tensor.get_values();
@@ -273,12 +274,18 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     for (auto i = 0; i < golden0_bfp16.size(); i++) {
         golden0_bfp16[i] = bfloat16(golden0_bfp16[i].to_uint16() & math_fid_mask);
         golden0_fp32[i] = golden0_bfp16[i].to_float();
+        if (cfg.fp32_dest_acc_en) {
+            golden[i] = std::bit_cast<uint32_t>(golden0_fp32[i]);
+        }
+    }
+    if (!cfg.fp32_dest_acc_en) {
+        golden = pack_vector<uint32_t, bfloat16>(golden0_bfp16);
     }
     if (cfg.M > 1 || cfg.N > 1 || cfg.K > 1){
-        pass &= cfg.fp32_dest_acc_en ? (golden0_fp32 == result_untilized) : (golden0_bfp16 == result_untilized);
+        pass &= (golden == result_vec);
     } else {
         // src1 is all 0's
-        pass &= cfg.fp32_dest_acc_en ? (golden0_fp32 == result_flat_layout) : (golden0_bfp16 == result_flat_layout);
+        pass &= (golden0_bfp16 == result_flat_layout);
     }
 
     DeallocateBuffer(*src0_dram_buffer);
@@ -299,6 +306,7 @@ TEST_F(CommonFixture, MatmulSingleTile){
         if (i == 1) continue;
         unit_tests_common::matmul::test_matmul_X_tile::MatmulTileConfig matmul_config = {
             .M = 1, .K = 1, .N = 1,
+            .fp32_dest_acc_en = true,
             .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_blocked.cpp",
             .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul.cpp",
             .compute_kernel_args = {
