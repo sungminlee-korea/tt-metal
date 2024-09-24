@@ -47,13 +47,12 @@ memory::memory(std::string const &path) : memory() {
     // FIXME: Does memory need the spans ordered?
     auto emitSegment =
       [&] (ElfFile::Segment const &segment) {
-	auto words = segment.Contents.size() >> 2;
-	auto begin = reinterpret_cast<word_t const *>(segment.Contents.data());
-	link_spans_.emplace_back(segment.Address, words);
-	data_.insert(data_.end(), begin, begin + words);
+	link_spans_.emplace_back(segment.Address, segment.Contents.size());
+	data_.insert(data_.end(), segment.Contents.begin(),
+		     segment.Contents.end());
       };
     auto *text = &elf.getSegments()[0];
-    if (text->EntryOrBss != 0)
+    if (text->EntryOrBSS != 0)
       TT_THROW("{}: entry point is not at start", path);
     for (auto &segment : std::span(elf.getSegments()).subspan(1)) {
       if (text && segment.Address > text->Address) {
