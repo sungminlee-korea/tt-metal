@@ -23,7 +23,7 @@ TEST(MLIR_INTERFACE_API, binary_op) {
     std::string layout = "tile";
 
     EXPECT_TRUE(ttnn::mlir_interface::does_binary_op_support_input_output_constraints(
-        shape, memory_config, data_type, shape, memory_config, data_type, memory_config, data_type));
+        shape, memory_config, data_type, layout, shape, memory_config, data_type, layout, memory_config, data_type));
     compare_cb_allocations(
         {4096, 4096, 4096},
         ttnn::mlir_interface::get_binary_circular_buffers_l1_allocations(
@@ -58,12 +58,22 @@ TEST(MLIR_INTERFACE_API, binary_op) {
 TEST(MLIR_INTERFACE_API, binary_op_batch_broadcast) {
     std::vector<uint32_t> shape_a = {2, 1, 32, 32};
     std::vector<uint32_t> shape_b = {1, 1, 32, 32};
+    std::vector<uint32_t> shape_b_invalid = {5, 1, 32, 32};
     ttnn::mlir_interface::memory_config_tuple memory_config = {"interleaved", "dram", std::nullopt};
     std::string data_type = "bf16";
     std::string layout = "tile";
 
     EXPECT_TRUE(ttnn::mlir_interface::does_binary_op_support_input_output_constraints(
-        shape_a, memory_config, data_type, shape_b, memory_config, data_type, memory_config, data_type));
+        shape_a,
+        memory_config,
+        data_type,
+        layout,
+        shape_b,
+        memory_config,
+        data_type,
+        layout,
+        memory_config,
+        data_type));
     compare_cb_allocations(
         {4096, 4096, 4096, 4096},
         ttnn::mlir_interface::get_binary_circular_buffers_l1_allocations(
@@ -81,7 +91,16 @@ TEST(MLIR_INTERFACE_API, binary_op_batch_broadcast) {
             layout));
 
     EXPECT_FALSE(ttnn::mlir_interface::does_binary_op_support_input_output_constraints(
-        shape_b, memory_config, data_type, shape_a, memory_config, data_type, memory_config, data_type));
+        shape_a,
+        memory_config,
+        data_type,
+        layout,
+        shape_b_invalid,
+        memory_config,
+        data_type,
+        layout,
+        memory_config,
+        data_type));
 }
 
 TEST(MLIR_INTERFACE_API, binary_op_width_sharded) {
@@ -92,7 +111,7 @@ TEST(MLIR_INTERFACE_API, binary_op_width_sharded) {
     std::string layout = "tile";
 
     EXPECT_TRUE(ttnn::mlir_interface::does_binary_op_support_input_output_constraints(
-        shape, memory_config, data_type, shape, memory_config, data_type, memory_config, data_type));
+        shape, memory_config, data_type, layout, shape, memory_config, data_type, layout, memory_config, data_type));
     compare_cb_allocations(
         {0, 0, 0},
         ttnn::mlir_interface::get_binary_circular_buffers_l1_allocations(
@@ -118,7 +137,7 @@ TEST(MLIR_INTERFACE_API, binary_op_height_sharded) {
     std::string layout = "tile";
 
     EXPECT_TRUE(ttnn::mlir_interface::does_binary_op_support_input_output_constraints(
-        shape, memory_config, data_type, shape, memory_config, data_type, memory_config, data_type));
+        shape, memory_config, data_type, layout, shape, memory_config, data_type, layout, memory_config, data_type));
     compare_cb_allocations(
         {0, 0, 0},
         ttnn::mlir_interface::get_binary_circular_buffers_l1_allocations(
@@ -144,7 +163,7 @@ TEST(MLIR_INTERFACE_API, binary_op_block_sharded) {
     std::string layout = "tile";
 
     EXPECT_TRUE(ttnn::mlir_interface::does_binary_op_support_input_output_constraints(
-        shape, memory_config, data_type, shape, memory_config, data_type, memory_config, data_type));
+        shape, memory_config, data_type, layout, shape, memory_config, data_type, layout, memory_config, data_type));
     compare_cb_allocations(
         {0, 0, 0},
         ttnn::mlir_interface::get_binary_circular_buffers_l1_allocations(
@@ -172,7 +191,14 @@ TEST(MLIR_INTERFACE_API, unary_op) {
     std::string layout = "tile";
 
     EXPECT_TRUE(ttnn::mlir_interface::does_unary_op_support_input_output_constraints(
-        "RELU", shape, l1_interleaved_memory_config, data_type, shape, l1_interleaved_memory_config, data_type));
+        "RELU",
+        shape,
+        l1_interleaved_memory_config,
+        data_type,
+        layout,
+        shape,
+        l1_interleaved_memory_config,
+        data_type));
     compare_cb_allocations(
         {4096, 4096},
         ttnn::mlir_interface::get_unary_circular_buffers_l1_allocations(
@@ -196,19 +222,26 @@ TEST(MLIR_INTERFACE_API, unary_op) {
                     .has_value());
 
     EXPECT_TRUE(ttnn::mlir_interface::does_unary_op_support_input_output_constraints(
-        "RELU", shape, l1_sharded_memory_config, data_type, shape, l1_sharded_memory_config, data_type));
+        "RELU", shape, l1_sharded_memory_config, data_type, layout, shape, l1_sharded_memory_config, data_type));
     compare_cb_allocations(
         {0, 0},
         ttnn::mlir_interface::get_unary_circular_buffers_l1_allocations(
             shape, l1_sharded_memory_config, data_type, layout, shape, l1_sharded_memory_config, data_type, layout));
 
     EXPECT_FALSE(ttnn::mlir_interface::does_unary_op_support_input_output_constraints(
-        "RELU", shape, l1_interleaved_memory_config, data_type, shape, l1_sharded_memory_config, data_type));
+        "RELU", shape, l1_interleaved_memory_config, data_type, layout, shape, l1_sharded_memory_config, data_type));
     EXPECT_FALSE(ttnn::mlir_interface::does_unary_op_support_input_output_constraints(
-        "RELU", shape, l1_sharded_memory_config, data_type, shape, l1_interleaved_memory_config, data_type));
+        "RELU", shape, l1_sharded_memory_config, data_type, layout, shape, l1_interleaved_memory_config, data_type));
 
     EXPECT_TRUE(ttnn::mlir_interface::does_unary_op_support_input_output_constraints(
-        "RELU", shape, dram_interleaved_memory_config, data_type, shape, dram_interleaved_memory_config, data_type));
+        "RELU",
+        shape,
+        dram_interleaved_memory_config,
+        data_type,
+        layout,
+        shape,
+        dram_interleaved_memory_config,
+        data_type));
     compare_cb_allocations(
         {4096, 4096},
         ttnn::mlir_interface::get_unary_circular_buffers_l1_allocations(
@@ -222,12 +255,19 @@ TEST(MLIR_INTERFACE_API, unary_op) {
             layout));
 
     EXPECT_FALSE(ttnn::mlir_interface::does_unary_op_support_input_output_constraints(
-        "RELU", shape, l1_sharded_memory_config, data_type, shape, dram_interleaved_memory_config, data_type));
+        "RELU", shape, l1_sharded_memory_config, data_type, layout, shape, dram_interleaved_memory_config, data_type));
     EXPECT_FALSE(ttnn::mlir_interface::does_unary_op_support_input_output_constraints(
-        "RELU", shape, dram_interleaved_memory_config, data_type, shape, l1_sharded_memory_config, data_type));
+        "RELU", shape, dram_interleaved_memory_config, data_type, layout, shape, l1_sharded_memory_config, data_type));
 
     EXPECT_TRUE(ttnn::mlir_interface::does_unary_op_support_input_output_constraints(
-        "RELU", shape, dram_interleaved_memory_config, data_type, shape, l1_interleaved_memory_config, data_type));
+        "RELU",
+        shape,
+        dram_interleaved_memory_config,
+        data_type,
+        layout,
+        shape,
+        l1_interleaved_memory_config,
+        data_type));
     compare_cb_allocations(
         {4096, 4096},
         ttnn::mlir_interface::get_unary_circular_buffers_l1_allocations(
@@ -241,7 +281,14 @@ TEST(MLIR_INTERFACE_API, unary_op) {
             layout));
 
     EXPECT_TRUE(ttnn::mlir_interface::does_unary_op_support_input_output_constraints(
-        "RELU", shape, l1_interleaved_memory_config, data_type, shape, dram_interleaved_memory_config, data_type));
+        "RELU",
+        shape,
+        l1_interleaved_memory_config,
+        data_type,
+        layout,
+        shape,
+        dram_interleaved_memory_config,
+        data_type));
     compare_cb_allocations(
         {4096, 4096},
         ttnn::mlir_interface::get_unary_circular_buffers_l1_allocations(
@@ -266,7 +313,7 @@ TEST(MLIR_INTERFACE_API, softmax_op) {
     const int dim_arg = -1;
 
     EXPECT_TRUE(ttnn::mlir_interface::does_softmax_op_support_input_output_constraints(
-        shape, l1_interleaved_memory_config, data_type, shape, l1_interleaved_memory_config, data_type));
+        shape, l1_interleaved_memory_config, data_type, layout, shape, l1_interleaved_memory_config, data_type));
     compare_cb_allocations(
         {32768, 32768, 2048, 2048, 655360, 2048},
         ttnn::mlir_interface::get_softmax_circular_buffers_l1_allocations(
@@ -292,7 +339,7 @@ TEST(MLIR_INTERFACE_API, softmax_op) {
                     .has_value());
 
     EXPECT_TRUE(ttnn::mlir_interface::does_softmax_op_support_input_output_constraints(
-        shape, l1_interleaved_memory_config, data_type, shape, l1_sharded_memory_config, data_type));
+        shape, l1_interleaved_memory_config, data_type, layout, shape, l1_sharded_memory_config, data_type));
     compare_cb_allocations(
         {32768, 32768, 2048, 2048, 655360, 2048},
         ttnn::mlir_interface::get_softmax_circular_buffers_l1_allocations(
@@ -307,7 +354,7 @@ TEST(MLIR_INTERFACE_API, softmax_op) {
             dim_arg));
 
     EXPECT_TRUE(ttnn::mlir_interface::does_softmax_op_support_input_output_constraints(
-        shape, l1_sharded_memory_config, data_type, shape, l1_interleaved_memory_config, data_type));
+        shape, l1_sharded_memory_config, data_type, layout, shape, l1_interleaved_memory_config, data_type));
     compare_cb_allocations(
         {32768, 32768, 2048, 2048, 655360, 2048},
         ttnn::mlir_interface::get_softmax_circular_buffers_l1_allocations(
@@ -322,7 +369,7 @@ TEST(MLIR_INTERFACE_API, softmax_op) {
             dim_arg));
 
     EXPECT_TRUE(ttnn::mlir_interface::does_softmax_op_support_input_output_constraints(
-        shape, l1_sharded_memory_config, data_type, shape, l1_sharded_memory_config, data_type));
+        shape, l1_sharded_memory_config, data_type, layout, shape, l1_sharded_memory_config, data_type));
     compare_cb_allocations(
         {32768, 32768, 2048, 2048, 655360, 2048},
         ttnn::mlir_interface::get_softmax_circular_buffers_l1_allocations(
@@ -337,7 +384,7 @@ TEST(MLIR_INTERFACE_API, softmax_op) {
             dim_arg));
 
     EXPECT_TRUE(ttnn::mlir_interface::does_softmax_op_support_input_output_constraints(
-        shape, dram_interleaved_memory_config, data_type, shape, dram_interleaved_memory_config, data_type));
+        shape, dram_interleaved_memory_config, data_type, layout, shape, dram_interleaved_memory_config, data_type));
     compare_cb_allocations(
         {32768, 32768, 2048, 2048, 655360, 2048},
         ttnn::mlir_interface::get_softmax_circular_buffers_l1_allocations(
@@ -352,7 +399,7 @@ TEST(MLIR_INTERFACE_API, softmax_op) {
             dim_arg));
 
     EXPECT_TRUE(ttnn::mlir_interface::does_softmax_op_support_input_output_constraints(
-        shape, l1_sharded_memory_config, data_type, shape, dram_interleaved_memory_config, data_type));
+        shape, l1_sharded_memory_config, data_type, layout, shape, dram_interleaved_memory_config, data_type));
     compare_cb_allocations(
         {32768, 32768, 2048, 2048, 655360, 2048},
         ttnn::mlir_interface::get_softmax_circular_buffers_l1_allocations(
@@ -367,7 +414,7 @@ TEST(MLIR_INTERFACE_API, softmax_op) {
             dim_arg));
 
     EXPECT_TRUE(ttnn::mlir_interface::does_softmax_op_support_input_output_constraints(
-        shape, dram_interleaved_memory_config, data_type, shape, l1_sharded_memory_config, data_type));
+        shape, dram_interleaved_memory_config, data_type, layout, shape, l1_sharded_memory_config, data_type));
     compare_cb_allocations(
         {32768, 32768, 2048, 2048, 655360, 2048},
         ttnn::mlir_interface::get_softmax_circular_buffers_l1_allocations(
@@ -382,7 +429,7 @@ TEST(MLIR_INTERFACE_API, softmax_op) {
             dim_arg));
 
     EXPECT_TRUE(ttnn::mlir_interface::does_softmax_op_support_input_output_constraints(
-        shape, dram_interleaved_memory_config, data_type, shape, l1_interleaved_memory_config, data_type));
+        shape, dram_interleaved_memory_config, data_type, layout, shape, l1_interleaved_memory_config, data_type));
     compare_cb_allocations(
         {32768, 32768, 2048, 2048, 655360, 2048},
         ttnn::mlir_interface::get_softmax_circular_buffers_l1_allocations(
@@ -397,7 +444,7 @@ TEST(MLIR_INTERFACE_API, softmax_op) {
             dim_arg));
 
     EXPECT_TRUE(ttnn::mlir_interface::does_softmax_op_support_input_output_constraints(
-        shape, l1_interleaved_memory_config, data_type, shape, dram_interleaved_memory_config, data_type));
+        shape, l1_interleaved_memory_config, data_type, layout, shape, dram_interleaved_memory_config, data_type));
     compare_cb_allocations(
         {32768, 32768, 2048, 2048, 655360, 2048},
         ttnn::mlir_interface::get_softmax_circular_buffers_l1_allocations(
