@@ -802,6 +802,80 @@ void bind_unary_backward_optional(
 }
 
 template <typename unary_backward_operation_t>
+void bind_fill_bw(
+    py::module& module, const unary_backward_operation_t& operation, std::string_view description, std::string_view supported_dtype = "") {
+    auto doc = fmt::format(
+        R"doc({0}(grad_tensor: ttnn.Tensor, input_tensor: ttnn.Tensor, *, memory_config: ttnn.MemoryConfig) -> std::vector<std::optional<Tensor>>
+
+        {2}
+
+        Args:
+            * :attr:`grad_tensor`
+            * :attr:`input_tensor`
+
+        Keyword args:
+            * :attr:`memory_config` (Optional[ttnn.MemoryConfig]): memory config for the output tensor
+            * :attr:`input_grad` (Optional[ttnn.Tensor]): preallocated output tensor,
+            * :attr:`queue_id` (Optional[uint8]): command queue id
+
+        {3}
+
+        Example:
+
+            >>> grad_tensor = ttnn.to_device(ttnn.from_torch(torch.tensor((1, 2), dtype=torch.bfloat16)), device)
+            >>> tensor1 = ttnn.to_device(ttnn.from_torch(torch.tensor((1, 2), dtype=torch.bfloat16)), device)
+            >>> output = {1}(grad_tensor, tensor)
+        )doc",
+        operation.base_name(),
+        operation.python_fully_qualified_name(),
+        description,
+        supported_dtype);
+
+    bind_registered_operation(
+        module,
+        operation,
+        doc,
+        ttnn::pybind_overload_t{
+            [](const unary_backward_operation_t& self,
+               const ttnn::Tensor& grad_tensor,
+               const ttnn::Tensor& input_tensor,
+               const std::optional<ttnn::MemoryConfig>& memory_config,
+               const std::optional<ttnn::Tensor>& input_grad,
+               const uint8_t& queue_id) -> std::vector<std::optional<ttnn::Tensor>> {
+                return self(queue_id, grad_tensor, input_tensor, memory_config, input_grad);
+            },
+            py::arg("grad_tensor"),
+            py::arg("input_tensor"),
+            py::kw_only(),
+            py::arg("memory_config") = std::nullopt,
+            py::arg("input_grad") = std::nullopt,
+            py::arg("queue_id") = ttnn::DefaultQueueId},
+
+        ttnn::pybind_overload_t{
+            [](const unary_backward_operation_t& self,
+               const ttnn::Tensor& grad_tensor,
+               const ttnn::Tensor& input_tensor,
+               const ttnn::Tensor& other_tensor,
+               const std::vector<bool>& are_required_outputs,
+               const std::optional<ttnn::MemoryConfig>& memory_config,
+               const std::optional<ttnn::Tensor>& input_grad,
+               const std::optional<ttnn::Tensor>& other_grad,
+               const uint8_t& queue_id) -> std::vector<std::optional<ttnn::Tensor>> {
+                return self(queue_id, grad_tensor, input_tensor, other_tensor, are_required_outputs, memory_config, input_grad, other_grad);
+            },
+            py::arg("grad_tensor"),
+            py::arg("input_tensor_a"),
+            py::arg("input_tensor_b"),
+            py::kw_only(),
+            py::arg("are_required_outputs") = std::vector<bool>{true, true},
+            py::arg("memory_config") = std::nullopt,
+            py::arg("input_grad") = std::nullopt,
+             py::arg("other_grad") = std::nullopt,
+            py::arg("queue_id") = ttnn::DefaultQueueId}
+        );
+}
+
+template <typename unary_backward_operation_t>
 void bind_unary_backward_prod_bw(py::module& module, const unary_backward_operation_t& operation) {
     auto doc = fmt::format(
         R"doc(
@@ -1159,7 +1233,7 @@ void py_module(py::module& module) {
         ttnn::lgamma_bw,
         R"doc(Performs backward operations for lgamma on :attr:`input_tensor` with given :attr:`grad_tensor`.)doc");
 
-    detail::bind_unary_backward_optional(
+    detail::bind_fill_bw(
         module,
         ttnn::fill_bw,
         R"doc(Performs backward operations for fill on :attr:`input_tensor` with given :attr:`grad_tensor`.
