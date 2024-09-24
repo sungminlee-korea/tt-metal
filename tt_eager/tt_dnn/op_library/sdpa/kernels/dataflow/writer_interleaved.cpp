@@ -50,16 +50,10 @@ void kernel_main() {
         .data_format = data_format
     };
 
-    constexpr uint32_t barrier_threshold = get_barrier_read_threshold<tile_bytes, num_cores>();
-    uint32_t barrier_count = 0;
-
     constexpr uint32_t cb_scale_in = tt::CB::c_in4;
     constexpr uint32_t cb_identity_scale_in = tt::CB::c_in5;
 
     generate_bcast_unary_scalar(cb_scale_in, scale_val);
-    // generate_reduce_scaler(cb_identity_scale_in, identity_scalar_packed);
-    // generate_reduce_scaler(cb_identity_scale_in, 0x3F803F80);
-    // generate_reduce_scaler(cb_identity_scale_in, 0x00000000);
     generate_reduce_scaler(cb_identity_scale_in, 0x40404040);
 
     uint32_t out_tile_id = 0;
@@ -76,17 +70,11 @@ void kernel_main() {
 
                 // Wait for compute to deliver output chunk
                 cb_wait_front(cb_out, out_chunk_tiles);
-                barrier_count = 0;
                 uint32_t l1_read_addr = get_read_ptr(cb_out);
                 for (uint32_t tile = 0; tile < out_chunk_tiles; ++tile) {
                     noc_async_write_tile(out_tile_id, out_writer, l1_read_addr);
                     ++out_tile_id;
                     l1_read_addr += tile_bytes;
-
-                    // if (++barrier_count == barrier_threshold) {
-                    //     noc_async_writes_flushed();
-                    //     barrier_count = 0;
-                    // }
                 }
                 noc_async_write_barrier();
                 cb_pop_front(cb_out, out_chunk_tiles);
