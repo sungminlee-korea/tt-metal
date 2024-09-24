@@ -20,18 +20,25 @@ from tests.ttnn.unit_tests.operations.test_all_gather import (
     "num_devices, num_links, input_shape, dim, layout",
     [
         (2, 1, [1, 1, 64, 16384], 3, ttnn.TILE_LAYOUT),
+        (2, 1, [1, 1, 64, 2048], 3, ttnn.TILE_LAYOUT),
+        (2, 1, [1, 1, 32, 4096], 3, ttnn.TILE_LAYOUT),
+        (2, 1, [1, 1, 32, 1024], 3, ttnn.ROW_MAJOR_LAYOUT),
+        (2, 1, [1, 2, 32, 4096], 3, ttnn.ROW_MAJOR_LAYOUT),
+        (2, 1, [1, 2, 32, 1024], 3, ttnn.TILE_LAYOUT),
     ],
 )
 @pytest.mark.parametrize(
     "input_dtype",
     [
         ttnn.bfloat16,
+        ttnn.bfloat8_b,
     ],
 )
 @pytest.mark.parametrize(
     "mem_config",
     [
         ttnn.MemoryConfig(buffer_type=ttnn.BufferType.DRAM),
+        ttnn.MemoryConfig(buffer_type=ttnn.BufferType.L1),
     ],
 )
 @pytest.mark.parametrize("num_iters", [1])
