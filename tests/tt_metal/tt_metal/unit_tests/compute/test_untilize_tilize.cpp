@@ -43,6 +43,7 @@ using GoldenFunc = std::variant<
 
 struct TestConfig {
     bool short_init = false;
+    bool fp32_dest_acc_en = false;
     uint32_t input_single_tile_size;
     uint32_t output_single_tile_size;
     uint32_t num_tiles_r;

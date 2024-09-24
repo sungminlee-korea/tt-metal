@@ -27,6 +27,7 @@ struct MatmulTileConfig {
     bool with_bias = false;
     bool test_init_short = false;
     bool with_dt = true;
+    bool fp32_dest_acc_en = false;
     string reader_kernel;
     string compute_kernel;
     vector<uint32_t> compute_kernel_args;
@@ -56,19 +57,17 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     uint32_t M = cfg.M;
     uint32_t K = cfg.K;
     uint32_t N = cfg.N;
-    uint32_t single_tile_size = 2 * 1024;
-    uint32_t num_tiles = M * K;             // only if M = K = N
-    uint32_t dram_buffer_size = single_tile_size * num_tiles;
-    // for multi_tile case buffer size will vary depending on M, N, K
-    // uint32_t dram_buffer_size_act = single_tile_size * M * K; // num_tiles of FP16_B, hard-coded in the reader/writer kernels
-    // uint32_t dram_buffer_size_weights = single_tile_size * K * N; // num_tiles of FP16_B, hard-coded in the reader/writer kernels
-    // uint32_t dram_buffer_size_out = single_tile_size * M * N; // num_tiles of FP16_B, hard-coded in the reader/writer kernels
-
+    uint32_t num_tiles = M * K; // only if M = K = N
+    uint32_t single_tile_size_fp32 = 4 * 32 * 32;   // Single 32x32 tile size for Float32
+    uint32_t single_tile_size_bfp16b = 2 * 32 * 32; // Single 32x32 tile size for Float16_b / Uint16
+    uint32_t single_tile_size_out0 = cfg.fp32_dest_acc_en ? single_tile_size_fp32 : single_tile_size_bfp16b;
+    const size_t dram_buffer_size_bfp16b = num_tiles * single_tile_size_bfp16b;
+    const size_t dram_buffer_size_out0 = num_tiles * single_tile_size_out0;
 
     tt_metal::InterleavedBufferConfig dram_config{
                 .device=device,
-                .size = dram_buffer_size,
-                .page_size = dram_buffer_size,
+                .size = dram_buffer_size_bfp16b,
+                .page_size = dram_buffer_size_bfp16b,
                 .buffer_type = tt_metal::BufferType::DRAM
     };
 
@@ -83,13 +82,13 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     auto dram_dst_noc_xy = dst_dram_buffer->noc_coordinates();
 
     uint32_t src0_cb_index = 0;
-    tt_metal::CircularBufferConfig cb_src0_config = tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size, {{src0_cb_index, tt::DataFormat::Float16_b}})
-        .set_page_size(src0_cb_index, single_tile_size);
+    tt_metal::CircularBufferConfig cb_src0_config = tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size_bfp16b, {{src0_cb_index, tt::DataFormat::Float16_b}})
+        .set_page_size(src0_cb_index, single_tile_size_bfp16b);
     auto cb_src0 = tt_metal::CreateCircularBuffer(program, core, cb_src0_config);
 
     uint32_t src1_cb_index = 1;
-    tt_metal::CircularBufferConfig cb_src1_config = tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size, {{src1_cb_index, tt::DataFormat::Float16_b}})
-        .set_page_size(src1_cb_index, single_tile_size);
+    tt_metal::CircularBufferConfig cb_src1_config = tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size_bfp16b, {{src1_cb_index, tt::DataFormat::Float16_b}})
+        .set_page_size(src1_cb_index, single_tile_size_bfp16b);
     auto cb_src1 = tt_metal::CreateCircularBuffer(program, core, cb_src1_config);
 
     std::shared_ptr<tt_metal::Buffer> src2_dram_buffer;
@@ -97,24 +96,24 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     if (cfg.with_bias) { // with_bias only when M, N, or K > 1
         tt_metal::InterleavedBufferConfig bias_config{
                     .device=device,
-                    .size = single_tile_size * N,
-                    .page_size = single_tile_size * N,
+                    .size = single_tile_size_bfp16b * N,
+                    .page_size = single_tile_size_bfp16b * N,
                     .buffer_type = tt_metal::BufferType::DRAM
         };
         src2_dram_buffer = CreateBuffer(bias_config);
 
         uint32_t src2_cb_index = 2;
-        tt_metal::CircularBufferConfig cb_src2_config = tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size, {{src2_cb_index, tt::DataFormat::Float16_b}})
-            .set_page_size(src2_cb_index, single_tile_size);
+        tt_metal::CircularBufferConfig cb_src2_config = tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size_bfp16b, {{src2_cb_index, tt::DataFormat::Float16_b}})
+            .set_page_size(src2_cb_index, single_tile_size_bfp16b);
         auto cb_src2 = tt_metal::CreateCircularBuffer(program, core, cb_src2_config);
-    } else if (cfg.test_init_short) {// This will be dummy input in uint16_t
+    } else if (cfg.test_init_short) { // This will be dummy input in uint16_t
         uint32_t in2_id = 2;
         uint32_t out1_id = 17;
 
         tt_metal::InterleavedBufferConfig dummy_config{
                     .device=device,
-                    .size = single_tile_size * N,
-                    .page_size = single_tile_size * N,
+                    .size = single_tile_size_bfp16b * N,
+                    .page_size = single_tile_size_bfp16b * N,
                     .buffer_type = tt_metal::BufferType::DRAM
         };
 
@@ -125,13 +124,13 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
         dst1_dram_buffer = CreateBuffer(dummy_config);
 
         tt_metal::CircularBufferConfig cb_src2_config =
-        tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size, {{in2_id, tt::DataFormat::UInt16}})
-            .set_page_size(in2_id, single_tile_size);
+        tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size_bfp16b, {{in2_id, tt::DataFormat::UInt16}})
+            .set_page_size(in2_id, single_tile_size_bfp16b);
         auto cb_src2 = tt_metal::CreateCircularBuffer(program, core, cb_src2_config);
 
         tt_metal::CircularBufferConfig cb_dst1_config =
-        tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size, {{out1_id, tt::DataFormat::UInt16}})
-            .set_page_size(out1_id, single_tile_size);
+        tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size_bfp16b, {{out1_id, tt::DataFormat::UInt16}})
+            .set_page_size(out1_id, single_tile_size_bfp16b);
         auto cb_dst1 = tt_metal::CreateCircularBuffer(program, core, cb_dst1_config);
     }
 
@@ -140,14 +139,14 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     if (cfg.M > 1 || cfg.N > 1 || cfg.K > 1){
         uint32_t intermediate_cb_index = 24;
         std::map<uint8_t, tt::DataFormat> partials_and_out_data_format_spec = {
-            {ouput_cb_index, tt::DataFormat::Float16_b},
-            {intermediate_cb_index, tt::DataFormat::Float16_b}
+            {ouput_cb_index, (cfg.fp32_dest_acc_en ? tt::DataFormat::Float32 : tt::DataFormat::Float16_b)},
+            {intermediate_cb_index, (cfg.fp32_dest_acc_en ? tt::DataFormat::Float32 : tt::DataFormat::Float16_b)}
         };
 
         CoreRangeSet cores(std::set<CoreRange>{CoreRange(core, core)});
-        tt_metal::CircularBufferConfig cb_output_config = tt_metal::CircularBufferConfig(num_tiles * single_tile_size, partials_and_out_data_format_spec)
-            .set_page_size(ouput_cb_index, single_tile_size)
-            .set_page_size(intermediate_cb_index, single_tile_size);
+        tt_metal::CircularBufferConfig cb_output_config = tt_metal::CircularBufferConfig(dram_buffer_size_out0, partials_and_out_data_format_spec)
+            .set_page_size(ouput_cb_index, single_tile_size_out0)
+            .set_page_size(intermediate_cb_index, single_tile_size_out0);
         auto cb_output = tt_metal::CreateCircularBuffer(program, core, cb_output_config);
 
         reader_l1_args = {
@@ -160,14 +159,15 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
             (std::uint32_t)K,
             (std::uint32_t)M,
             (std::uint32_t)N,
-            (std::uint32_t)(M * single_tile_size),
-            (std::uint32_t)(N * single_tile_size),
+            (std::uint32_t)(M * single_tile_size_bfp16b),
+            (std::uint32_t)(N * single_tile_size_bfp16b),
             cfg.with_bias
         };
     } else {
         uint32_t num_output_tiles = 2;
-        tt_metal::CircularBufferConfig cb_output_config = tt_metal::CircularBufferConfig(num_output_tiles * single_tile_size, {{ouput_cb_index, tt::DataFormat::Float16_b}})
-            .set_page_size(ouput_cb_index, single_tile_size);
+        tt_metal::CircularBufferConfig cb_output_config = tt_metal::CircularBufferConfig(num_output_tiles * single_tile_size_out0,
+        {{ouput_cb_index, (cfg.fp32_dest_acc_en ? tt::DataFormat::Float32 : tt::DataFormat::Float16_b)}})
+            .set_page_size(ouput_cb_index, single_tile_size_out0);
         auto cb_output = tt_metal::CreateCircularBuffer(program, core, cb_output_config);
 
         reader_l1_args = {
@@ -180,23 +180,17 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
             1,
             1,
             1,
-            1 * single_tile_size,
-            1 * single_tile_size
+            1 * single_tile_size_bfp16b,
+            1 * single_tile_size_bfp16b
         };
     }
 
     std::map<string, string> compute_defines;
 
-    if (cfg.with_dt) {
-        compute_defines["WITH_DT"] = "1";
-    } else {
-        compute_defines["WITH_DT"] = "0";
-    }
-    if (cfg.test_init_short) {
-        compute_defines["TEST_INIT_SHORT"] = "1";
-    } else {
-        compute_defines["TEST_INIT_SHORT"] = "0";
-    }
+    compute_defines["WITH_DT"] = cfg.with_dt ? "1" : "0";
+    compute_defines["TEST_INIT_SHORT"] = cfg.test_init_short ? "1" "0";
+    if (cfg.fp32_dest_acc_en)
+        compute_defines["DST_ACCUM_MODE"] = "1";
 
     auto mm_reader_kernel = tt_metal::CreateKernel(
         program,
@@ -214,10 +208,11 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
         program,
         cfg.compute_kernel,
         core,
-        tt_metal::ComputeConfig{.math_fidelity = cfg.math_fidelity,
-                                .compile_args = cfg.compute_kernel_args,
-                                .defines = compute_defines}
-    );
+        tt_metal::ComputeConfig{
+            .fp32_dest_acc_en = cfg.fp32_dest_acc_en,
+            .math_fidelity = cfg.math_fidelity,
+            .compile_args = cfg.compute_kernel_args,
+            .defines = compute_defines});
 
     fixture->WriteBuffer(device, src0_dram_buffer, activations);
     fixture->WriteBuffer(device, src1_dram_buffer, weights);
@@ -232,10 +227,10 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
             (std::uint32_t)dram_src2_noc_xy.x,
             (std::uint32_t)dram_src2_noc_xy.y,
             (std::uint32_t)N,
-            (std::uint32_t)(N * single_tile_size)
+            (std::uint32_t)(N * single_tile_size_bfp16b)
         };
 
-        for (uint32_t arg: bias_args) {
+        for (uint32_t arg : bias_args) {
             reader_l1_args.push_back(arg);
         }
     }
@@ -262,20 +257,28 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
 
     auto result_bfp16 = unpack_uint32_vec_into_bfloat16_vec(result_vec);
     auto result_flat_layout = convert_to_flat_layout(result_bfp16);
-    auto golden = tensor.get_values();
     auto result_untilized = test_utils::untilize(result_flat_layout, M*32, N*32);
+
+    // Generate golden:
+    std::vector<float> golden0_fp32(result_bfp16.size());
+    std::vector<bfloat16> golden0_bfp16(result_bfp16.size());
+
+    golden0_bfp16 = tensor.get_values();
+    // auto golden = tensor.get_values();
 
     uint16_t math_fid_mask = 0xFFFF;
     set_math_fid_masks(math_fid_mask, cfg.math_fidelity);
     // If we're testing LoFi/HiFi2 we generate matching golden (trunc LSB).
     // Note that this will work only for multiplying with identity matrix
-    for (auto i = 0; i < golden.size(); i++) {
-        golden[i] = bfloat16(golden[i].to_uint16() & math_fid_mask);
+    for (auto i = 0; i < golden0_bfp16.size(); i++) {
+        golden0_bfp16[i] = bfloat16(golden0_bfp16[i].to_uint16() & math_fid_mask);
+        golden0_fp32[i] = golden0_bfp16[i].to_float();
     }
     if (cfg.M > 1 || cfg.N > 1 || cfg.K > 1){
-        pass &= (golden == result_untilized);
+        pass &= cfg.fp32_dest_acc_en ? (golden0_fp32 == result_untilized) : (golden0_bfp16 == result_untilized);
     } else {
-        pass &= (golden == result_flat_layout); // src1 is all 0's
+        // src1 is all 0's
+        pass &= cfg.fp32_dest_acc_en ? (golden0_fp32 == result_flat_layout) : (golden0_bfp16 == result_flat_layout);
     }
 
     DeallocateBuffer(*src0_dram_buffer);
