@@ -6,8 +6,9 @@
 
 // C++
 #include <cstddef>
-//#include <memory>
+#include <cstdint>
 #include <span>
+#include <string>
 #include <vector>
 
 // An ELF executable loader
@@ -18,18 +19,19 @@ namespace ll_api {
 class ElfFile {
 public:
   // ELF32
-  using address_t = std::uint32_t;
-  using offset_t = std::uint32_t;
+  using address_t = std::uint32_t; // Address in memory
+  using offset_t = std::uint32_t;  // Offset within region
+  using word_t = std::uint32_t;    // Contents
 
   struct Segment {
-    std::span<std::byte const> Contents; // Non-owning span
+    std::span<word_t const> Contents; // Non-owning span
     address_t Address = 0;               // vaddr or 0 for XIP
-    offset_t EntryOrBss = 0; // text entry or data bss
+    offset_t EntryOrBSS = 0; // text entry or data bss
 
   public:
-    constexpr Segment (std::span<std::byte const> contents, address_t addr,
-		       offset_t bssOrEntry)
-      : Contents(contents), Address(addr), EntryOrBss(bssOrEntry) {}
+    constexpr Segment (std::span<word_t const> contents, address_t addr,
+		       offset_t entryOrBSS)
+      : Contents(contents), Address(addr), EntryOrBSS(entryOrBSS) {}
   };
 
 public:

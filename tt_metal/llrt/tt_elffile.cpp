@@ -3,10 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "tt_elffile.hpp"
-
-#include <cstdarg>
-#include <type_traits>
-
 #include "common/assert.hpp"
 // C
 #include <errno.h>
@@ -99,14 +95,6 @@ private:
   static T const *byteOffset (std::byte const *base, size_t offset = 0) {
     return reinterpret_cast<T const *>(base + offset);
   }
-
-  static uint32_t read32 (std::span<std::byte> contents, uint32_t offset) {
-    return *byteOffset<uint32_t>(contents.data(), offset);
-  }
-  static void write32 (std::span<std::byte> contents, uint32_t offset,
-                       uint32_t value) {
-    *byteOffset<uint32_t>(contents.data(), offset) = value;
-  }
 };
 
 ElfFile::ElfFile (std::string const &path) {
@@ -158,14 +146,16 @@ void ElfFile::Impl::loadImage () {
       && hdr.e_machine != EM_RISCV_BLACKHOLE)
     TT_THROW("{}: incompatible architecture {}", Path, hdr.e_machine);
 
-  if (!hdr.e_phoff || hdr.e_phoff & 3 || hdr.e_phentsize != sizeof(Elf32_Phdr)
+  if (!hdr.e_phoff || hdr.e_phoff & (sizeof(address_t) - 1)
+      || hdr.e_phentsize != sizeof(Elf32_Phdr)
       || (hdr.e_phoff + hdr.e_phnum * sizeof(Elf32_Phdr)
           > Owner.Contents.size()))
     TT_THROW("{}: PHDRS are missing or malformed", Path);
   Phdrs = std::span(
       byteOffset<Elf32_Phdr const>(Owner.Contents.data(), hdr.e_phoff),
       hdr.e_phnum);
-  if (!hdr.e_shoff || hdr.e_shoff & 3 || hdr.e_shentsize != sizeof(Elf32_Shdr)
+  if (!hdr.e_shoff || hdr.e_shoff & (sizeof(address_t) - 1)
+      || hdr.e_shentsize != sizeof(Elf32_Shdr)
       || (hdr.e_shoff + hdr.e_shnum * sizeof(Elf32_Shdr)
           > Owner.Contents.size()))
     TT_THROW("{}: sections are missing or malformed", Path);
@@ -176,12 +166,19 @@ void ElfFile::Impl::loadImage () {
     TT_THROW("{}: string table is missing or malformed", Path);
   StrTab = getContents(Shdrs[hdr.e_shstrndx]);
 
-  for (auto const &shdr : Shdrs)
-    if ((shdr.sh_offset | shdr.sh_addr) & 3
-        || shdr.sh_offset + shdr.sh_size > Owner.Contents.size())
-      TT_THROW("{}: section {} is misaligned", Path, getName(shdr));
+  // We care about the location of some sections.
+  for (auto const &section : Shdrs)
+    if ((section.sh_flags & SHF_ALLOC
+	 && ((section.sh_offset | section.sh_addr | section.sh_size)
+	     & (sizeof(word_t) - 1)))
+	|| ((section.sh_type == SHT_RELA
+	     || section.sh_type == SHT_SYMTAB)
+	    && (section.sh_offset | section.sh_addr) & (sizeof(word_t) - 1))
+        || section.sh_offset + section.sh_size > Owner.Contents.size())
+      TT_THROW("{}: section {} is misaligned", Path, getName(section));
 
-  bool foundText = false;
+  int text = -1;
+  Owner.Segments.reserve(hdr.e_phnum);
   for (auto const &phdr : Phdrs) {
     if (phdr.p_type == PT_RISCV_ATTRIBUTES) {
       Arch = getArchFromAttrs(getContents(phdr));
@@ -194,28 +191,29 @@ void ElfFile::Impl::loadImage () {
       // Have observed zero-sized segments, ignore them
       continue;
 
-    if ((phdr.p_offset | phdr.p_vaddr | phdr.p_filesz | phdr.p_memsz) & 3)
+    // Require loadable segments to be nicely aligned and sized
+    if ((phdr.p_offset | phdr.p_vaddr | phdr.p_memsz | phdr.p_filesz)
+	& (sizeof(word_t) - 1))
       TT_THROW("{}: loadable segment {} is misaligned", Path,
                unsigned(Owner.Segments.size()));
 
     auto contents = getContents(phdr);
-    if ((phdr.p_flags & PF_X) && !(phdr.p_flags & PF_W)) {
-      // text
-      if (foundText)
-        TT_THROW("{}: multiple text segments found", Path);
-      foundText = true;
-      address_t entry = getHeader().e_entry - phdr.p_vaddr;
-      if (entry >= phdr.p_memsz)
-        TT_THROW("{}: entry point is not in text segment", Path);
-      Owner.Segments.insert(
-          Owner.Segments.begin(),
-          Segment(contents, phdr.p_vaddr, entry));
-    } else
-      Owner.Segments.emplace_back(contents, phdr.p_vaddr,
-				  phdr.p_memsz - phdr.p_filesz);
+    offset_t entryOrBSS = hdr.e_entry - phdr.p_vaddr;
+    if (entryOrBSS < phdr.p_memsz)
+      text = int(Owner.Segments.size());
+    else
+      entryOrBSS = phdr.p_memsz - phdr.p_filesz;
+    Owner.Segments.emplace_back(
+      std::span(reinterpret_cast<word_t const *>(contents.data()),
+		contents.size() / sizeof (word_t)), phdr.p_vaddr,
+      entryOrBSS >> 2);
   }
-  if (!foundText)
+  if (text < 0)
     TT_THROW("{}: cannot find text segment", Path);
+  else if (text)
+    // Place text segment first.
+    std::rotate(&Owner.Segments[0], &Owner.Segments[text],
+		&Owner.Segments[text + 1]);
 }
 
 char const *ElfFile::Impl::getArchFromAttrs (std::span<std::byte> attribs) {
