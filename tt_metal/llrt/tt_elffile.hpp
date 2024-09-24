@@ -22,6 +22,7 @@ public:
   using offset_t = std::uint32_t;
 
   struct Segment {
+    std::vector<offset_t> Relocs; // 32-bit relocs to apply
     std::span<std::byte const> Contents; // Non-owning span
     address_t Address = 0;               // vaddr or 0 for XIP
     offset_t EntryOrBss = 0; // text entry or data bss
