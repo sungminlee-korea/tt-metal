@@ -5,13 +5,14 @@
 #include <vector>
 
 #include "moreh_linear_backward_device_operation.hpp"
+#include "tt_dnn/op_library/moreh_helper_functions.hpp"
 #include "tt_metal/common/work_split.hpp"
 #include "ttnn/operations/core/compute_kernel/compute_kernel_config.hpp"
-#include "tt_dnn/op_library/moreh_helper_functions.hpp"
 
 namespace ttnn::operations::moreh::moreh_linear_backward {
 
-MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBiasAddBackwardOperation::MultiCoreProgramFactory::create(
+MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t
+MorehBiasAddBackwardOperation::MultiCoreProgramFactory::create(
     const operation_attributes_t& operation_attributes,
     const tensor_args_t& tensor_args,
     tensor_return_value_t& output_tensor) {
@@ -20,10 +21,10 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
 
     Program program{};
     auto& output_grad = tensor_args.output_grad;
-    auto& bias_grad = tensor_args.bias_grad.value();
+    auto& bias_grad = output_tensor;
 
-    const auto &bias_grad_shape = bias_grad.get_legacy_shape().without_padding();
-    const auto &output_grad_shape_wo_padding = output_grad.get_legacy_shape().without_padding();
+    const auto& bias_grad_shape = bias_grad.get_legacy_shape().without_padding();
+    const auto& output_grad_shape_wo_padding = output_grad.get_legacy_shape().without_padding();
 
     auto bias_grad_memory_config = operation_attributes.bias_grad_memory_config;
     auto compute_kernel_config = operation_attributes.compute_kernel_config;
@@ -35,7 +36,7 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     const uint32_t mask_w =
         do_mask_w ? output_grad_shape_wo_padding[-1] % constants::TILE_WIDTH : constants::TILE_WIDTH;
 
-    const auto &output_grad_shape = output_grad.get_legacy_shape();
+    const auto& output_grad_shape = output_grad.get_legacy_shape();
     uint32_t batch_num = output_grad.volume() / output_grad_shape[-2] / output_grad_shape[-1];
     uint32_t Ht = output_grad_shape[-2] / constants::TILE_HEIGHT;
     uint32_t Wt = output_grad_shape[-1] / constants::TILE_WIDTH;
@@ -49,7 +50,8 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     auto grid = device->compute_with_storage_grid_size();
     auto arch = device->arch();
     const auto num_cores_y = grid.y;
-    auto [math_fidelity, math_approx_mode, fp32_dest_acc_en, packer_l1_acc] = get_compute_kernel_config_args(arch, compute_kernel_config);
+    auto [math_fidelity, math_approx_mode, fp32_dest_acc_en, packer_l1_acc] =
+        get_compute_kernel_config_args(arch, compute_kernel_config);
     const auto
         [num_cores_to_be_used,
          all_cores,
@@ -85,8 +87,10 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     //                      DataMovementKernel SetUp
     ////////////////////////////////////////////////////////////////////////////
 
-    const std::vector<uint32_t> reader_compile_time_args{static_cast<uint32_t>(tt::operations::primary::is_dram(output_grad))};
-    const std::vector<uint32_t> writer_compile_time_args{static_cast<uint32_t>(tt::operations::primary::is_dram(bias_grad))};
+    const std::vector<uint32_t> reader_compile_time_args{
+        static_cast<uint32_t>(tt::operations::primary::is_dram(output_grad))};
+    const std::vector<uint32_t> writer_compile_time_args{
+        static_cast<uint32_t>(tt::operations::primary::is_dram(bias_grad))};
 
     const auto reader_kernel_file =
         "ttnn/cpp/ttnn/operations/moreh/moreh_linear_backward/device/kernels/reader_moreh_bias_backward_h.cpp";
@@ -94,8 +98,10 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
     const auto writer_kernel_file =
         "ttnn/cpp/ttnn/operations/moreh/moreh_linear_backward/device/kernels/writer_moreh_bias_backward.cpp";
 
-    const auto reader_kernel_id = tt::operations::primary::CreateReadKernel(program, reader_kernel_file, all_cores, reader_compile_time_args);
-    const auto writer_kernel_id = tt::operations::primary::CreateWriteKernel(program, writer_kernel_file, all_cores, writer_compile_time_args);
+    const auto reader_kernel_id =
+        tt::operations::primary::CreateReadKernel(program, reader_kernel_file, all_cores, reader_compile_time_args);
+    const auto writer_kernel_id =
+        tt::operations::primary::CreateWriteKernel(program, writer_kernel_file, all_cores, writer_compile_time_args);
 
     ////////////////////////////////////////////////////////////////////////////
     //                      ComputeKernel SetUp
@@ -166,7 +172,8 @@ MorehBiasAddBackwardOperation::MultiCoreProgramFactory::cached_program_t MorehBi
              static_cast<uint32_t>(do_mask_h),
              static_cast<uint32_t>(do_mask_w && core_has_last_wt)});
 
-        SetRuntimeArgs(program, writer_kernel_id, core, {bias_grad.buffer()->address(), num_cols_per_core, tile_offset});
+        SetRuntimeArgs(
+            program, writer_kernel_id, core, {bias_grad.buffer()->address(), num_cols_per_core, tile_offset});
 
         if (core_group_1.core_coord_in_core_ranges(core)) {
             SetRuntimeArgs(
@@ -210,19 +217,19 @@ void MorehBiasAddBackwardOperation::MultiCoreProgramFactory::override_runtime_ar
     auto num_cores_y = cached_program.shared_variables.num_cores_y;
 
     auto output_grad_buffer = tensor_args.output_grad.buffer();
-    auto bias_grad_buffer = tensor_return_value.at(0)->buffer();
+    auto bias_grad_buffer = tensor_return_value.buffer();
 
     for (uint32_t i = 0; i < num_cores_to_be_used; ++i) {
         CoreCoord core = {i / num_cores_y, i % num_cores_y};
         {
-            auto &runtime_args = GetRuntimeArgs(program, reader_kernel_id, core);
+            auto& runtime_args = GetRuntimeArgs(program, reader_kernel_id, core);
             runtime_args[0] = output_grad_buffer->address();
         }
 
         {
-            auto &runtime_args = GetRuntimeArgs(program, writer_kernel_id, core);
+            auto& runtime_args = GetRuntimeArgs(program, writer_kernel_id, core);
             runtime_args[0] = bias_grad_buffer->address();
         }
     }
 }
-}  // namespace ttnn::operations::moreh::moreh_linear_backward_op
+}  // namespace ttnn::operations::moreh::moreh_linear_backward

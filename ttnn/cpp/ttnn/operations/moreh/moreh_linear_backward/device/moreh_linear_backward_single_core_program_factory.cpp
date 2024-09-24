@@ -20,7 +20,7 @@ MorehBiasAddBackwardOperation::SingleCoreProgramFactory::create(
     using namespace tt::tt_metal;
 
     auto& output_grad = tensor_args.output_grad;
-    auto& bias_grad = output_tensor.at(0).value();
+    auto& bias_grad = output_tensor;
 
     const auto& bias_grad_shape = bias_grad.get_legacy_shape().without_padding();
     const auto& output_grad_shape_wo_padding = output_grad.get_legacy_shape().without_padding();
@@ -144,7 +144,7 @@ void MorehBiasAddBackwardOperation::SingleCoreProgramFactory::override_runtime_a
     auto& writer_kernel_id = cached_program.shared_variables.unary_writer_kernel_id;
 
     auto output_grad_buffer = tensor_args.output_grad.buffer();
-    auto bias_grad_buffer = tensor_return_value.at(0)->buffer();
+    auto bias_grad_buffer = tensor_return_value.buffer();
     CoreCoord core = {0, 0};
     {
         auto& runtime_args = GetRuntimeArgs(program, reader_kernel_id, core);

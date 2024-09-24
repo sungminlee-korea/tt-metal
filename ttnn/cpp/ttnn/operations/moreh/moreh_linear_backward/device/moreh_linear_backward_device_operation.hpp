@@ -26,8 +26,8 @@ struct MorehBiasAddBackwardOperation {
         const std::optional<Tensor>& bias_grad;
     };
 
-    using shape_return_value_t = std::vector<std::optional<Shape>>;
-    using tensor_return_value_t = std::vector<std::optional<Tensor>>;
+    using shape_return_value_t = Shape;
+    using tensor_return_value_t = Tensor;
 
     struct SingleCoreProgramFactory {
         struct shared_variables_t {
@@ -83,7 +83,7 @@ struct MorehBiasAddBackwardOperation {
         const std::optional<Tensor>& bias,
         const std::optional<Tensor>& bias_grad,
         const std::optional<MemoryConfig>& bias_grad_memory_config,
-        const std::optional<DeviceComputeKernelConfig>& compute_kernel_config);
+        const DeviceComputeKernelConfig compute_kernel_config);
 };
 }  // namespace ttnn::operations::moreh::moreh_linear_backward
 

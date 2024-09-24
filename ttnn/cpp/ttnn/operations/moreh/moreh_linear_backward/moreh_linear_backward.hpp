@@ -6,10 +6,14 @@
 
 #include "device/moreh_linear_backward_device_operation.hpp"
 #include "ttnn/decorators.hpp"
+#include "ttnn/operations/core/compute_kernel/compute_kernel_config.hpp"
 
 namespace ttnn::operations::moreh::moreh_linear_backward {
 struct MorehLinearBackward {
     static std::tuple<bool, bool, bool> get_required_outputs(const std::vector<bool>& are_required_outputs);
+
+    static std::vector<Tensor> create_async_output_tensors(
+        const std::vector<Tensor>& input_tensors, const std::vector<std::optional<const Tensor>>& optional_inputs);
 
     static std::vector<std::optional<Tensor>> invoke(
         const Tensor& output_grad,

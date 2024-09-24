@@ -105,6 +105,19 @@ bool is_same_batch_dim(const Tensor& tensor_a, const Tensor& tensor_b) {
     return true;
 }
 
+// std::vector<Tensor> MorehLinearBackward::create_async_output_tensors(
+//     const std::vector<Tensor>& input_tensors, const std::vector<std::optional<const Tensor>>& optional_inputs) {
+//     std::cout << "input_tensors.size() " << input_tensors.size() << std::endl;
+//     std::cout << "optional_inputs.size() " << optional_inputs.size() << std::endl;
+//     const auto& output_grad = input_tensors.at(0);
+//     const auto& input = input_tensors.at(1);
+//     const auto& weight = input_tensors.at(2);
+//     return {
+//         Tensor(operation::get_workers_for_op_output({output_grad, input, weight})),
+//         Tensor(operation::get_workers_for_op_output({output_grad, input, weight})),
+//         Tensor(operation::get_workers_for_op_output({output_grad, input, weight}))};
+// }
+
 std::vector<std::optional<Tensor>> MorehLinearBackward::invoke(
     const Tensor& output_grad,
     const Tensor& input,
@@ -172,9 +185,9 @@ std::vector<std::optional<Tensor>> MorehLinearBackward::invoke(
     }
 
     if (bias_required_grad) {
-        std::vector<std::optional<Tensor>> output_tensors =
-            ttnn::prim::moreh_bias_add_backward(output_grad, bias, bias_grad, bias_grad_memory_config, kernel_config_val);
-        result[2] = std::make_optional(output_tensors.at(0).value());
+        Tensor output_tensor = ttnn::prim::moreh_bias_add_backward(
+            output_grad, bias, bias_grad, bias_grad_memory_config, kernel_config_val);
+        result[2] = std::make_optional(output_tensor);
     }
 
     return result;
