@@ -121,6 +121,10 @@ RunTimeOptions::RunTimeOptions() {
         this->skip_loading_fw = true;
     }
 
+    if (getenv("TT_METAL_SKIP_RESET_CORES_ON_INIT")) {
+        this->skip_reset_cores_on_init = true;
+    }
+
     if (getenv("TT_METAL_COMPILE_OUT_DEBUG_TOOLS_ON_DISPATCH_KERNELS")) {
         compile_out_debug_tools_on_dispatch_kernels = true;
     }
