@@ -5,7 +5,7 @@
 #pragma once
 
 #include "ttnn/decorators.hpp"
-#include "ttnn/operations/moreh/moreh_sgd/device/moreh_sgd_device_operation.hpp"
+#include "ttnn/operations/core/compute_kernel/compute_kernel_config.hpp"
 
 namespace ttnn::operations::moreh::moreh_sgd {
 struct MorehSgd {
@@ -21,8 +21,8 @@ struct MorehSgd {
         float weight_decay,
         bool nesterov,
         bool momentum_initialized,
-        const std::optional<MemoryConfig>& param_out_mem_config,
-        const std::optional<MemoryConfig>& momentum_buffer_out_mem_config,
+        const std::optional<MemoryConfig>& param_out_memory_config,
+        const std::optional<MemoryConfig>& momentum_buffer_out_memory_config,
         const DeviceComputeKernelConfig compute_kernel_config);
 
     static std::vector<Tensor> create_async_output_tensors(

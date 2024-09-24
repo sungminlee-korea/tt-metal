@@ -3,6 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "moreh_sgd.hpp"
+
+#include "ttnn/operations/moreh/moreh_sgd/device/moreh_sgd_device_operation.hpp"
+
 namespace ttnn::operations::moreh::moreh_sgd {
 std::vector<std::optional<Tensor>> MorehSgd::invoke(
     const Tensor& param_in,
@@ -16,8 +19,8 @@ std::vector<std::optional<Tensor>> MorehSgd::invoke(
     float weight_decay,
     bool nesterov,
     bool momentum_initialized,
-    const std::optional<MemoryConfig>& param_out_mem_config,
-    const std::optional<MemoryConfig>& momentum_buffer_out_mem_config,
+    const std::optional<MemoryConfig>& param_out_memory_config,
+    const std::optional<MemoryConfig>& momentum_buffer_out_memory_config,
     const DeviceComputeKernelConfig compute_kernel_config) {
     return ttnn::prim::moreh_sgd(
         param_in,
@@ -31,8 +34,8 @@ std::vector<std::optional<Tensor>> MorehSgd::invoke(
         weight_decay,
         nesterov,
         momentum_initialized,
-        param_out_mem_config,
-        momentum_buffer_out_mem_config,
+        param_out_memory_config,
+        momentum_buffer_out_memory_config,
         compute_kernel_config);
 }
 

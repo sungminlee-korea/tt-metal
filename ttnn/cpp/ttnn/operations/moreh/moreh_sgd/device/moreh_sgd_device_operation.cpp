@@ -29,7 +29,8 @@ void MorehSgdOperation::validate_inputs(
     }
 
     if (tensor_args.output_tensors.at(1).has_value()) {
-        tt::operations::primary::check_tensor(tensor_args.output_tensors.at(1).value(), "moreh_sgd", "momentum_buffer_out");
+        tt::operations::primary::check_tensor(
+            tensor_args.output_tensors.at(1).value(), "moreh_sgd", "momentum_buffer_out");
     }
 }
 
@@ -64,8 +65,10 @@ MorehSgdOperation::tensor_return_value_t MorehSgdOperation::create_output_tensor
     auto device = tensor_args.param_in.device();
 
     std::vector<std::optional<Tensor>> ret;
-    auto output_mem_config = operation_attributes.param_out_mem_config.value_or(tensor_args.param_in.memory_config());
-    auto momentum_buffer_out_mem_config = operation_attributes.momentum_buffer_out_mem_config.value_or(tensor_args.param_in.memory_config());
+    auto output_mem_config =
+        operation_attributes.param_out_memory_config.value_or(tensor_args.param_in.memory_config());
+    auto momentum_buffer_out_memory_config =
+        operation_attributes.momentum_buffer_out_memory_config.value_or(tensor_args.param_in.memory_config());
 
     if (tensor_args.output_tensors.at(0).has_value()) {
         ret.push_back(tensor_args.output_tensors.at(0).value());
@@ -76,9 +79,9 @@ MorehSgdOperation::tensor_return_value_t MorehSgdOperation::create_output_tensor
     if (tensor_args.output_tensors.at(1).has_value()) {
         ret.push_back(tensor_args.output_tensors.at(1).value());
     } else {
-        ret.push_back(create_device_tensor(output_shapes.at(1).value(), dtype, layout, device, momentum_buffer_out_mem_config));
+        ret.push_back(create_device_tensor(
+            output_shapes.at(1).value(), dtype, layout, device, momentum_buffer_out_memory_config));
     }
-
 
     return std::move(ret);
 }
@@ -95,8 +98,8 @@ std::tuple<MorehSgdOperation::operation_attributes_t, MorehSgdOperation::tensor_
     float weight_decay,
     bool nesterov,
     bool momentum_initialized,
-    const std::optional<MemoryConfig>& param_out_mem_config,
-    const std::optional<MemoryConfig>& momentum_buffer_out_mem_config,
+    const std::optional<MemoryConfig>& param_out_memory_config,
+    const std::optional<MemoryConfig>& momentum_buffer_out_memory_config,
     const DeviceComputeKernelConfig compute_kernel_config) {
     return {
         operation_attributes_t{
@@ -106,14 +109,10 @@ std::tuple<MorehSgdOperation::operation_attributes_t, MorehSgdOperation::tensor_
             weight_decay,
             nesterov,
             momentum_initialized,
-            param_out_mem_config,
-            momentum_buffer_out_mem_config,
+            param_out_memory_config,
+            momentum_buffer_out_memory_config,
             compute_kernel_config},
 
-        tensor_args_t{
-            param_in,
-            grad,
-            momentum_buffer_in,
-            {param_out, momentum_buffer_out}}};
+        tensor_args_t{param_in, grad, momentum_buffer_in, {param_out, momentum_buffer_out}}};
 }
 }  // namespace ttnn::operations::moreh::moreh_sgd

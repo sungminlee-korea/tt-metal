@@ -19,8 +19,8 @@ struct MorehSgdOperation {
         float weight_decay;
         bool nesterov;
         bool momentum_initialized;
-        const std::optional<MemoryConfig> param_out_mem_config;
-        const std::optional<MemoryConfig> momentum_buffer_out_mem_config;
+        const std::optional<MemoryConfig> param_out_memory_config;
+        const std::optional<MemoryConfig> momentum_buffer_out_memory_config;
         const DeviceComputeKernelConfig compute_kernel_config;
     };
 
@@ -79,8 +79,8 @@ struct MorehSgdOperation {
         bool nesterov,
         bool momentum_initialized,
 
-        const std::optional<MemoryConfig>& param_out_mem_config,
-        const std::optional<MemoryConfig>& momentum_buffer_out_mem_config,
+        const std::optional<MemoryConfig>& param_out_memory_config,
+        const std::optional<MemoryConfig>& momentum_buffer_out_memory_config,
         const DeviceComputeKernelConfig compute_kernel_config);
 };
 }  // namespace ttnn::operations::moreh::moreh_sgd

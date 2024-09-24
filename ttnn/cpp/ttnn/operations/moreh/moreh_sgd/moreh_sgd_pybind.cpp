@@ -27,8 +27,8 @@ void bind_moreh_sgd_operation(py::module& module) {
             py::arg("nesterov"),
             py::arg("momentum_initialized"),
 
-            py::arg("param_out_mem_config") = std::nullopt,
-            py::arg("momentum_buffer_out_mem_config") = std::nullopt,
+            py::arg("param_out_memory_config") = std::nullopt,
+            py::arg("momentum_buffer_out_memory_config") = std::nullopt,
             py::arg("compute_kernel_config") = std::nullopt});
 }
 }  // namespace ttnn::operations::moreh::moreh_sgd
