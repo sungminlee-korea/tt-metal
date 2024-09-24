@@ -35,4 +35,13 @@ std::vector<std::optional<Tensor>> MorehSgd::invoke(
         momentum_buffer_out_mem_config,
         compute_kernel_config);
 }
+
+std::vector<Tensor> MorehSgd::create_async_output_tensors(
+    const std::vector<Tensor>& input_tensors, const std::vector<std::optional<const Tensor>>& optional_inputs) {
+    const auto& param_in = input_tensors.at(0);
+    const auto& grad = input_tensors.at(1);
+    return {
+        Tensor(operation::get_workers_for_op_output({param_in, grad})),
+        Tensor(operation::get_workers_for_op_output({param_in, grad}))};
+}
 }  // namespace ttnn::operations::moreh::moreh_sgd

@@ -24,10 +24,13 @@ struct MorehSgd {
         const std::optional<MemoryConfig>& param_out_mem_config,
         const std::optional<MemoryConfig>& momentum_buffer_out_mem_config,
         const DeviceComputeKernelConfig compute_kernel_config);
+
+    static std::vector<Tensor> create_async_output_tensors(
+        const std::vector<Tensor>& input_tensors, const std::vector<std::optional<const Tensor>>& optional_inputs);
 };
 }  // namespace ttnn::operations::moreh::moreh_sgd
 
 namespace ttnn {
 constexpr auto moreh_sgd =
-    ttnn::register_operation<"ttnn::moreh_sgd", ttnn::operations::moreh::moreh_sgd::MorehSgd>();
+    ttnn::register_operation_with_auto_launch_op<"ttnn::moreh_sgd", ttnn::operations::moreh::moreh_sgd::MorehSgd>();
 }
