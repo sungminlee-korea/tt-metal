@@ -6,6 +6,7 @@
 
 #include <cstdint>
 
+#include "common/base_types.hpp"
 #include "tt_dnn/op_library/moreh_helper_functions.hpp"
 #include "ttnn/tensor/tensor.hpp"
 #include "ttnn/tensor/types.hpp"
@@ -141,7 +142,10 @@ std::tuple<MorehSumOperation::operation_attributes_t, MorehSumOperation::tensor_
     const std::optional<MemoryConfig>& output_mem_config,
     const std::optional<DeviceComputeKernelConfig>& compute_kernel_config) {
     return {
-        {dim, keep_batch_dim, output_mem_config.value_or(input.memory_config()), compute_kernel_config},
+        {dim,
+         keep_batch_dim,
+         output_mem_config.value_or(input.memory_config()),
+         init_device_compute_kernel_config(input.device()->arch(), compute_kernel_config, MathFidelity::HiFi4)},
         {input, output}};
 }
 }  // namespace ttnn::operations::moreh::moreh_sum
