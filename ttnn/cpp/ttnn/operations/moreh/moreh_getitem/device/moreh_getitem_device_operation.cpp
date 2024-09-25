@@ -19,7 +19,8 @@ void MorehGetItemOperation::validate_inputs(
     TT_FATAL(input_tensor.storage_type() == StorageType::DEVICE, "Operands to getitem need to be on device!");
     TT_FATAL(input_tensor.buffer() != nullptr, "Operands to getitem need to be allocated in buffers on device!");
     auto dtype = input_tensor.get_dtype();
-    TT_FATAL(dtype == DataType::INT32 || dtype == DataType::BFLOAT16, "Input tensor must be of type INT32 or BFLOAT16!");
+    TT_FATAL(
+        dtype == DataType::INT32 || dtype == DataType::BFLOAT16, "Input tensor must be of type INT32 or BFLOAT16!");
 
     // validate index tensors
     uint32_t index_size = index_tensors[0].get_shape()[-1];
@@ -53,7 +54,8 @@ void MorehGetItemOperation::validate_inputs(
     for (auto dim : operation_attributes.index_dims) {
         TT_FATAL(
             dim_start + i == dim,
-            "The value of index_dims={} must be consecutive integers.", operation_attributes.index_dims);
+            "The value of index_dims={} must be consecutive integers.",
+            operation_attributes.index_dims);
         i++;
     }
     if (!output_tensor.has_value()) {
