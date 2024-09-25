@@ -291,7 +291,7 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
 
     fixture->RunProgram(device, program);
 
-    vector<uint32_t> result_vec;
+    std::vector<uint32_t> result_vec;
     fixture->ReadBuffer(device, dst_dram_buffer, result_vec);
 
     auto result_bfp16 = unpack_uint32_vec_into_bfloat16_vec(result_vec);
@@ -299,12 +299,12 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     auto result_untilized = test_utils::untilize(result_flat_layout, M*32, N*32);
 
     // Generate golden:
-    std::vector<float> golden0_fp32(result_vec.size());
-    std::vector<bfloat16> golden0_bfp16(result_vec.size());
-    std::vector<uint32_t> golden(result_vec.size());
+    std::vector<float> golden0_fp32(result_bfp16.size());
+    std::vector<bfloat16> golden0_bfp16(result_bfp16.size());
+    std::vector<uint32_t> golden(result_bfp16.size());
 
     golden0_bfp16 = tensor.get_values();
-    std::vector<uint32_t> result_packed(result_vec);
+    std::vector<uint32_t> result_packed(result_bfp16.size());
 
     uint16_t math_fid_mask = 0xFFFF;
     set_math_fid_masks(math_fid_mask, cfg.math_fidelity);
@@ -321,12 +321,12 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     result_packed = convert_to_flat_layout<uint32_t>(result_vec);
     if (!cfg.fp32_dest_acc_en) {
         golden = pack_vector<uint32_t, bfloat16>(golden0_bfp16);
-        result_packed = pack_vector<uint32_t, bfloat16>(result_untilized);
+        result_packed = pack_vector<uint32_t, bfloat16>(result_flat_layout);
     }
     if (cfg.M > 1 || cfg.N > 1 || cfg.K > 1){
-        // EXPECT_EQ(golden.size(), result_packed.size());
-        // EXPECT_EQ(golden, result_packed);
-        printTwoTensors(golden, result_packed, 64, 32);
+        EXPECT_EQ(golden.size(), result_packed.size());
+        EXPECT_EQ(golden, result_packed);
+        // printTwoTensors(golden, result_packed, 64, 32);
         // printTensor<bfloat16>(result_untilized, 64, 64);
     } else {
         // src1 is all 0's
@@ -407,7 +407,6 @@ TEST_F(CommonFixture, MatmulSingleTile){
         auto weights = pack_bfloat16_vec_into_uint32_vec(weights_tile_layout);
         // std::cout << "weights:" << std::endl;
         // printTensor<uint32_t>(weights, 32, 16);
-
         for(unsigned int id = 0; id < devices_.size(); id++){
             ASSERT_TRUE(unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations, weights, tensor));
         }
@@ -422,7 +421,7 @@ TEST_F(CommonFixture, MatmulMultiTile){
         uint32_t K = 2;
         unit_tests_common::matmul::test_matmul_X_tile::MatmulTileConfig matmul_config = {
             .M = M, .K = K, .N = N,
-            .fp32_dest_acc_en = false,
+            .fp32_dest_acc_en = true,
             .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
             .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_with_bias.cpp",
             .compute_kernel_args = {
