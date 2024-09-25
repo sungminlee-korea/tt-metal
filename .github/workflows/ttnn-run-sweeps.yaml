@@ -35,6 +35,7 @@ on:
           - eltwise.unary.rad2deg.rad2deg_interleaved
           - eltwise.unary.deg2rad.deg2rad_interleaved
           - eltwise.unary.relu6.relu6_interleaved
+          - eltwise.binary.bcast.bcast_h_sharded
           - eltwise.binary.subtract.subtract_interleaved
           - eltwise.binary.multiply.multiply_interleaved
           - eltwise.binary.div.div_interleaved
