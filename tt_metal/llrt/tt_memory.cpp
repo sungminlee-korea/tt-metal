@@ -47,7 +47,10 @@ memory::memory(std::string const &path) : memory() {
     // FIXME: Does memory need the spans ordered?
     auto emitSegment =
       [&] (ElfFile::Segment const &segment) {
-	link_spans_.emplace_back(segment.Address, segment.Contents.size());
+	link_spans_.emplace_back(
+	    // We want the byte address, not the word address
+            segment.Address * sizeof(decltype(data_)::value_type),
+	    segment.Contents.size());
 	data_.insert(data_.end(), segment.Contents.begin(),
 		     segment.Contents.end());
       };
