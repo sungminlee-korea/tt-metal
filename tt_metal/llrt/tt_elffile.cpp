@@ -169,11 +169,9 @@ void ElfFile::Impl::loadImage () {
   // We care about the location of some sections.
   for (auto const &section : Shdrs)
     if ((section.sh_flags & SHF_ALLOC
-	 && ((section.sh_offset | section.sh_addr | section.sh_size)
-	     & (sizeof(word_t) - 1)))
-	|| ((section.sh_type == SHT_RELA
-	     || section.sh_type == SHT_SYMTAB)
-	    && (section.sh_offset | section.sh_addr) & (sizeof(word_t) - 1))
+	 || section.sh_type == SHT_RELA
+	 || section.sh_type == SHT_SYMTAB)
+	&& (section.sh_offset | section.sh_addr) & (sizeof(word_t) - 1))
         || section.sh_offset + section.sh_size > Owner.Contents.size())
       TT_THROW("{}: section {} is misaligned", Path, getName(section));
 
