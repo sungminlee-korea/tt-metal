@@ -108,6 +108,31 @@ class TtLlamaModel_galaxy:
         )
 
         self.load_weights()
+        self.set_input_memory_config()
+
+    def set_input_memory_config(self):
+        self.EMBD_MEMCFG = ttnn.create_sharded_memory_config(
+            shape=(32, 2048 // 8),
+            core_grid=ttnn.CoreGrid(y=1, x=8),
+            strategy=ttnn.ShardStrategy.WIDTH,
+            orientation=ttnn.ShardOrientation.ROW_MAJOR,
+            use_height_and_width_as_shard_shape=True,
+        )
+
+        shard_spec_n_cores_grid = ttnn.CoreRangeSet({num_to_corerange(32 // 4)})
+        self.ROT_MAT_MEMCFG = ttnn.MemoryConfig(
+            ttnn.TensorMemoryLayout.HEIGHT_SHARDED,
+            ttnn.BufferType.L1,
+            ttnn.ShardSpec(
+                shard_spec_n_cores_grid,
+                [
+                    self.head_dim,
+                    self.head_dim,
+                ],
+                ttnn.ShardOrientation.ROW_MAJOR,
+                False,
+            ),
+        )
 
     def set_model_config(self, model_config):
         self.model_config = model_config
@@ -206,59 +231,14 @@ class TtLlamaModel_galaxy:
             inp_ids,
             dtype=ttnn.uint32,
             layout=ttnn.ROW_MAJOR_LAYOUT,
-            device=self.mesh_device,
-            memory_config=ttnn.DRAM_MEMORY_CONFIG,
             mesh_mapper=ReplicateTensorToMesh(self.mesh_device),
         )
 
-        xs = self.tt_embd(x)
-
-        if mode == "decode":
-            assert seq_len == 1, "Decode mode only supports seq_len=1"
-            assert xs.shape == (seq_len, 1, batch, self.hidden_size // self.cluster_shape[0])
-
-            ACT_MEMCFG = ttnn.create_sharded_memory_config(
-                shape=(xs.shape[2], xs.shape[3] // 8),
-                core_grid=ttnn.CoreGrid(y=1, x=8),
-                strategy=ttnn.ShardStrategy.WIDTH,
-                orientation=ttnn.ShardOrientation.ROW_MAJOR,
-                use_height_and_width_as_shard_shape=True,
-            )
-
-            xs = ttnn.to_memory_config(xs, memory_config=ACT_MEMCFG)
-
-            rot_mat = get_rotation_mat(self.rot_emb, start_pos, seq_len, batch // self.cluster_shape[0])
-            assert rot_mat.size() == (1, batch // self.cluster_shape[0], self.head_dim, self.head_dim)
-
-            shard_spec_n_cores_grid = ttnn.CoreRangeSet({num_to_corerange(batch // 4)})
-            ROT_MAT_MEMCFG = ttnn.MemoryConfig(
-                ttnn.TensorMemoryLayout.HEIGHT_SHARDED,
-                ttnn.BufferType.L1,
-                ttnn.ShardSpec(
-                    shard_spec_n_cores_grid,
-                    [
-                        self.head_dim,
-                        self.head_dim,
-                    ],
-                    ttnn.ShardOrientation.ROW_MAJOR,
-                    False,
-                ),
-            )
-
-            rot_mats = ttnn.as_tensor(
-                rot_mat,
-                dtype=ttnn.bfloat16,
-                layout=ttnn.TILE_LAYOUT,
-                device=self.mesh_device,
-                cache_file_name=cache_name(f"rot_mat_decode_galaxy_{start_pos}"),
-                memory_config=ROT_MAT_MEMCFG,
-                mesh_mapper=ReplicateTensorToMesh(self.mesh_device),
-            )
-
-            attn_masks = None
-        elif mode == "prefill":
+        if mode == "prefill":
             assert seq_len % 128 == 0 and seq_len > 0, "Prefill mode only supports seq_len > 0 and seq_len % 128"
+            x = ttnn.to_device(x, self.mesh_device, memory_config=ttnn.DRAM_MEMORY_CONFIG)
 
+            xs = self.tt_embd(x)
             assert xs.shape == (batch, 1, seq_len, self.hidden_size // self.cluster_shape[0])
 
             cos_gathered, sin_gathered = gather_cos_sin(
@@ -300,6 +280,22 @@ class TtLlamaModel_galaxy:
                 )
             else:
                 attn_masks = attn_mask
+        elif mode == "decode":
+            assert seq_len == 1, "Decode mode only supports seq_len=1"
+            xs = x
+            # assert xs.shape == (seq_len, 1, batch, self.hidden_size // self.cluster_shape[0])
+
+            rot_mat = get_rotation_mat(self.rot_emb, start_pos, seq_len, batch // self.cluster_shape[0])
+            assert rot_mat.size() == (1, batch // self.cluster_shape[0], self.head_dim, self.head_dim)
+
+            rot_mats = ttnn.as_tensor(
+                rot_mat,
+                dtype=ttnn.bfloat16,
+                layout=ttnn.TILE_LAYOUT,
+                mesh_mapper=ReplicateTensorToMesh(self.mesh_device),
+            )
+
+            attn_masks = None
 
         return (
             xs,
