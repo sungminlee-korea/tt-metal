@@ -74,7 +74,7 @@ def run_moreh_nll_loss_unreduced_backward(shape, ignore_index, none_weight, devi
         torch_target, torch_weight, output_grad, torch_input.grad, device
     )
 
-    tt_input_grad = ttnn.moreh_nll_loss_unreduced_backward(
+    tt_input_grad = ttnn.operations.moreh.nll_loss_unreduced_backward(
         tt_target,
         tt_output_grad,
         weight_tensor=tt_weight,
@@ -110,7 +110,7 @@ def run_moreh_nll_loss_unreduced(shape, ignore_index, none_weight, device, compu
 
     reduction_mode = "none"
 
-    tt_loss = ttnn.moreh_nll_loss(
+    tt_loss = ttnn.operations.moreh.nll_loss(
         tt_input,
         tt_target,
         reduction_mode,

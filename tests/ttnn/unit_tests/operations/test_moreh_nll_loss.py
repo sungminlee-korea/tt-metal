@@ -9,7 +9,7 @@ import pytest
 from models.utility_functions import comp_allclose_and_pcc
 from loguru import logger
 
-from tests.tt_eager.python_api_testing.unit_testing.misc.test_utils import (
+from tests.ttnn.unit_tests.operations.test_utils import (
     get_compute_kernel_options,
     compute_kernel_options,
     compute_kernel_ids,
@@ -63,7 +63,7 @@ def run_moreh_nll_loss(shape, ignore_index, reduction, none_weight, device, comp
 
     assert reduction in ["sum", "mean"]
 
-    tt_loss = ttnn.moreh_nll_loss(
+    tt_loss = ttnn.operations.moreh.nll_loss(
         tt_input,
         tt_target,
         reduction,  # reduction_mean,
@@ -101,7 +101,7 @@ def run_moreh_nll_loss_backward(shape, ignore_index, reduction_mean, none_weight
     if reduction_mean == False:
         tt_divisor = None
         reduction = "sum"
-    tt_loss = ttnn.moreh_nll_loss(
+    tt_loss = ttnn.operations.moreh.nll_loss(
         tt_input,
         tt_target,
         reduction,
@@ -119,7 +119,7 @@ def run_moreh_nll_loss_backward(shape, ignore_index, reduction_mean, none_weight
     tt_output_grad = to_npu(output_grad, device)
     tt_input_grad = to_npu(torch_input, device)
 
-    tt_input_grad = ttnn.moreh_nll_loss_backward(
+    tt_input_grad = ttnn.operations.moreh.nll_loss_backward(
         target_tensor=tt_target,
         weight_tensor=tt_weight,
         divisor_tensor=tt_divisor,
