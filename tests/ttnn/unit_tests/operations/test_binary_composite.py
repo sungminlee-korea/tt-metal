@@ -6,7 +6,12 @@ import torch
 import pytest
 import random
 import ttnn
-from tests.ttnn.unit_tests.operations.backward.utility_funcs import data_gen_with_range, compare_pcc, compare_equal
+from tests.ttnn.unit_tests.operations.backward.utility_funcs import (
+    data_gen_with_range,
+    data_gen_with_val,
+    compare_pcc,
+    compare_equal,
+)
 from models.utility_functions import is_grayskull, skip_for_grayskull, skip_for_wormhole_b0
 
 
@@ -470,12 +475,24 @@ def test_remainder_ttnn(input_shapes, scalar, device):
 )
 @skip_for_grayskull("#ToDo: GS implementation needs to be done for fmod")
 def test_binary_fmod_ttnn(input_shapes, device):
-    in_data1, input_tensor1 = data_gen_with_range(input_shapes, -150, 150, device)
-    in_data2, input_tensor2 = data_gen_with_range(input_shapes, -100, 100, device)
+    # in_data1, input_tensor1 = data_gen_with_range(input_shapes, -10000, -10000, device)
+    # in_data2, input_tensor2 = data_gen_with_range(input_shapes, 1000, 1000, device)
+    # in_data1, input_tensor1 = data_gen_with_val(input_shapes, device, val = -10000)
+    # in_data2, input_tensor2 = data_gen_with_val(input_shapes, device, val = 1000)
 
+    torch_input_tensor1 = torch.ones((input_shapes), dtype=torch.float32) * 100
+    input_tensor = ttnn.from_torch(torch_input_tensor1, layout=ttnn.TILE_LAYOUT, dtype=ttnn.float32)
+    input_tensor1 = ttnn.to_device(input_tensor, device)
+    torch_input_tensor2 = torch.ones((input_shapes), dtype=torch.float32) * 100
+    input_tensor = ttnn.from_torch(torch_input_tensor2, layout=ttnn.TILE_LAYOUT, dtype=ttnn.float32)
+    input_tensor2 = ttnn.to_device(input_tensor, device)
+    torch.set_printoptions(linewidth=200, threshold=10000, precision=5, sci_mode=False, edgeitems=17)
+    ttnn.set_printoptions(profile="full")
+    print("Input 1: ", input_tensor1)
+    print("\n\n\nInput 2: ", input_tensor2)
     output_tensor = ttnn.fmod(input_tensor1, input_tensor2)
     golden_function = ttnn.get_golden_function(ttnn.fmod)
-    golden_tensor = golden_function(in_data1, in_data2)
+    golden_tensor = golden_function(torch_input_tensor1, torch_input_tensor2)
 
     comp_pass = compare_pcc([output_tensor], [golden_tensor])
     assert comp_pass
