@@ -46,8 +46,9 @@ constexpr uint32_t dispatch_s_sem_id = get_compile_time_arg_val(20);
 constexpr uint32_t worker_mcast_grid = get_compile_time_arg_val(21);
 constexpr uint32_t mcast_go_signal_addr = get_compile_time_arg_val(22);
 constexpr uint32_t unicast_go_signal_addr = get_compile_time_arg_val(23);
-constexpr uint32_t is_d_variant = get_compile_time_arg_val(24);
-constexpr uint32_t is_h_variant = get_compile_time_arg_val(25);
+constexpr uint32_t distributed_dispatcher = get_compile_time_arg_val(24);
+constexpr uint32_t is_d_variant = get_compile_time_arg_val(25);
+constexpr uint32_t is_h_variant = get_compile_time_arg_val(26);
 
 constexpr uint8_t upstream_noc_index = UPSTREAM_NOC_INDEX;
 constexpr uint32_t upstream_noc_xy = uint32_t(NOC_XY_ENCODING(UPSTREAM_NOC_X, UPSTREAM_NOC_Y));
@@ -851,9 +852,15 @@ FORCE_INLINE
 void process_notify_dispatch_s_go_signal_cmd() {
     // Update free running counter on dispatch_s, signalling that its safe to send a go signal to workers, since program
     // config has been written and barriered upon
-    static uint32_t num_go_signals_safe_to_send = 1;
-    noc_inline_dw_write(get_noc_addr_helper(dispatch_s_noc_xy, get_semaphore<fd_core_type>(dispatch_s_sem_id)), num_go_signals_safe_to_send);
-    num_go_signals_safe_to_send++;
+    if constexpr (distributed_dispatcher) {
+        uint64_t dispatch_s_notify_addr = get_noc_addr_helper(dispatch_s_noc_xy, get_semaphore<fd_core_type>(dispatch_s_sem_id));
+        static uint32_t num_go_signals_safe_to_send = 1;
+        noc_inline_dw_write(dispatch_s_notify_addr, num_go_signals_safe_to_send);
+        num_go_signals_safe_to_send++;
+    } else {
+        tt_l1_ptr uint32_t* notify_ptr = (uint32_t tt_l1_ptr*)(get_semaphore<fd_core_type>(dispatch_s_sem_id));
+        *notify_ptr = (*notify_ptr) + 1;
+    }
     cmd_ptr += sizeof(CQDispatchCmd);
 }
 

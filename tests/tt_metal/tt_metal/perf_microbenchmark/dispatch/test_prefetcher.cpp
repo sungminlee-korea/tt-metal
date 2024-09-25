@@ -1898,6 +1898,7 @@ void configure_for_single_chip(Device *device,
          0,
          0,
          0,
+         0,
     };
 
     CoreCoord phys_upstream_from_dispatch_core = split_prefetcher_g ? phys_prefetch_d_core : phys_prefetch_core_g;
@@ -2612,6 +2613,7 @@ void configure_for_multi_chip(Device *device,
          prefetch_downstream_cb_sem,
          prefetch_downstream_buffer_pages,
          num_compute_cores,
+         0,
          0,
          0,
          0,

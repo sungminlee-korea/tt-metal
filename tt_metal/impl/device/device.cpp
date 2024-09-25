@@ -961,8 +961,9 @@ void Device::update_workers_build_settings(std::vector<std::vector<std::tuple<tt
                     compile_args[21] = 0; // unused: dispatch_d only
                     compile_args[22] = 0; // unused: dispatch_d only
                     compile_args[23] = 0; // unused: dispatch_d only
-                    compile_args[24] = false; // is_dram_variant
-                    compile_args[25] = true; // is_host_variant
+                    compile_args[24] = 0;
+                    compile_args[25] = false; // is_dram_variant
+                    compile_args[26] = true; // is_host_variant
 
                     dispatch_idx++;
                 }
@@ -1220,8 +1221,9 @@ void Device::update_workers_build_settings(std::vector<std::vector<std::tuple<tt
                     compile_args[21] = dispatch_d_settings.compute_core_mcast_noc_coords;
                     compile_args[22] = tensix_worker_go_signal_addr;
                     compile_args[23] = eth_worker_go_signal_addr;
-                    compile_args[24] = true; // is_dram_variant
-                    compile_args[25] = false; // is_host_variant
+                    compile_args[24] = (dispatch_core_type == CoreType::ETH);
+                    compile_args[25] = true; // is_dram_variant
+                    compile_args[26] = false; // is_host_variant
                     dispatch_d_idx++; // move on to next dispatcher
                 }
                 break;
@@ -1793,6 +1795,7 @@ void Device::compile_command_queue_programs() {
                 this->get_noc_multicast_encoding(my_noc_index, tensix_worker_physical_grid), // used by dispatch_d to mcast go signals when dispatch_s is not enabled
                 tensix_worker_go_signal_addr, // used by dispatch_d to mcast go signals when dispatch_s is not enabled
                 eth_worker_go_signal_addr, // used by dispatch_d to mcast go signals when dispatch_s is not enabled
+                dispatch_core_type == CoreType::ETH,
                 true,   // is_dram_variant
                 true,    // is_host_variant
             };
