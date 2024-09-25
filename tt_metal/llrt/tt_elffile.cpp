@@ -205,8 +205,8 @@ void ElfFile::Impl::loadImage () {
       entryOrBSS = phdr.p_memsz - phdr.p_filesz;
     Owner.Segments.emplace_back(
       std::span(reinterpret_cast<word_t const *>(contents.data()),
-		contents.size() / sizeof (word_t)), phdr.p_vaddr,
-      entryOrBSS >> 2);
+		contents.size() / sizeof(word_t)),
+      phdr.p_vaddr / sizeof(word_t), entryOrBSS sizeof(word_t));
   }
   if (text < 0)
     TT_THROW("{}: cannot find text segment", Path);

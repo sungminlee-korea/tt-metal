@@ -25,8 +25,8 @@ public:
 
   struct Segment {
     std::span<word_t const> Contents; // Non-owning span
-    address_t Address = 0;               // vaddr or 0 for XIP
-    offset_t EntryOrBSS = 0; // text entry or data bss
+    address_t Address = 0;   // word addres or 0 for XIP
+    offset_t EntryOrBSS = 0; // word text entry or data bss
 
   public:
     constexpr Segment (std::span<word_t const> contents, address_t addr,
