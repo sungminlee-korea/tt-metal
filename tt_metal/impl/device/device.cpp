@@ -733,8 +733,9 @@ void Device::update_workers_build_settings(std::vector<std::vector<std::tuple<tt
                     compile_args[22] = 0; // unused: prefetch_d only
                     compile_args[23] = 0; // unused: prefetch_d only
                     compile_args[24] = 0; // unused: prefetch_d only
-                    compile_args[25] = false;  // is_dram_variant
-                    compile_args[26] = true;    // is_host_variant
+                    compile_args[25] = 0; // unused: prefetch_d only
+                    compile_args[26] = false;  // is_dram_variant
+                    compile_args[27] = true;    // is_host_variant
                 }
                 break;
             }
@@ -1168,8 +1169,9 @@ void Device::update_workers_build_settings(std::vector<std::vector<std::tuple<tt
                     compile_args[22] = prefetch_d_settings.consumer_slave_semaphore_id; // Semaphore on prefetch to handshake with dispatch_s
                     compile_args[23] = dispatch_s_settings.producer_semaphore_id; // Semaphore on dispatch_s to handshake with prefetch
                     compile_args[24] = dispatch_constants::get(dispatch_core_type).dispatch_s_buffer_size();
-                    compile_args[25] = true;  // is_dram_variant
-                    compile_args[26] = false; // is_host_variant
+                    compile_args[25] = dispatch_s_settings.cb_log_page_size;
+                    compile_args[26] = true;  // is_dram_variant
+                    compile_args[27] = false; // is_host_variant
                     prefetch_d_idx++; // move on to next prefetcher
                 }
                 break;
@@ -1523,7 +1525,7 @@ void Device::setup_tunnel_for_remote_devices() {
                 // Populate settings for dispatch_s
                 for (uint32_t cq_id = 0; cq_id < num_hw_cqs; cq_id++) {
                     // Initialize dispatch_s settings as invalid values. To be populated if dispatch_s is enabled.
-                    settings.cb_log_page_size = dispatch_constants::DISPATCH_BUFFER_LOG_PAGE_SIZE;
+                    settings.cb_log_page_size = dispatch_constants::DISPATCH_S_BUFFER_LOG_PAGE_SIZE;
                     settings.semaphores.push_back(0); // used by dispatch_s to sync with prefetch_d
                     settings.semaphores.push_back(0); // dispatch_s waits on this until dispatch_d increments it
                     if (dispatch_core_type == CoreType::WORKER) {
@@ -1735,6 +1737,7 @@ void Device::compile_command_queue_programs() {
                 prefetch_dispatch_s_sync_sem,
                 dispatch_s_sem,
                 dispatch_constants::get(dispatch_core_type).dispatch_s_buffer_size(),
+                dispatch_constants::DISPATCH_S_BUFFER_LOG_PAGE_SIZE,
                 true,   // is_dram_variant
                 true    // is_host_variant
             };
@@ -1813,7 +1816,7 @@ void Device::compile_command_queue_programs() {
             if (this->dispatch_s_enabled()) {
                 std::vector<uint32_t> dispatch_s_compile_args = {
                     dispatch_s_buffer_base,
-                    dispatch_constants::DISPATCH_BUFFER_LOG_PAGE_SIZE,
+                    dispatch_constants::DISPATCH_S_BUFFER_LOG_PAGE_SIZE,
                     dispatch_constants::get(dispatch_core_type).dispatch_s_buffer_size(),
                     dispatch_s_sem,
                     prefetch_dispatch_s_sync_sem,

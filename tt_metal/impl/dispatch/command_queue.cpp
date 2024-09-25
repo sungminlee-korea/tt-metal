@@ -1256,7 +1256,7 @@ void EnqueueProgramCommand::assemble_device_commands(
         DispatcherSelect dispatcher_for_go_signal = DispatcherSelect::DISPATCH_MASTER;
         if (this->device->dispatch_s_enabled()) {
             // dispatch_d signals dispatch_s that its safe to send the go signal after a barrier
-            program_command_sequence.add_dispatch_s_sem_update();
+            program_command_sequence.add_notify_dispatch_s_go_signal_cmd();
             dispatcher_for_go_signal = DispatcherSelect::DISPATCH_SLAVE;
         }
         go_msg_t run_program_go_signal;
@@ -1719,7 +1719,7 @@ void EnqueueTraceCommand::process() {
     uint32_t num_mcast_cores = num_mcast_cols * num_mcast_rows;
     DispatcherSelect dispatcher_for_go_signal = DispatcherSelect::DISPATCH_MASTER;
     if (this->device->dispatch_s_enabled()) {
-        command_sequence.add_dispatch_s_sem_update();
+        command_sequence.add_notify_dispatch_s_go_signal_cmd();
         dispatcher_for_go_signal = DispatcherSelect::DISPATCH_SLAVE;
     }
     go_msg_t reset_launch_message_read_ptr_go_signal;

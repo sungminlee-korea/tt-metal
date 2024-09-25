@@ -306,6 +306,7 @@ static_assert(
 #endif
 #if defined(COMPILE_FOR_ERISC) || defined (COMPILE_FOR_IDLE_ERISC)
 static_assert( eth_l1_mem::address_map::ERISC_MEM_MAILBOX_BASE + sizeof(mailboxes_t) < eth_l1_mem::address_map::ERISC_MEM_MAILBOX_END);
+static_assert( MEM_IERISC_MAILBOX_BASE + sizeof(mailboxes_t) < MEM_IERISC_MAILBOX_END);
 static constexpr uint32_t ETH_LAUNCH_CHECK = (eth_l1_mem::address_map::ERISC_MEM_MAILBOX_BASE  + offsetof(mailboxes_t, launch)) % TT_ARCH_MAX_NOC_WRITE_ALIGNMENT;
 static constexpr uint32_t ETH_PROFILER_CHECK = (eth_l1_mem::address_map::ERISC_MEM_MAILBOX_BASE  + offsetof(mailboxes_t, profiler)) % TT_ARCH_MAX_NOC_WRITE_ALIGNMENT;
 static_assert( ETH_LAUNCH_CHECK == 0);

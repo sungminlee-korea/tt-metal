@@ -815,6 +815,7 @@ static void process_delay_cmd() {
     cmd_ptr += sizeof(CQDispatchCmd);
 }
 
+FORCE_INLINE
 void process_go_signal_mcast_cmd() {
     volatile CQDispatchCmd tt_l1_ptr *cmd = (volatile CQDispatchCmd tt_l1_ptr *)cmd_ptr;
     volatile tt_l1_ptr uint32_t* worker_sem_addr = reinterpret_cast<volatile tt_l1_ptr uint32_t*>(cmd->mcast.wait_addr);
@@ -834,6 +835,7 @@ void process_go_signal_mcast_cmd() {
     cmd_ptr += sizeof(CQDispatchCmd);
 }
 
+FORCE_INLINE
 void process_set_unicast_only_cores() {
     volatile CQDispatchCmd tt_l1_ptr *cmd = (volatile CQDispatchCmd tt_l1_ptr *)cmd_ptr;
     num_unicast_cores = (int)(cmd->set_unicast_only_cores.num_unicast_only_cores);
@@ -843,6 +845,16 @@ void process_set_unicast_only_cores() {
         data_ptr += sizeof(uint32_t);
     }
     cmd_ptr += sizeof(CQDispatchCmd) + num_unicast_cores * sizeof(uint32_t);
+}
+
+FORCE_INLINE
+void process_notify_dispatch_s_go_signal_cmd() {
+    // Update free running counter on dispatch_s, signalling that its safe to send a go signal to workers, since program
+    // config has been written and barriered upon
+    static uint32_t num_go_signals_safe_to_send = 1;
+    noc_inline_dw_write(get_noc_addr_helper(dispatch_s_noc_xy, get_semaphore<fd_core_type>(dispatch_s_sem_id)), num_go_signals_safe_to_send);
+    num_go_signals_safe_to_send++;
+    cmd_ptr += sizeof(CQDispatchCmd);
 }
 
 static inline bool process_cmd_d(uint32_t &cmd_ptr, uint32_t* l1_cache, uint32_t& block_noc_writes_to_clear, uint32_t block_next_start_addr[]) {
@@ -896,11 +908,11 @@ re_run_command:
             }
         } break;
 
-        case CQ_DISPATCH_CMD_SEM_UPDATE:
-            DPRINT << "Sem update" << ENDL();
-            noc_semaphore_inc(get_noc_addr_helper(dispatch_s_noc_xy, get_semaphore<fd_core_type>(dispatch_s_sem_id)), 1);
-            cmd_ptr += sizeof(CQDispatchCmd);
+        case CQ_DISPATCH_NOTIFY_SLAVE_GO_SIGNAL:
+            DPRINT << "cmd_notify_dispatch_s_go_signal" << ENDL();
+            process_notify_dispatch_s_go_signal_cmd();
             break;
+
         case CQ_DISPATCH_CMD_WRITE_PACKED_LARGE:
             DPRINT << "cmd_write_packed_large" << ENDL();
             process_write_packed_large(l1_cache, block_noc_writes_to_clear, block_next_start_addr);

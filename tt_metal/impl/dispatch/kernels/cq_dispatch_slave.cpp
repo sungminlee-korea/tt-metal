@@ -42,10 +42,9 @@ constexpr uint32_t cb_end = cb_base + cb_size;
 static uint32_t num_pages_acquired = 0;
 static uint32_t num_mcasts_sent = 0;
 static uint32_t cmd_ptr;
-static uint32_t unicast_only_cores[16]; // Allocate this on stack
-static int num_unicast_cores = -1; // Initialize to -1: Number of cores we need to unicast go signals to. Host will set this during init.
-
-// Cleanup wrap based checking
+static uint32_t unicast_only_cores[16]; // TODO: Allocate this on stack
+// Initialize to -1: Number of cores we need to unicast go signals to. Host will set this during init. Assert of not set
+static int num_unicast_cores = -1;
 
 // Initialize the go_signal data that will be sent to workers over NOC1 in L1
 uint32_t aligned_go_signal __attribute__((aligned(16))) __attribute__((section("l1_data"))) __attribute__((used)) = RUN_MSG_GO;
@@ -91,7 +90,6 @@ void update_worker_completion_count_on_dispatch_d() {
 template<uint32_t noc_xy, uint32_t sem_id>
 FORCE_INLINE
 void cb_acquire_pages_dispatch_s(uint32_t n) {
-
     volatile tt_l1_ptr uint32_t* sem_addr =
         reinterpret_cast<volatile tt_l1_ptr uint32_t*>(get_semaphore<fd_core_type>(sem_id));
 
@@ -153,7 +151,6 @@ void set_go_signal_unicast_only_cores() {
     num_unicast_cores = (int)(cmd->set_unicast_only_cores.num_unicast_only_cores);
     uint32_t data_ptr = cmd_ptr + sizeof(CQDispatchCmd);
     for (int core_idx = 0; core_idx < num_unicast_cores; core_idx++) {
-        DPRINT << "Unicast encoding: " << *((uint32_t tt_l1_ptr*)data_ptr) << ENDL();
         unicast_only_cores[core_idx] = *((uint32_t tt_l1_ptr*)data_ptr);
         data_ptr += sizeof(uint32_t);
     }

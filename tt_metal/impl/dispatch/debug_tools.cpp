@@ -185,7 +185,7 @@ uint32_t dump_dispatch_cmd(CQDispatchCmd *cmd, uint32_t cmd_addr, std::ofstream 
             case CQ_DISPATCH_CMD_EXEC_BUF_END: break;
             case CQ_DISPATCH_CMD_REMOTE_WRITE: break;
             case CQ_DISPATCH_CMD_GO_SIGNAL_MCAST: break;
-            case CQ_DISPATCH_CMD_SEM_UPDATE: break;
+            case CQ_DISPATCH_NOTIFY_SLAVE_GO_SIGNAL: break;
             case CQ_DISPATCH_SET_UNICAST_ONLY_CORES: break;
             case CQ_DISPATCH_CMD_TERMINATE: break;
             case CQ_DISPATCH_CMD_SET_WRITE_OFFSET: break;

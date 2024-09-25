@@ -51,7 +51,7 @@ enum CQDispatchCmdId : uint8_t {
     CQ_DISPATCH_CMD_SET_WRITE_OFFSET = 14,  // set the offset to add to all non-host destination addresses (relocation)
     CQ_DISPATCH_CMD_TERMINATE = 15,         // quit
     CQ_DISPATCH_CMD_GO_SIGNAL_MCAST = 16,
-    CQ_DISPATCH_CMD_SEM_UPDATE = 17,
+    CQ_DISPATCH_NOTIFY_SLAVE_GO_SIGNAL = 17,
     CQ_DISPATCH_SET_UNICAST_ONLY_CORES = 18,
     CQ_DISPATCH_CMD_MAX_COUNT,              // for checking legal IDs
 };
@@ -287,7 +287,9 @@ struct CQDispatchGoSignalMcastCmd {
     uint32_t wait_addr;
 } __attribute__((packed));
 
-struct CQDispatchSemUpdate {
+struct CQDispatchNotifySlaveGoSignalCmd {
+    // Currently doesn't need any metadata, since dispatcher
+    // just sends a counter update to dispatch_s when it sees this cmd
     uint8_t pad1;
     uint16_t pad2;
     uint32_t pad3;
@@ -309,6 +311,7 @@ struct CQDispatchCmd {
         CQDispatchSetWriteOffsetCmd set_write_offset;
         CQDispatchGoSignalMcastCmd mcast;
         CQDispatchSetUnicastOnlyCoresCmd set_unicast_only_cores;
+        CQDispatchNotifySlaveGoSignalCmd notify_dispatch_s_go_signal;
     } __attribute__((packed));
 };
 

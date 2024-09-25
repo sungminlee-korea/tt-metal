@@ -308,12 +308,12 @@ class DeviceCommand {
         this->cmd_write_offsetB = align(this->cmd_write_offsetB, PCIE_ALIGNMENT);
     }
 
-    void add_dispatch_s_sem_update() {
+    void add_notify_dispatch_s_go_signal_cmd() {
         // Command to have dispatch_master send a notification to dispatch_slave
         this->add_prefetch_relay_inline(true, sizeof(CQDispatchCmd), DispatcherSelect::DISPATCH_MASTER);
         auto initialize_sem_update_cmd = [&](CQDispatchCmd *sem_update_cmd) {
             *sem_update_cmd = {};
-            sem_update_cmd->base.cmd_id = CQ_DISPATCH_CMD_SEM_UPDATE;
+            sem_update_cmd->base.cmd_id = CQ_DISPATCH_NOTIFY_SLAVE_GO_SIGNAL;
         };
         CQDispatchCmd *dispatch_s_sem_update_dst = this->reserve_space<CQDispatchCmd *>(sizeof(CQDispatchCmd));
         if constexpr (hugepage_write) {
