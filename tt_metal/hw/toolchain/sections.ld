@@ -33,12 +33,12 @@ PHDRS {
 SECTIONS
 {
   /* Read-only sections, merged into text segment: */
-  .init __firmware_start :
+  .init __firmware_start ALIGN(4) :
   {
     PROVIDE (__executable_start = .);
     KEEP (*(SORT_NONE(.init)))
   } >REGION_CODE :text
-  .text :
+  .text ALIGN(4) :
   {
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)
@@ -48,21 +48,21 @@ SECTIONS
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
   } >REGION_CODE :text
-  .fini :
+  .fini ALIGN(4) :
   {
     KEEP (*(SORT_NONE(.fini)))
   } >REGION_CODE :text
 
-  l1_data :
+  l1_data ALIGN(4) :
   {
     *(l1_data)
     . = ALIGN(4);
   } >REGION_CODE :text
-  l1_data_noinit (NOLOAD) :
+  l1_data_noinit ALIGN(4) (NOLOAD) :
   {
     *(l1_data_noinit)
   } >REGION_CODE :text
-  l1_end (NOLOAD) :
+  l1_end ALIGN(4) (NOLOAD) :
   {
 #if LD_TARGET == IERISC
   /* Need a 32B separation between FW end and Kernel start on eriscs
@@ -83,7 +83,7 @@ SECTIONS
 
   PROVIDE(__global_pointer$ = ORIGIN(REGION_DATA) + 0x7f0);
 
-  .ldm_data __ldm_start :
+  .ldm_data __ldm_start ALIGN(4) :
   {
      __ldm_data_start = .;
      *(.rodata .rodata.* .gnu.linkonce.r.*)
@@ -121,7 +121,7 @@ SECTIONS
     . = ALIGN(4)
     __ldm_data_end = .;
   } >REGION_DATA :data
-  .ldm_bss :
+  .ldm_bss ALIGN(4) :
   {
     __ldm_bss_start = .;
     *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)
@@ -134,11 +134,11 @@ SECTIONS
     . = ALIGN(4);
     __ldm_bss_end = .;
   } >REGION_DATA :data
-  local_data_noinit (NOLOAD) :
+  local_data_noinit ALIGN(4) (NOLOAD) :
   {
     *(local_data_noinit)
   } >REGION_DATA :data
-  .ldm_end (NOLOAD) :
+  .ldm_end ALIGN(4) (NOLOAD) :
   {
     /* FW must align to 16 byte boundary so Kernel begins aligned to meet noc
        alignment constraints */
