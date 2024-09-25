@@ -109,11 +109,11 @@ def run_conv(
     torch_input_tensor_nchw = torch.randn(conv_input_shape, dtype=torch.bfloat16).float()
     # torch_input_tensor_nchw = torch.ones(conv_input_shape, dtype=torch.bfloat16).float()
     torch_input_tensor = torch.permute(torch_input_tensor_nchw, (0, 2, 3, 1))
-    # for i in range(batch_size):
-    #     for j in range(input_channels):
-    #         for k in range(input_height):
-    #             for l in range(input_width):
-    #                 torch_input_tensor[i][k][l][j] = (k * input_width + l) * 0.001  # < 35 and i < 1 else 0
+    for i in range(batch_size):
+        for j in range(input_channels):
+            for k in range(input_height):
+                for l in range(input_width):
+                    torch_input_tensor[i][k][l][j] = (k * input_width + l) * 0.001  # < 35 and i < 1 else 0
     torch_weight_tensor = torch.randn(conv_weight_shape, dtype=torch.bfloat16).float()
     # for i in range(output_channels):
     #     for j in range(input_channels // groups):
@@ -169,6 +169,7 @@ def run_conv(
         enable_split_reader=False,
         enable_subblock_padding=False,
         output_layout=ttnn.ROW_MAJOR_LAYOUT,
+        use_max_cores=True,
     )
     if config_override and "act_block_h" in config_override:
         conv_config.act_block_h_override = config_override["act_block_h"]
@@ -202,7 +203,7 @@ def run_conv(
     tt_output_tensor = ttnn.from_device(tt_output_tensor_on_device)
     torch_output_tensor = ttnn.to_torch(tt_output_tensor)
     # write_to_file_special("abc.pt", torch_output_tensor.float())
-    print(tt_output_tensor_on_device)
+    # print(tt_output_tensor_on_device)
     print(ttnn.get_memory_config(tt_output_tensor_on_device))
     # print(torch_output_tensor[0][0])
     # write_to_file("ref_hw.pt", torch_output_tensor.float())

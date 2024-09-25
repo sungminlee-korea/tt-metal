@@ -847,9 +847,16 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
 
     TT_FATAL(act_matrix_height_ntiles % per_core_out_matrix_height_ntiles == 0);
     uint32_t total_active_num_cores_per_weight_slice = act_matrix_height_ntiles / per_core_out_matrix_height_ntiles;
+    if(true){
+        uint32_t input_height_padded_per_core = shard_shape[0];
+        total_active_num_cores_per_weight_slice = act_matrix_height / parallelization_config.per_core_out_matrix_height;
+        std::cout << "input_height_padded_per_core " << act_matrix_height << " " << input_height_padded_per_core << " shard_shape " << shard_shape[0] << "  " << shard_shape[1] << std::endl;
+        std::cout << "total_active_num_cores_per_weight_slice " << total_active_num_cores_per_weight_slice << std::endl;
+
+    }
     TT_FATAL(total_active_num_cores_per_weight_slice <= total_num_cores_per_weight_slice);
-    uint32_t total_noop_cores = 0; //total_num_cores_per_weight_slice - total_active_num_cores_per_weight_slice;
-    uint32_t total_active_num_cores = 64; //total_active_num_cores_per_weight_slice * num_weight_slices_width;
+    uint32_t total_noop_cores = total_num_cores_per_weight_slice - total_active_num_cores_per_weight_slice;
+    uint32_t total_active_num_cores = total_active_num_cores_per_weight_slice * num_weight_slices_width;
     if (weight_width_sliced) {
         TT_FATAL(total_noop_cores == 0);
         TT_FATAL(total_active_num_cores == total_num_cores);

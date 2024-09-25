@@ -163,7 +163,7 @@ void py_bind_conv2d(py::module& module) {
 
     auto py_conv_config = py::class_<Conv2dConfig>(module, "Conv2dConfig");
     py_conv_config.def(
-            py::init<MathFidelity, DataType, DataType, bool, bool, bool, string, uint32_t, bool, bool, uint32_t, uint32_t, bool, bool, TensorMemoryLayout, std::optional<CoreRangeSet>, bool, Layout, bool, bool, bool>(),
+            py::init<MathFidelity, DataType, DataType, bool, bool, bool, string, uint32_t, bool, bool, uint32_t, uint32_t, bool, bool, TensorMemoryLayout, std::optional<CoreRangeSet>, bool, Layout, bool, bool, bool, bool>(),
             py::kw_only(),
             py::arg("math_fidelity") = MathFidelity::HiFi4,
             py::arg("dtype") = DataType::BFLOAT16,
@@ -186,7 +186,7 @@ void py_bind_conv2d(py::module& module) {
             py::arg("enable_act_double_buffer") = false,
             py::arg("enable_split_reader") = false,
             py::arg("enable_subblock_padding") = false,
-            py::arg("use_max_cores") = false);
+            py::arg("use_max_cores") = false
         );
         py_conv_config.def_readwrite("math_fidelity", &Conv2dConfig::math_fidelity);
         py_conv_config.def_readwrite("dtype", &Conv2dConfig::dtype);
