@@ -12,36 +12,33 @@
    Firmware text/ldm start at the start of the section
    Kernel text/ldm start where firmware left off
 */
-__firmware_start = DEFINED(__fw_export_end_text) ? __fw_export_end_text : ORIGIN(REGION_CODE);
-__ldm_start = DEFINED(__fw_export_ldm_end) ? __fw_export_ldm_end : ORIGIN(REGION_DATA);
-
-/*
-  Need a 32B separation between FW end and Kernel start on eriscs to
-    ensure kernel does not get cached into i$ because we cannot flush the i$.
-  FW must align to 32 byte boundary so Kernel begins aligned to meet noc
-    alignment constraints
-*/
-#if LD_TARGET == IERISC
-__padding = 31;
-__alignment = 32;
-#endif
-__padding = 0;
-__alignment = 16;
+__firmware_start = DEFINED(__fw_export_end_text)
+		 ? __fw_export_end_text : ORIGIN(REGION_CODE);
+__ldm_start = DEFINED(__fw_export_ldm_end)
+	    ? __fw_export_ldm_end : ORIGIN(REGION_DATA);
 
 OUTPUT_FORMAT("elf32-littleriscv", "elf32-littleriscv",
 	      "elf32-littleriscv")
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
 SEARCH_DIR("/opt/riscv32i/riscv32-unknown-elf/lib");
+
+PHDRS {
+  attribs 0x70000003;
+  text PT_LOAD;
+  data PT_LOAD;
+  stack PT_GNU_STACK;
+}
+
 SECTIONS
 {
   /* Read-only sections, merged into text segment: */
-  PROVIDE (__executable_start = __firmware_start);
   .init __firmware_start :
   {
+    PROVIDE (__executable_start = .);
     KEEP (*(SORT_NONE(.init)))
-  } > REGION_CODE
-  .text           :
+  } >REGION_CODE :text
+  .text :
   {
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)
@@ -50,34 +47,44 @@ SECTIONS
     *(.text .stub .text.* .gnu.linkonce.t.*)
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
-  } > REGION_CODE
-  .fini           :
+  } >REGION_CODE :text
+  .fini :
   {
     KEEP (*(SORT_NONE(.fini)))
-  } > REGION_CODE
+  } >REGION_CODE :text
 
   l1_data :
   {
     *(l1_data)
-  } > REGION_CODE
+    . = ALIGN(4);
+  } >REGION_CODE :text
   l1_data_noinit (NOLOAD) :
   {
     *(l1_data_noinit)
-  } > REGION_CODE
+  } >REGION_CODE :text
+  l1_end (NOLOAD) :
+  {
+#if LD_TARGET == IERISC
+  /* Need a 32B separation between FW end and Kernel start on eriscs
+    to ensure kernel does not get cached into i$ because we cannot
+    flush the i$.  FW must align to 32 byte boundary so Kernel begins
+    aligned to meet noc alignment constraints */
+  . = ALIGN(32);
+#else
+  . = ALIGN(16);
+#endif
+    PROVIDE (__etext = .);
+    PROVIDE (_etext = .);
+    PROVIDE (etext = .);
+    __fw_export_end_text = DEFINED(__fw_export_end_text)
+    			 ? __fw_export_end_text : .;
+  } >REGION_CODE :text
 
-  . += __padding;
-  . = ALIGN(__alignment);
-
-  PROVIDE (__etext = .);
-  PROVIDE (_etext = .);
-  PROVIDE (etext = .);
-  __fw_export_end_text = DEFINED(__fw_export_end_text) ? __fw_export_end_text : .;
 
   PROVIDE(__global_pointer$ = ORIGIN(REGION_DATA) + 0x7f0);
+
   .ldm_data __ldm_start :
   {
-    /* ldm is copied in 4 byte chunks */
-    . = ALIGN(4);
      __ldm_data_start = .;
      *(.rodata .rodata.* .gnu.linkonce.r.*)
      *(.rodata1)
@@ -111,47 +118,46 @@ SECTIONS
     SORT(CONSTRUCTORS)
     *(.data1)
     *(.got.plt) *(.igot.plt) *(.got) *(.igot)
-
-    /* bss is initialized with 4 byte writes */
-    . = ALIGN(4);
+    . = ALIGN(4)
     __ldm_data_end = .;
+  } >REGION_DATA :data
+  .ldm_bss :
+  {
     __ldm_bss_start = .;
     *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)
     *(.dynsbss)
     *(.sbss .sbss.* .gnu.linkonce.sb.*)
     *(.scommon)
-    . = ALIGN(4);
     *(.dynbss)
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
     . = ALIGN(4);
     __ldm_bss_end = .;
-  } > REGION_DATA
-
-  /* Use __ldm_bss_end to pick up where the last REGION_DATA ended
-     This is needed because of the way kernel REGION_DATA picks up where firmware
-     ended.  If the section above is empty (highly unlikely) we don't want to
-     re-start at the origion of REGION_DATA
-  */
-  local_data_noinit __ldm_bss_end (NOLOAD) :
+  } >REGION_DATA :data
+  local_data_noinit (NOLOAD) :
   {
     *(local_data_noinit)
-  } > REGION_DATA
+  } >REGION_DATA :data
+  .ldm_end (NOLOAD) :
+  {
+    /* FW must align to 16 byte boundary so Kernel begins aligned to meet noc
+       alignment constraints */
+    . = ALIGN(16);
+    _edata = .; PROVIDE (edata = .);
+    _end = .; PROVIDE (end = .);
+    __fw_export_ldm_end = DEFINED(__fw_export_ldm_end)
+    			? __fw_export_ldm_end : _end;
+  } >REGION_DATA :data
 
-  /* FW must align to 16 byte boundary so Kernel begins aligned to meet noc
-     alignment constraints */
-  . = ALIGN(16);
-  _edata = .; PROVIDE (edata = .);
-  _end = .; PROVIDE (end = .);
-  __fw_export_ldm_end = DEFINED(__fw_export_ldm_end) ? __fw_export_ldm_end : _end;
-
-  /* Move to end of local memory for stack */
+/* Move to end of local memory for stack */
   .stack :
   {
     __stack_bottom = .;
    . += __firmware_stack_size;
     __stack_top = .;
-  } > REGION_STACK
+  } >REGION_STACK :stack
+
+  .riscv.attributes : {} :attribs
 
   /* Stabs debugging sections.  */
   .stab          0 : { *(.stab) }
