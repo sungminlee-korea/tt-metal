@@ -35,12 +35,12 @@ ENTRY(_start)
 SEARCH_DIR("/opt/riscv32i/riscv32-unknown-elf/lib");
 SECTIONS
 {
-  /* Read-only sections, merged into text segment: */
   .text __firmware_start :
   {
-    /* We require the entry point to be the start of text. */
     PROVIDE (__executable_start = .);
-    *(.text.entry)
+
+    /* We require the entry point to be the start of text. */
+    *(.start)
 
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)
