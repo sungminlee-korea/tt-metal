@@ -141,3 +141,24 @@ def test_moreh_adam(shape, lr, betas, eps, weight_decay, amsgrad, fp32_dest_acc_
         logger.debug(f"Out passing (max_exp_avg_sq)={passing}")
         logger.debug(f"Output pcc={out}")
     assert passing
+
+
+@pytest.mark.parametrize(
+    "params",
+    (
+        # shape, lr, betas, eps, weight_decay, amsgrad, fp32_dest_acc_en
+        ([32, 32], 0.0, (0.9, 0.999), 1e-06, 0.0, True, True),
+        ([2, 2, 2, 2, 2, 2, 64, 64], 0.0, (0.9, 0.999), 1e-06, 0.0, False, False),
+    ),
+)
+def test_moreh_adam_enable_cache(params, device, use_program_cache):
+    for i in range(4):
+        if i % 2 == 1:
+            param_list = list(params)
+            param_list[6] = False if param_list[6] else True
+            params = tuple(param_list)
+
+        shape, lr, betas, eps, weight_decay, amsgrad, fp32_dest_acc_en = params
+        test_moreh_adam(shape, lr, betas, eps, weight_decay, amsgrad, fp32_dest_acc_en, device)
+
+    assert device.num_program_cache_entries() == 2
