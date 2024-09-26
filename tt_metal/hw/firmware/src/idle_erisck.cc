@@ -22,6 +22,11 @@
 #include <kernel_includes.hpp>
 
 uint8_t noc_index = NOC_INDEX;
+const uint32_t read_cmd_buf __attribute__((used)) = NCRISC_RD_CMD_BUF;
+const uint32_t write_cmd_buf __attribute__((used)) = NCRISC_WR_CMD_BUF;
+const uint32_t write_reg_cmd_buf __attribute__((used)) = NCRISC_WR_REG_CMD_BUF;
+const uint32_t write_at_cmd_buf __attribute__((used)) = NCRISC_AT_CMD_BUF;
+
 //inline void RISC_POST_STATUS(uint32_t status) {
 //  volatile uint32_t* ptr = (volatile uint32_t*)(NOC_CFG(ROUTER_CFG_2));
 //  ptr[0] = status;
