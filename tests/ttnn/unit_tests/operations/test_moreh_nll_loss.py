@@ -167,20 +167,28 @@ def test_moreh_nll_loss(shape, ignore_index, reduction, none_weight, device):
     ],
 )
 @pytest.mark.parametrize("reduction", ["mean", "sum"])
-@pytest.mark.parametrize("none_weight", [True, False])
-def test_moreh_nll_loss_callback(shape, reduction, none_weight, device, use_program_cache):
+def test_moreh_nll_loss_callback(shape, reduction, device, use_program_cache):
     torch.manual_seed(0)
+    ignore_index = 0
 
-    ignore_idx = 0
+    num_program_cache_entries_list = []
+    for i in range(4):
+        if i < 2:
+            none_weight = True
+        else:
+            none_weight = False
 
-    for i in range(2):
-        run_moreh_nll_loss(shape, ignore_idx, reduction, none_weight, device)
+        run_moreh_nll_loss(shape, ignore_index, reduction, none_weight, device)
         torch_dummy = torch.randn([32, 32])
         tt_dummy = to_npu(torch_dummy, device)
-        if i == 0:
-            prev_cache_entries = device.num_program_cache_entries()
-        else:
-            assert device.num_program_cache_entries() == prev_cache_entries
+
+        num_program_cache_entries_list.append(device.num_program_cache_entries())
+
+    logger.info(f"num_program_cache_entries_list={num_program_cache_entries_list}")
+    assert (
+        num_program_cache_entries_list[0] == num_program_cache_entries_list[1]
+        and num_program_cache_entries_list[2] == num_program_cache_entries_list[3]
+    )
 
 
 @pytest.mark.parametrize(
@@ -227,25 +235,34 @@ def test_moreh_nll_loss_backward(shape, ignore_index, reduction_mean, none_weigh
     "shape",
     [
         [2, 3],
-        # [2, 3, 4],
-        # [2, 3, 5, 4],
+        [2, 3, 4],
+        [2, 3, 5, 4],
     ],
 )
 @pytest.mark.parametrize("reduction_mean", [True, False])
-@pytest.mark.parametrize("none_weight", [True, False])
-def test_moreh_nll_loss_backward_test_callback(shape, reduction_mean, none_weight, device, use_program_cache):
+def test_moreh_nll_loss_backward_test_callback(shape, reduction_mean, device, use_program_cache):
     torch.manual_seed(0)
 
     ignore_index = 0
 
-    for i in range(2):
+    num_program_cache_entries_list = []
+    for i in range(4):
+        if i < 2:
+            none_weight = True
+        else:
+            none_weight = False
+
         run_moreh_nll_loss_backward(shape, ignore_index, reduction_mean, none_weight, device)
         torch_dummy = torch.randn([32, 32])
         tt_dummy = to_npu(torch_dummy, device)
-        if i == 0:
-            prev_cache_entries = device.num_program_cache_entries()
-        else:
-            assert device.num_program_cache_entries() == prev_cache_entries
+
+        num_program_cache_entries_list.append(device.num_program_cache_entries())
+
+    logger.info(f"num_program_cache_entries_list={num_program_cache_entries_list}")
+    assert (
+        num_program_cache_entries_list[0] == num_program_cache_entries_list[1]
+        and num_program_cache_entries_list[2] == num_program_cache_entries_list[3]
+    )
 
 
 @pytest.mark.parametrize(

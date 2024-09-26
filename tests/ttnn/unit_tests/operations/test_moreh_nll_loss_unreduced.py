@@ -158,20 +158,29 @@ def test_moreh_nll_loss_unreduced(shape, ignore_index, none_weight, compute_kern
         (5, 10, 10, 20),
     ],
 )
-@pytest.mark.parametrize("none_weight", [True, False])
-def test_moreh_nll_loss_unreduced_callback(shape, none_weight, device, use_program_cache):
+def test_moreh_nll_loss_unreduced_callback(shape, device, use_program_cache):
     torch.manual_seed(0)
 
     ignore_index = 1
+    num_program_cache_entries_list = []
 
-    for i in range(2):
+    for i in range(4):
+        if i < 2:
+            none_weight = True
+        else:
+            none_weight = False
+
         run_moreh_nll_loss_unreduced(shape, ignore_index, none_weight, device)
         torch_dummy = torch.randn([32, 32])
         tt_dummy = to_npu(torch_dummy, device)
-        if i == 0:
-            prev_cache_entries = device.num_program_cache_entries()
-        else:
-            assert device.num_program_cache_entries() == prev_cache_entries
+
+        num_program_cache_entries_list.append(device.num_program_cache_entries())
+
+    logger.info(f"num_program_cache_entries_list={num_program_cache_entries_list}")
+    assert (
+        num_program_cache_entries_list[0] == num_program_cache_entries_list[1]
+        and num_program_cache_entries_list[2] == num_program_cache_entries_list[3]
+    )
 
 
 @pytest.mark.parametrize(
@@ -209,11 +218,21 @@ def test_moreh_nll_loss_unreduced_backward(
 def test_moreh_nll_loss_unreduced_backward_test_callback(shape, none_weight, device, ignore_index, use_program_cache):
     torch.manual_seed(0)
 
-    for i in range(2):
+    num_program_cache_entries_list = []
+    for i in range(4):
+        if i < 2:
+            none_weight = True
+        else:
+            none_weight = False
+
         run_moreh_nll_loss_unreduced_backward(shape, ignore_index, none_weight, device)
         torch_dummy = torch.randn([32, 32])
         tt_dummy = to_npu(torch_dummy, device)
-        if i == 0:
-            prev_cache_entries = device.num_program_cache_entries()
-        else:
-            assert device.num_program_cache_entries() == prev_cache_entries
+
+        num_program_cache_entries_list.append(device.num_program_cache_entries())
+
+    logger.info(f"num_program_cache_entries_list={num_program_cache_entries_list}")
+    assert (
+        num_program_cache_entries_list[0] == num_program_cache_entries_list[1]
+        and num_program_cache_entries_list[2] == num_program_cache_entries_list[3]
+    )
