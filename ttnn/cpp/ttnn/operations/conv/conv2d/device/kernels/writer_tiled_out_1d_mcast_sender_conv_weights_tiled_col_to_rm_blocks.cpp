@@ -43,7 +43,7 @@ void kernel_main() {
     constexpr uint32_t out_width_num_tiles = get_compile_time_arg_val(28);
 
     constexpr uint32_t out_addr = get_compile_time_arg_val(29);
-
+    constexpr uint32_t output_rows_h          = get_compile_time_arg_val(32);
     constexpr uint32_t total_weight_num_tiles = weight_block_height_num_outer * num_blocks_weight_h * weight_block_num_tiles;
 
     uint32_t i = 0;
@@ -326,5 +326,6 @@ void kernel_main() {
     DPRINT << "1 SHARDED_OUT_NOT_SUPPORTED" << ENDL();
     //DPRINT << out_subblock_tile_count * out_num_subblocks_h * out_num_subblocks_w * out_num_blocks_w * out_num_blocks_h << ENDL();
     //cb_wait_front(cb_id_out0, out_subblock_tile_count * out_num_subblocks_h * out_num_subblocks_w * out_num_blocks_w * out_num_blocks_h);
+    cb_wait_front(cb_id_out0, output_rows_h);
     #endif
 }

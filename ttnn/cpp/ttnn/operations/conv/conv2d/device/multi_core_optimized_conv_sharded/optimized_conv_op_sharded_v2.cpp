@@ -185,9 +185,11 @@ std::tuple<CBHandle, CBHandle> create_CBs_for_sharded_input_v2(
         log_debug(LogOp, "Reblock CB: {}, npages: {}, pagesize: {}", untilize_mode_reblock_cb, num_reblock_cb_tiles, out_tile_size);
 
         std::cout << "num_writer_output_tiles: " << num_writer_output_tiles * 8 << std::endl;
+        auto shard_shape = output.shard_spec().value().shape;
+        uint32_t aligned_output_stick_nbytes = round_up_to_mul32(shard_shape[1]) * output.element_size();
         CircularBufferConfig cb_output_config =
-            CircularBufferConfig(/*num_writer_output_tiles * 16*/ 49 * 128, {{out0_cb, out_df}})
-                .set_page_size(out0_cb, 128);
+            CircularBufferConfig(shard_shape[0] * aligned_output_stick_nbytes, {{out0_cb, out_df}})
+                .set_page_size(out0_cb, aligned_output_stick_nbytes);
         if (output.is_sharded()) {
             cb_output_config = cb_output_config.set_globally_allocated_address(*output.buffer());
         }
@@ -989,6 +991,8 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
         }
     }
 
+    uint32_t output_rows_h = output.shard_spec().value().shape[0];
+    std::cout << "output_rows_h " << output_rows_h << std::endl;
 
     uint32_t out_block_h_ntiles_padded = num_blocks_act_h_per_core * act_block_h_ntiles;
     uint32_t writer_output_block_num_tiles = out_block_h_ntiles_padded * weight_block_w_ntiles;
@@ -1284,6 +1288,7 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
         out_dram_addr,
         weight_dram_addr,
         bias_dram_addr,
+        output_rows_h,
     };
     if (split_reader) {
         std::vector<uint32_t> split_reader_args = {
@@ -1324,7 +1329,8 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
         tilize_in0,
         untilize_out,
 
-        bias_ntiles_per_core};
+        bias_ntiles_per_core,
+        output_rows_h};
 
     auto writer_mcast_noc = NOC::NOC_0;
     auto reader_noc = writer_mcast_noc == NOC::NOC_0 ? NOC::NOC_1 : NOC::NOC_0;

@@ -145,7 +145,7 @@ void MAIN {
     constexpr uint32_t out_subblock_num_tiles = get_compile_time_arg_val(13); // out_subblock_h * out_subblock_w;
     constexpr bool tilize_in0                 = get_compile_time_arg_val(14);
     constexpr bool untilize_out               = get_compile_time_arg_val(15);
-
+    constexpr uint32_t output_rows_h          = get_compile_time_arg_val(17);
 
     #ifdef WIDTH_SHARDED
     constexpr uint32_t in0_nblocks_w_tilize   = get_compile_time_arg_val(17);
@@ -460,7 +460,6 @@ void MAIN {
                 pack_untilize_dst_init_short<out_subblock_w, out_block_w>(out_cb_id);
                 copy_tile_to_dst_init_short();
                 UNPACK(DPRINT << "TESTING " <<__LINE__ << in0_num_subblocks << ENDL());
-                uint32_t output_rows_h = 49;
                 for (uint32_t in0_subblock_i = 0; in0_subblock_i < in0_num_subblocks; ++in0_subblock_i) {
                     reblock_and_untilize<out_subblock_w,out_block_w> (
                         in1_num_subblocks,
