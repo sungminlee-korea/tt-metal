@@ -50,6 +50,7 @@ SECTIONS
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
   } > REGION_CODE
+
   /* We do not use .initfini, assert they don't happen rather than simply
      disregard or pretend they work.  */
   .initfini : {
