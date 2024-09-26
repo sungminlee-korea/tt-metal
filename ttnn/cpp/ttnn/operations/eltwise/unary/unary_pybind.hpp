@@ -1323,7 +1323,14 @@ void py_module(py::module& module) {
     detail::bind_unary_operation(module, ttnn::asin);
     detail::bind_unary_operation(module, ttnn::atan);
     detail::bind_unary_operation(module, ttnn::cos);
-    detail::bind_unary_operation(module, ttnn::erfinv);
+    detail::bind_unary_operation(module, ttnn::erfinv,
+    R"doc(Supported dtypes, layouts, and ranks:
+
+        +----------------------------+---------------------------------+-------------------+
+        |     Dtypes                 |         Layouts                 |     Ranks         |
+        +----------------------------+---------------------------------+-------------------+
+        |    BFLOAT16                |          TILE                   |      2, 3, 4      |
+        +----------------------------+---------------------------------+-------------------+)doc");
     detail::bind_unary_operation(module, ttnn::exp2,
     R"doc(Supported dtypes, layouts, and ranks:
 
