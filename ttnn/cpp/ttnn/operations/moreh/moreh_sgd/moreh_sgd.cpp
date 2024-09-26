@@ -21,7 +21,7 @@ std::vector<std::optional<Tensor>> MorehSgd::invoke(
     bool momentum_initialized,
     const std::optional<MemoryConfig>& param_out_memory_config,
     const std::optional<MemoryConfig>& momentum_buffer_out_memory_config,
-    const DeviceComputeKernelConfig compute_kernel_config) {
+    const std::optional<DeviceComputeKernelConfig>& compute_kernel_config) {
     return ttnn::prim::moreh_sgd(
         param_in,
         grad,

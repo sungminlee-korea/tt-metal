@@ -5,9 +5,9 @@
 #include <vector>
 
 #include "moreh_sgd_device_operation.hpp"
+#include "tt_metal/common/work_split.hpp"
 #include "ttnn/deprecated/tt_dnn/op_library/moreh_helper_functions.hpp"
 #include "ttnn/operations/core/compute_kernel/compute_kernel_config.hpp"
-#include "tt_metal/common/work_split.hpp"
 
 namespace ttnn::operations::moreh::moreh_sgd {
 MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFactory::create(
@@ -31,7 +31,6 @@ MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFa
 
     auto compute_kernel_config = operation_attributes.compute_kernel_config;
 
-
     auto shape = param_in.get_shape();
     auto H = shape[-2];
     auto W = shape[-1];
@@ -40,8 +39,6 @@ MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFa
     auto Wt = W / tt::constants::TILE_WIDTH;
 
     bool has_momentum_buffer_out = momentum_buffer_out.has_value();
-
-
 
     Program program{};
 
@@ -53,7 +50,6 @@ MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFa
     uint32_t units_to_divide = num * Ht * Wt;
     uint32_t core_w = grid.x;
     uint32_t core_h = grid.y;
-
 
     auto [num_cores, all_cores, core_group_1, core_group_2, num_tiles_per_core_group_1, num_tiles_per_core_group_2] =
         tt::tt_metal::split_work_to_cores(grid, units_to_divide);
@@ -72,19 +68,20 @@ MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFa
         all_cores,
         data_format,
         {
-            {tt::CB::c_in0, 2},                      // param_in
-            {tt::CB::c_in1, 2},                      // grad
-            {tt::CB::c_in2, 2},                      // momentum_in
-            {tt::CB::c_out0, 2},                      // param_out
-            {tt::CB::c_out1, 2},                      // momentum_out
+            {tt::CB::c_in0, 2},   // param_in
+            {tt::CB::c_in1, 2},   // grad
+            {tt::CB::c_in2, 2},   // momentum_in
+            {tt::CB::c_out0, 2},  // param_out
+            {tt::CB::c_out1, 2},  // momentum_out
 
-            {tt::CB::c_intermed0, 5, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // cb_scalar_args (lr, momentum, dampening, weight_decay, one)
-            {tt::CB::c_intermed1, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
-            {tt::CB::c_intermed2, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
-            {tt::CB::c_intermed3, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
-            {tt::CB::c_intermed4, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
+            {tt::CB::c_intermed0,
+             5,
+             intermed_cb_format},  // cb_scalar_args (lr, momentum, dampening, weight_decay, one)
+            {tt::CB::c_intermed1, 1, intermed_cb_format},  //
+            {tt::CB::c_intermed2, 1, intermed_cb_format},  //
+            {tt::CB::c_intermed3, 1, intermed_cb_format},  //
+            {tt::CB::c_intermed4, 1, intermed_cb_format},  //
         });
-
 
     ////////////////////////////////////////////////////////////////////////////
     //                         Kernels defines
@@ -119,7 +116,6 @@ MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFa
         compute_defines["FP32_DEST_ACC_EN"] = "1";
     }
 
-
     ////////////////////////////////////////////////////////////////////////////
     //                      DataMovementKernel SetUp
     ////////////////////////////////////////////////////////////////////////////
@@ -129,9 +125,10 @@ MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFa
         static_cast<uint32_t>(tt::operations::primary::is_dram(grad)),
         static_cast<uint32_t>(tt::operations::primary::is_dram(momentum_buffer_in))};
 
-    const std::vector<uint32_t> writer_compile_time_args{
-        static_cast<uint32_t>(tt::operations::primary::is_dram(param_out)),
-        static_cast<uint32_t>(tt::operations::primary::is_dram(momentum_buffer_out.value()))};
+    std::vector<uint32_t> writer_compile_time_args{static_cast<uint32_t>(tt::operations::primary::is_dram(param_out))};
+    if (has_momentum_buffer_out)
+        writer_compile_time_args.push_back(
+            static_cast<uint32_t>(tt::operations::primary::is_dram(momentum_buffer_out.value())));
 
     const auto reader_kernel_file =
         "ttnn/cpp/ttnn/operations/moreh/moreh_sgd/device/kernels/"
@@ -175,7 +172,8 @@ MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFa
         momentum_buffer_in.has_value() ? momentum_buffer_in.value().buffer()->address() : 0;
 
     const auto param_out_addr = param_out.buffer()->address();
-    const auto momentum_buffer_out_addr = momentum_buffer_out.has_value() ? momentum_buffer_out->buffer()->address() : 0;
+    const auto momentum_buffer_out_addr =
+        momentum_buffer_out.has_value() ? momentum_buffer_out->buffer()->address() : 0;
 
     auto core_x_offset = 0;
     auto core_y_offset = 0;
@@ -191,13 +189,15 @@ MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFa
             TT_FATAL(false, "Core not in specified core ranges");
         }
 
-        union { float f; uint32_t u; } u_lr, u_momentum, u_dampening, u_weight_decay, u_one;
+        union {
+            float f;
+            uint32_t u;
+        } u_lr, u_momentum, u_dampening, u_weight_decay, u_one;
         u_lr.f = lr;
         u_momentum.f = momentum;
         u_dampening.f = dampening;
         u_weight_decay.f = weight_decay;
         u_one.f = 1.0f;
-
 
         vector<uint32_t> reader_args = {
             param_in.buffer()->address(),
@@ -210,7 +210,7 @@ MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFa
             u_dampening.u,
             u_weight_decay.u,
             u_one.u,
-            };
+        };
 
         vector<uint32_t> writer_args = {
             param_out.buffer()->address(),
@@ -224,8 +224,6 @@ MorehSgdOperation::ProgramFactory::cached_program_t MorehSgdOperation::ProgramFa
 
         tile_offset += num_tiles_per_core;
     }
-
-
 
     return {std::move(program), {reader_kernel_id, writer_kernel_id, num_cores, core_h, has_momentum_buffer_out}};
 }
@@ -241,9 +239,8 @@ void MorehSgdOperation::ProgramFactory::override_runtime_arguments(
 
     auto param_in_buffer = tensor_args.param_in.buffer();
     auto grad_buffer = tensor_args.grad.buffer();
-    // auto momentum_buffer_in_buffer = tensor_args.momentum_buffer_in->buffer();
     auto momentum_buffer_in_buffer =
-            tensor_args.momentum_buffer_in.has_value() ? tensor_args.momentum_buffer_in->buffer() : 0;
+        tensor_args.momentum_buffer_in.has_value() ? tensor_args.momentum_buffer_in->buffer() : 0;
 
     auto param_out_buffer = tensor_return_value.at(0)->buffer();
     auto momentum_buffer_out_buffer = tensor_return_value.at(1)->buffer();
@@ -262,12 +259,13 @@ void MorehSgdOperation::ProgramFactory::override_runtime_arguments(
             runtime_args[0] = param_in_buffer->address();
             runtime_args[1] = grad_buffer->address();
             if (tensor_args.momentum_buffer_in.has_value()) {
-                runtime_args[2] = momentum_buffer_in_buffer->address();;
+                runtime_args[2] = momentum_buffer_in_buffer->address();
+                ;
             }
         }
 
         {
-            auto &runtime_args = GetRuntimeArgs(program, writer_kernel_id, core);
+            auto& runtime_args = GetRuntimeArgs(program, writer_kernel_id, core);
             runtime_args[0] = param_out_buffer->address();
             if (has_momentum_buffer_out) {
                 runtime_args[1] = momentum_buffer_out_buffer->address();
@@ -275,4 +273,4 @@ void MorehSgdOperation::ProgramFactory::override_runtime_arguments(
         }
     }
 }
-}  // namespace ttnn::operations::moreh::moreh_sgd_op
+}  // namespace ttnn::operations::moreh::moreh_sgd

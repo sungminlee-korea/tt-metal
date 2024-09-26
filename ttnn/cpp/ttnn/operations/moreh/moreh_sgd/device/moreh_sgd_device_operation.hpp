@@ -2,9 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include <variant>
-#include <vector>
-
 #include "ttnn/decorators.hpp"
 #include "ttnn/device_operation.hpp"
 #include "ttnn/operations/core/compute_kernel/compute_kernel_config.hpp"
@@ -19,8 +16,8 @@ struct MorehSgdOperation {
         float weight_decay;
         bool nesterov;
         bool momentum_initialized;
-        const std::optional<MemoryConfig> param_out_memory_config;
-        const std::optional<MemoryConfig> momentum_buffer_out_memory_config;
+        const MemoryConfig param_out_memory_config;
+        const MemoryConfig momentum_buffer_out_memory_config;
         const DeviceComputeKernelConfig compute_kernel_config;
     };
 
@@ -78,10 +75,9 @@ struct MorehSgdOperation {
         float weight_decay,
         bool nesterov,
         bool momentum_initialized,
-
         const std::optional<MemoryConfig>& param_out_memory_config,
         const std::optional<MemoryConfig>& momentum_buffer_out_memory_config,
-        const DeviceComputeKernelConfig compute_kernel_config);
+        const std::optional<DeviceComputeKernelConfig>& compute_kernel_config);
 };
 }  // namespace ttnn::operations::moreh::moreh_sgd
 

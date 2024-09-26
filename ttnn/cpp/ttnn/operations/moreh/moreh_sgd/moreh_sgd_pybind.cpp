@@ -19,14 +19,13 @@ void bind_moreh_sgd_operation(py::module& module) {
             py::arg("momentum_buffer_in") = std::nullopt,
             py::arg("param_out") = std::nullopt,
             py::arg("momentum_buffer_out") = std::nullopt,
-
-            py::arg("lr"),
-            py::arg("momentum"),
-            py::arg("dampening"),
-            py::arg("weight_decay"),
-            py::arg("nesterov"),
+            py::arg("lr") = 1e-3,
+            py::arg("momentum") = 0,
+            py::arg("dampening") = 0,
+            py::arg("weight_decay") = 0,
+            py::arg("nesterov") = false,
+            py::kw_only(),
             py::arg("momentum_initialized"),
-
             py::arg("param_out_memory_config") = std::nullopt,
             py::arg("momentum_buffer_out_memory_config") = std::nullopt,
             py::arg("compute_kernel_config") = std::nullopt});

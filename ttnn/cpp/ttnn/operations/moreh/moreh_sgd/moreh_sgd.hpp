@@ -23,7 +23,7 @@ struct MorehSgd {
         bool momentum_initialized,
         const std::optional<MemoryConfig>& param_out_memory_config,
         const std::optional<MemoryConfig>& momentum_buffer_out_memory_config,
-        const DeviceComputeKernelConfig compute_kernel_config);
+        const std::optional<DeviceComputeKernelConfig>& compute_kernel_config);
 
     static std::vector<Tensor> create_async_output_tensors(
         const std::vector<Tensor>& input_tensors, const std::vector<std::optional<const Tensor>>& optional_inputs);

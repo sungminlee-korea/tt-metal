@@ -4,8 +4,6 @@
 
 #include "moreh_sgd_device_operation.hpp"
 
-#include <cstdint>
-
 #include "tt_dnn/op_library/moreh_helper_functions.hpp"
 #include "ttnn/tensor/tensor.hpp"
 
@@ -36,9 +34,8 @@ void MorehSgdOperation::validate_inputs(
 
 MorehSgdOperation::program_factory_t MorehSgdOperation::select_program_factory(
     const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
-    // For now we litteraly don't care and return a single factory. Whatever
     return ProgramFactory{};
-}
+};
 
 void MorehSgdOperation::validate_on_program_cache_miss(
     const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
@@ -65,22 +62,23 @@ MorehSgdOperation::tensor_return_value_t MorehSgdOperation::create_output_tensor
     auto device = tensor_args.param_in.device();
 
     std::vector<std::optional<Tensor>> ret;
-    auto output_mem_config =
-        operation_attributes.param_out_memory_config.value_or(tensor_args.param_in.memory_config());
-    auto momentum_buffer_out_memory_config =
-        operation_attributes.momentum_buffer_out_memory_config.value_or(tensor_args.param_in.memory_config());
 
     if (tensor_args.output_tensors.at(0).has_value()) {
         ret.push_back(tensor_args.output_tensors.at(0).value());
     } else {
-        ret.push_back(create_device_tensor(output_shapes.at(0).value(), dtype, layout, device, output_mem_config));
+        ret.push_back(create_device_tensor(
+            output_shapes.at(0).value(), dtype, layout, device, operation_attributes.param_out_memory_config));
     }
 
     if (tensor_args.output_tensors.at(1).has_value()) {
         ret.push_back(tensor_args.output_tensors.at(1).value());
     } else {
         ret.push_back(create_device_tensor(
-            output_shapes.at(1).value(), dtype, layout, device, momentum_buffer_out_memory_config));
+            output_shapes.at(1).value(),
+            dtype,
+            layout,
+            device,
+            operation_attributes.momentum_buffer_out_memory_config));
     }
 
     return std::move(ret);
@@ -109,9 +107,9 @@ std::tuple<MorehSgdOperation::operation_attributes_t, MorehSgdOperation::tensor_
             weight_decay,
             nesterov,
             momentum_initialized,
-            param_out_memory_config,
-            momentum_buffer_out_memory_config,
-            compute_kernel_config},
+            param_out_memory_config.value_or(param_in.memory_config()),
+            momentum_buffer_out_memory_config.value_or(param_in.memory_config()),
+            init_device_compute_kernel_config(param_in.device()->arch(), compute_kernel_config, MathFidelity::HiFi4)},
 
         tensor_args_t{param_in, grad, momentum_buffer_in, {param_out, momentum_buffer_out}}};
 }

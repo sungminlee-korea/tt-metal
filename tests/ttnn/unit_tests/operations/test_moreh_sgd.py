@@ -163,7 +163,7 @@ def test_moreh_sgd(
         dampening,
         weight_decay,
         nesterov,
-        momentum_initialized,
+        momentum_initialized=momentum_initialized,
         compute_kernel_config=compute_kernel_config,
     )
 
@@ -299,7 +299,7 @@ def test_moreh_sgd_callback(
             dampening,
             weight_decay,
             nesterov,
-            momentum_initialized,
+            momentum_initialized=momentum_initialized,
             compute_kernel_config=compute_kernel_config,
         )
 
