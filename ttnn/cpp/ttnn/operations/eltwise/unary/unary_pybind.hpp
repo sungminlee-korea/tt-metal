@@ -198,8 +198,6 @@ void bind_unary_operation_with_fast_and_approximate_mode(py::module& module, con
         R"doc(
         Applies {0} to :attr:`input_tensor` element-wise.
 
-        {2}
-
         .. math::
             \mathrm{{output\_tensor}}_i = {0}(\mathrm{{input\_tensor}}_i)
 
@@ -214,6 +212,9 @@ void bind_unary_operation_with_fast_and_approximate_mode(py::module& module, con
 
         Returns:
             ttnn.Tensor: the output tensor.
+
+        Note:
+            {2}
 
         Example:
             >>> tensor = ttnn.from_torch(torch.tensor((1, 2), dtype=torch.bfloat16), device=device)
@@ -255,8 +256,6 @@ void bind_unary_operation_with_float_parameter(
         R"doc(
         Applies {0} to :attr:`input_tensor` element-wise.
 
-        {4}
-
         .. math::
             \mathrm{{output\_tensor}}_i = {0}(\mathrm{{input\_tensor}}_i)
 
@@ -271,6 +270,9 @@ void bind_unary_operation_with_float_parameter(
 
         Returns:
             ttnn.Tensor: the output tensor.
+
+        Note:
+            {4}
 
         Example:
             >>> tensor = ttnn.from_torch(torch.tensor((1, 2), dtype=torch.bfloat16), device=device)
