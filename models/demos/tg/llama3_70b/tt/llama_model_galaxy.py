@@ -295,7 +295,7 @@ class TtLlamaModel_galaxy:
                 mesh_mapper=ReplicateTensorToMesh(self.mesh_device),
             )
             if isinstance(start_pos, int):
-                cache_idxs = torch.tensor([start_pos for _ in range(batch)], dtype=torch.int64)
+                cache_idxs = torch.tensor([start_pos for _ in range(batch // self.cluster_shape[0])], dtype=torch.int64)
             else:
                 cache_idxs = start_pos.to(dtype=torch.int64)
 
