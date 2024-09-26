@@ -98,7 +98,7 @@ std::tuple<MorehSgdOperation::operation_attributes_t, MorehSgdOperation::tensor_
     bool momentum_initialized,
     const std::optional<MemoryConfig>& param_out_memory_config,
     const std::optional<MemoryConfig>& momentum_buffer_out_memory_config,
-    const DeviceComputeKernelConfig compute_kernel_config) {
+    const std::optional<DeviceComputeKernelConfig>& compute_kernel_config) {
     return {
         operation_attributes_t{
             lr,
