@@ -164,10 +164,14 @@ def test_moreh_nll_loss_unreduced_callback(shape, none_weight, device, use_progr
 
     ignore_index = 1
 
-    for _ in range(2):
+    for i in range(2):
         run_moreh_nll_loss_unreduced(shape, ignore_index, none_weight, device)
         torch_dummy = torch.randn([32, 32])
         tt_dummy = to_npu(torch_dummy, device)
+        if i == 0:
+            prev_cache_entries = device.num_program_cache_entries()
+        else:
+            assert device.num_program_cache_entries() == prev_cache_entries
 
 
 @pytest.mark.parametrize(
@@ -205,7 +209,11 @@ def test_moreh_nll_loss_unreduced_backward(
 def test_moreh_nll_loss_unreduced_backward_test_callback(shape, none_weight, device, ignore_index, use_program_cache):
     torch.manual_seed(0)
 
-    for _ in range(2):
+    for i in range(2):
         run_moreh_nll_loss_unreduced_backward(shape, ignore_index, none_weight, device)
         torch_dummy = torch.randn([32, 32])
         tt_dummy = to_npu(torch_dummy, device)
+        if i == 0:
+            prev_cache_entries = device.num_program_cache_entries()
+        else:
+            assert device.num_program_cache_entries() == prev_cache_entries
