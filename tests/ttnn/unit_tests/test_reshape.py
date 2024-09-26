@@ -287,12 +287,21 @@ def test_reshape_tile_layout_only_change_shape(device):
     assert_with_pcc(torch_result, output, 0.9999)
 
 
-def test_reshape_bert(device):
-    torch_input_tensor = torch.randn((1, 256, 1024), dtype=torch.bfloat16)
-    reshape_shape = (1, 256, 16, 64)
+@pytest.mark.parametrize(
+    "input_shape, output_shape",
+    [
+        ((1, 256, 16), (16, 256)),
+        ((1, 256, 1024), (1, 256, 16, 64)),
+        ((16, 16), (32, 8)),
+        ((1, 256, 1), (1, 256)),
+    ],
+)
+def test_reshape_padding(input_shape, output_shape, device):
+    torch_input_tensor = torch.randn(input_shape, dtype=torch.bfloat16)
+    reshape_shape = output_shape
     torch_result = torch_input_tensor.reshape(reshape_shape)
 
-    input_tensor = ttnn.from_torch(torch_input_tensor, layout=ttnn.ROW_MAJOR_LAYOUT, dtype=ttnn.bfloat16, device=device)
+    input_tensor = ttnn.from_torch(torch_input_tensor, layout=ttnn.TILE_LAYOUT, dtype=ttnn.bfloat16, device=device)
     ttnn_output = ttnn.reshape(input_tensor, reshape_shape)
 
     output = ttnn.to_torch(ttnn_output)
