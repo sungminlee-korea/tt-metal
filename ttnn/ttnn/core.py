@@ -98,6 +98,9 @@ def create_sharded_memory_config(
         halo (bool, optional): if the shards have overlapping values. Defaults to `False`.
         use_height_and_width_as_shard_shape (bool, optional): if True, the height and width of the tensor will be used as the shard shape. Defaults to `False`. If is False, the shard shape will be calculated based on the core_grid and the tensor shape where tensor shape is seen as [math.prod(dims), width]
 
+    Returns:
+        ttnn.MemoryConfig: the MemoryConfig object.
+
     Example:
         >>> tensor = ttnn.create_sharded_memory_config((5, 8), (320,64), ttnn.ShardStrategy.BLOCK, ttnn.ShardOrientation.ROW_MAJOR, False)
 
