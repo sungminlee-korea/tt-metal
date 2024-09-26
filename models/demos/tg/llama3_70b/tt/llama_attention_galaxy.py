@@ -356,11 +356,11 @@ class TtLlamaAttention_galaxy:
             cache_file_name=self.cache_path / wo_cache_str,
         )
 
-    def __call__(self, xs, rot_mats, start_pos: int, attn_masks, user_id: int = 0, mode="decode"):
+    def __call__(self, xs, rot_mats, start_pos: int, cache_idxs, attn_masks, user_id: int = 0, mode="decode"):
         self.get_attn_model_config(mode)
         # Decode should have input tensor of shape (seqlen=1, 1, batch, hidden_size)
         if mode == "decode":
-            return self.decode_forward(xs, rot_mats, start_pos, attn_masks)
+            return self.decode_forward(xs, rot_mats, start_pos, cache_idxs, attn_masks)
         elif mode == "prefill":
             return self.prefill_forward(xs, rot_mats, attn_masks, user_id)
         else:
@@ -371,10 +371,11 @@ class TtLlamaAttention_galaxy:
         xs,
         rot_mats,
         start_pos: int,
+        cache_idxs,
         attn_masks,
     ):
         query_layer, key_layer, value_layer = self.attn_qkv(xs, rot_mats)
-        attn_outputs = self.attn_mqa(query_layer, key_layer, value_layer, start_pos, attn_masks)
+        attn_outputs = self.attn_mqa(query_layer, key_layer, value_layer, start_pos, cache_idxs, attn_masks)
         return self.attn_selfout(attn_outputs)
 
     def attn_qkv(
@@ -463,6 +464,7 @@ class TtLlamaAttention_galaxy:
         key_layer,
         value_layer,
         start_pos: int,
+        cache_idxs,
         attn_masks,
         batch_offset: int = 0,
     ):
@@ -496,7 +498,7 @@ class TtLlamaAttention_galaxy:
             query_layer,
             keys,
             values,
-            [start_pos for _ in range(self.max_batch_size)],
+            cur_pos_tensor=cache_idxs,
             scale=self.scale,
             program_config=program_config,
             compute_kernel_config=self.COMPUTE_KERNEL_SDPA,

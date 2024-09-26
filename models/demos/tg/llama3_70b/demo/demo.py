@@ -262,13 +262,17 @@ def run_decode(
     # capture trace
     if trace_mode:
         logger.info("Capturing trace")
-        trace_id, tt_inp_emb, rot_mat, tt_logits = model.capture_trace(tokens[:, prev_pos:min_prompt_len], prev_pos)
+        trace_id, tt_inp_emb, rot_mat, cache_idxs_tt, tt_logits = model.capture_trace(
+            tokens[:, prev_pos:min_prompt_len], prev_pos
+        )
 
     for cur_pos in range(min_prompt_len, total_len):
         start = time()
         input_tokens = tokens[:, prev_pos:cur_pos]
         if trace_mode and input_tokens.shape[1] == 1:
-            logits = model.decode_forward_trace(input_tokens, prev_pos, trace_id, tt_inp_emb, rot_mat, tt_logits)
+            logits = model.decode_forward_trace(
+                input_tokens, prev_pos, trace_id, tt_inp_emb, rot_mat, cache_idxs_tt, tt_logits
+            )
         else:
             logits = model.forward(input_tokens, prev_pos)
 

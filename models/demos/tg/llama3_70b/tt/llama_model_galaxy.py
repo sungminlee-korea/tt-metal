@@ -294,13 +294,24 @@ class TtLlamaModel_galaxy:
                 layout=ttnn.TILE_LAYOUT,
                 mesh_mapper=ReplicateTensorToMesh(self.mesh_device),
             )
+            if isinstance(start_pos, int):
+                cache_idxs = torch.tensor([start_pos for _ in range(batch)], dtype=torch.int64)
+            else:
+                cache_idxs = start_pos.to(dtype=torch.int64)
 
+            cache_idxs_tt = ttnn.as_tensor(
+                cache_idxs,
+                dtype=ttnn.int32,
+                layout=ttnn.ROW_MAJOR_LAYOUT,
+                mesh_mapper=ReplicateTensorToMesh(self.mesh_device),
+            )
             attn_masks = None
 
         return (
             xs,
             start_pos,
             rot_mats,
+            cache_idxs_tt,
             attn_masks,
         )
 
@@ -309,13 +320,14 @@ class TtLlamaModel_galaxy:
         xs: List[ttnn.Tensor],
         rot_mats: List[ttnn.Tensor],
         start_pos: int,
+        cache_idxs: List[ttnn.Tensor],
         attn_masks: List[ttnn.Tensor],
         user_id: int = 0,
         mode="decode",
     ) -> ttnn.Tensor:
         self.get_model_config(mode)
         if mode == "decode":
-            return self.decode_forward(xs, rot_mats, start_pos, attn_masks)
+            return self.decode_forward(xs, rot_mats, start_pos, cache_idxs, attn_masks)
         elif mode == "prefill":
             return self.prefill_forward(xs, rot_mats, start_pos, attn_masks, user_id)
         else:
@@ -352,11 +364,12 @@ class TtLlamaModel_galaxy:
         xs: List[ttnn.Tensor],
         rot_mats: List[ttnn.Tensor],
         start_pos: int,
+        cache_idxs: List[ttnn.Tensor],
         attn_masks: List[ttnn.Tensor],
     ) -> ttnn.Tensor:
         ### Run all layers
         for layer in self.layers:
-            xs = layer(xs, rot_mats, start_pos, attn_masks, mode="decode")  # xs is fractured
+            xs = layer(xs, rot_mats, start_pos, cache_idxs, attn_masks, mode="decode")  # xs is fractured
 
         xs_interleaved = ttnn.to_memory_config(xs, memory_config=ttnn.DRAM_MEMORY_CONFIG)
 
