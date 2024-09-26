@@ -1411,7 +1411,6 @@ void noc_async_read_barrier() {
  *
  * Return value: None
  */
-FORCE_INLINE
 void noc_async_write_barrier() {
     WAYPOINT("NWBW");
     while (!ncrisc_noc_nonposted_writes_flushed(noc_index))
@@ -1565,7 +1564,7 @@ void noc_inline_dw_write(uint64_t addr, uint32_t val, uint8_t be = 0xF) {
  * | addr      | Encoding of the destination location (x,y)+address             | uint64_t | DOX-TODO(insert a reference to what constitutes valid coords) | True     |
  * | incr      | The value to increment by                                      | uint32_t | Any uint32_t value                                            | True     |
  */
-inline
+FORCE_INLINE
 void noc_semaphore_inc(uint64_t addr, uint32_t incr, uint8_t noc_id = noc_index) {
     /*
     [REFER TO grayskull/noc/noc.h for the documentation of noc_atomic_increment()]

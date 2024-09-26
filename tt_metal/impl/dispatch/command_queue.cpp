@@ -1287,13 +1287,10 @@ void EnqueueProgramCommand::assemble_device_commands(
             }
             i++;
         }
-        uint32_t go_signal_count = 0;
         for (auto& go_signal : cached_program_command_sequence.go_signals) {
             for (uint32_t i = 0; i < kernel_config_addrs.size(); i++) {
                 go_signal->kernel_config.kernel_config_base[i] = kernel_config_addrs[i].addr;
             }
-
-            go_signal_count++;
             go_signal->kernel_config.host_assigned_id = program.get_runtime_id();
         }
         // Update launch message addresses to reflect new launch_msg slot in ring buffer

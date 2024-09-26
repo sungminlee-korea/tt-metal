@@ -115,6 +115,7 @@ bool process_cmd(uint32_t& cmd_ptr,
                  uint32_t* l1_cache,
                  PrefetchExecBufState& exec_buf_state);
 
+template<bool send_to_dispatch_master = true>
 FORCE_INLINE
 void write_downstream(uint32_t& data_ptr,
                       uint32_t& local_downstream_data_ptr,
@@ -129,10 +130,10 @@ void write_downstream(uint32_t& data_ptr,
             data_ptr += remaining;
             length -= remaining;
         }
-        if (downstream_end == dispatch_s_buffer_end) {
-            local_downstream_data_ptr = dispatch_s_buffer_base;
-        } else {
+        if constexpr (send_to_dispatch_master) {
             local_downstream_data_ptr = downstream_cb_base;
+        } else {
+            local_downstream_data_ptr = dispatch_s_buffer_base;
         }
     }
 
@@ -335,12 +336,11 @@ uint32_t process_debug_cmd(uint32_t cmd_ptr) {
     return cmd->debug.stride;
 }
 
-template<bool cmddat_wrap_enable>
+template<bool cmddat_wrap_enable, bool send_to_dispatch_master>
 static uint32_t process_relay_inline_cmd(uint32_t cmd_ptr,
                                          uint32_t& local_downstream_data_ptr) {
 
     volatile CQPrefetchCmd tt_l1_ptr *cmd = (volatile CQPrefetchCmd tt_l1_ptr *)cmd_ptr;
-    uint8_t dispatcher_type = cmd->relay_inline.dispatcher_type;
     uint32_t length = cmd->relay_inline.length;
     uint32_t data_ptr = cmd_ptr + sizeof(CQPrefetchCmd);
 
@@ -349,7 +349,7 @@ static uint32_t process_relay_inline_cmd(uint32_t cmd_ptr,
     // Assume the downstream buffer is big relative to cmddat command size that we can
     // grab what we need in one chunk
     // Choose which dispatcher prefetcher needs to reserve pages on
-    if (dispatcher_type == DispatcherSelect::DISPATCH_MASTER) {
+    if constexpr (send_to_dispatch_master) {
         cb_acquire_pages<my_noc_xy, my_downstream_cb_sem_id>(npages);
     } else {
         cb_acquire_pages<my_noc_xy, my_dispatch_s_cb_sem_id>(npages);
@@ -358,24 +358,27 @@ static uint32_t process_relay_inline_cmd(uint32_t cmd_ptr,
     // Each dispatcher has a separate CB. Determine which one needs to be written to
     if (cmddat_wrap_enable && length > remaining) {
         // wrap cmddat
-        write_downstream(data_ptr, local_downstream_data_ptr, remaining, (dispatcher_type == DispatcherSelect::DISPATCH_SLAVE) ? dispatch_s_buffer_end : downstream_cb_end, (dispatcher_type == DispatcherSelect::DISPATCH_SLAVE) ? dispatch_s_noc_xy : downstream_noc_xy);
+        if constexpr (send_to_dispatch_master) {
+            write_downstream<true>(data_ptr, local_downstream_data_ptr, remaining, downstream_cb_end, downstream_noc_xy);
+        } else {
+            write_downstream<false>(data_ptr, local_downstream_data_ptr, remaining, dispatch_s_buffer_end, dispatch_s_noc_xy);
+        }
         length -= remaining;
         data_ptr = cmddat_q_base;
     }
-
-    write_downstream(data_ptr, local_downstream_data_ptr, length, (dispatcher_type == DispatcherSelect::DISPATCH_SLAVE) ? dispatch_s_buffer_end : downstream_cb_end, (dispatcher_type == DispatcherSelect::DISPATCH_SLAVE) ? dispatch_s_noc_xy : downstream_noc_xy);
-
-    // Round to nearest page
-    local_downstream_data_ptr = round_up_pow2(local_downstream_data_ptr, (dispatcher_type == DispatcherSelect::DISPATCH_SLAVE) ?  dispatch_s_cb_page_size : downstream_cb_page_size);
-
-    noc_async_writes_flushed();
-
-    if (dispatcher_type == DispatcherSelect::DISPATCH_MASTER) {
+    if constexpr (send_to_dispatch_master) {
+        write_downstream<true>(data_ptr, local_downstream_data_ptr, length, downstream_cb_end, downstream_noc_xy);
+        // Round to nearest page
+        local_downstream_data_ptr = round_up_pow2(local_downstream_data_ptr, downstream_cb_page_size);
+        noc_async_writes_flushed();
         cb_release_pages<my_noc_index, downstream_noc_xy, downstream_cb_sem_id>(npages);
     } else {
+        write_downstream<false>(data_ptr, local_downstream_data_ptr, length, dispatch_s_buffer_end, dispatch_s_noc_xy);
+        // Round to nearest page
+        local_downstream_data_ptr = round_up_pow2(local_downstream_data_ptr, dispatch_s_cb_page_size);
+        noc_async_writes_flushed();
         cb_release_pages<my_noc_index, dispatch_s_noc_xy, downstream_dispatch_s_cb_sem_id>(npages);
     }
-
     return cmd->relay_inline.stride;
 }
 
@@ -939,6 +942,7 @@ void paged_read_into_cmddat_q(uint32_t read_ptr, PrefetchExecBufState& exec_buf_
 // processes the relay_inline cmd from an exec_buf
 // ie, reads the data from dram and relays it on
 // Separate implementation that fetches more data from exec buf when cmd has been split
+template<bool send_to_dispatch_master>
 static uint32_t process_exec_buf_relay_inline_cmd(uint32_t& cmd_ptr,
                                                   uint32_t& local_downstream_data_ptr,
                                                   PrefetchExecBufState& exec_buf_state) {
@@ -953,7 +957,7 @@ static uint32_t process_exec_buf_relay_inline_cmd(uint32_t& cmd_ptr,
 
     // Assume the downstream buffer is big relative to cmddat command size that we can
     // grab what we need in one chunk
-    if (dispatcher_type == DispatcherSelect::DISPATCH_MASTER) {
+    if constexpr (send_to_dispatch_master) {
         cb_acquire_pages<my_noc_xy, my_downstream_cb_sem_id>(npages);
     } else {
         cb_acquire_pages<my_noc_xy, my_dispatch_s_cb_sem_id>(npages);
@@ -963,7 +967,11 @@ static uint32_t process_exec_buf_relay_inline_cmd(uint32_t& cmd_ptr,
     uint32_t remaining = exec_buf_state.length - sizeof(CQPrefetchCmd);
     while (length > remaining) {
         // wrap cmddat
-        write_downstream(data_ptr, local_downstream_data_ptr, remaining, (dispatcher_type == DispatcherSelect::DISPATCH_SLAVE) ? dispatch_s_buffer_end : downstream_cb_end, (dispatcher_type == DispatcherSelect::DISPATCH_SLAVE) ? dispatch_s_noc_xy : downstream_noc_xy);
+        if constexpr (send_to_dispatch_master) {
+            write_downstream<true>(data_ptr, local_downstream_data_ptr, remaining, downstream_cb_end, downstream_noc_xy);
+        } else {
+            write_downstream<false>(data_ptr, local_downstream_data_ptr, remaining, dispatch_s_buffer_end, dispatch_s_noc_xy);
+        }
         length -= remaining;
         stride -= remaining_stride;
         exec_buf_state.length = 0;
@@ -977,17 +985,17 @@ static uint32_t process_exec_buf_relay_inline_cmd(uint32_t& cmd_ptr,
         remaining = exec_buf_state.length;
         remaining_stride = exec_buf_state.length;
     }
-
-    write_downstream(data_ptr, local_downstream_data_ptr, length, (dispatcher_type == DispatcherSelect::DISPATCH_SLAVE) ? dispatch_s_buffer_end : downstream_cb_end, (dispatcher_type == DispatcherSelect::DISPATCH_SLAVE) ? dispatch_s_noc_xy : downstream_noc_xy);
-
-    // Round to nearest page
-    local_downstream_data_ptr = round_up_pow2(local_downstream_data_ptr, (dispatcher_type == DispatcherSelect::DISPATCH_SLAVE) ? dispatch_s_cb_page_size : downstream_cb_page_size);
-
-    noc_async_writes_flushed();
-
-    if (dispatcher_type == DispatcherSelect::DISPATCH_MASTER) {
+    if constexpr (send_to_dispatch_master) {
+        write_downstream<true>(data_ptr, local_downstream_data_ptr, length, downstream_cb_end, downstream_noc_xy);
+        // Round to nearest page
+        local_downstream_data_ptr = round_up_pow2(local_downstream_data_ptr, downstream_cb_page_size);
+        noc_async_writes_flushed();
         cb_release_pages<my_noc_index, downstream_noc_xy, downstream_cb_sem_id>(npages);
     } else {
+        write_downstream<false>(data_ptr, local_downstream_data_ptr, length, dispatch_s_buffer_end, dispatch_s_noc_xy);
+        // Round to nearest page
+        local_downstream_data_ptr = round_up_pow2(local_downstream_data_ptr, dispatch_s_cb_page_size);
+        noc_async_writes_flushed();
         cb_release_pages<my_noc_index, dispatch_s_noc_xy, downstream_dispatch_s_cb_sem_id>(npages);
     }
 
@@ -1167,10 +1175,19 @@ bool process_cmd(uint32_t& cmd_ptr,
 
     case CQ_PREFETCH_CMD_RELAY_INLINE:
         //DPRINT << "relay inline" << ENDL();
-        if (exec_buf) {
-            stride = process_exec_buf_relay_inline_cmd(cmd_ptr, cmd->relay_inline.dispatcher_type ? downstream_data_ptr_s :  downstream_data_ptr, exec_buf_state);
+        if constexpr (exec_buf) {
+            if (cmd->relay_inline.dispatcher_type == DispatcherSelect::DISPATCH_MASTER) {
+                stride = process_exec_buf_relay_inline_cmd<true>(cmd_ptr, downstream_data_ptr, exec_buf_state);
+            } else {
+                stride = process_exec_buf_relay_inline_cmd<false>(cmd_ptr, downstream_data_ptr_s, exec_buf_state);
+            }
         } else {
-            stride = process_relay_inline_cmd<cmddat_wrap_enable>(cmd_ptr, cmd->relay_inline.dispatcher_type ? downstream_data_ptr_s :  downstream_data_ptr);
+            if (cmd->relay_inline.dispatcher_type == DispatcherSelect::DISPATCH_MASTER) {
+                stride = process_relay_inline_cmd<cmddat_wrap_enable, true>(cmd_ptr, downstream_data_ptr);
+            }
+            else {
+                stride = process_relay_inline_cmd<cmddat_wrap_enable, false>(cmd_ptr, downstream_data_ptr_s);
+            }
         }
         break;
 
@@ -1196,7 +1213,7 @@ bool process_cmd(uint32_t& cmd_ptr,
     case CQ_PREFETCH_CMD_EXEC_BUF_END:
         //DPRINT << "exec buf end: " << cmd_ptr << ENDL();
         ASSERT(exec_buf);
-        stride = process_exec_buf_relay_inline_cmd(cmd_ptr, downstream_data_ptr, exec_buf_state);
+        stride = process_exec_buf_relay_inline_cmd<true>(cmd_ptr, downstream_data_ptr, exec_buf_state);
         done = true;
         break;
 
