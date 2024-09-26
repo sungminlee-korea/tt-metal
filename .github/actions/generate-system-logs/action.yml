@@ -21,7 +21,7 @@ runs:
         sudo dmesg > ~/run-log/dmesg.log
         sudo lspci > ~/run-log/lspci.log
         sudo lshw > ~/run-log/lshw.log
-        tt-smi -s -f ~/run-log/tt_smi_${{ env.TIMESTAMP}}_${{ env.HOSTNAME }}_dump.log
+        tt-smi-metal -s -f ~/run-log/tt_smi_${{ env.TIMESTAMP}}_${{ env.HOSTNAME }}_dump.log
     - name: 'Tar files'
       shell: bash
       run: tar -cvf ~/run-log/sys_logs.tar ~/run-log/*
