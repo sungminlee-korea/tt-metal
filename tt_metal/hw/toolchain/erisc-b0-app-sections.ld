@@ -28,11 +28,17 @@ SECTIONS
   {
     *(code_l1)
   } > REGION_APP_CODE
-  .start :
-  {
-    *(.start)
-  } > REGION_APP_CODE
   PROVIDE (__ecode_l1 = .);
+
+  /* We do not use .init/.fini, assert they don't happen rather than simply
+     disregard or pretend they work.  */
+  .initfini : {
+    KEEP (*(SORT_NONE(.init)))
+    KEEP (*(SORT_NONE(.fini)))
+  } >REGION_APP_CODE
+  ASSERT(SIZEOF(.initfini) == 0,
+	".init/.fini sections found. Use .init_array/.fini_array");
+
   /* TODO: add back when using iram code loading
   .text :
 

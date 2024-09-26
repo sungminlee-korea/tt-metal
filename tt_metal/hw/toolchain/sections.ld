@@ -51,7 +51,7 @@ SECTIONS
     *(.gnu.warning)
   } > REGION_CODE
 
-  /* We do not use .initfini, assert they don't happen rather than simply
+  /* We do not use .init/.fini, assert they don't happen rather than simply
      disregard or pretend they work.  */
   .initfini : {
     KEEP (*(SORT_NONE(.init)))
