@@ -140,22 +140,22 @@ def run_moreh_nll_loss_backward(shape, ignore_index, reduction_mean, none_weight
     assert passing
 
 
-# @pytest.mark.parametrize(
-#     "shape",
-#     [
-#         [5, 10],
-#         [3000, 100],
-#         [200, 100, 90],
-#         [5, 50, 2, 7, 50, 70],
-#     ],
-# )
-# @pytest.mark.parametrize("ignore_index", [1])
-# @pytest.mark.parametrize("reduction", ["mean", "sum"])
-# @pytest.mark.parametrize("none_weight", [True, False])
-# def test_moreh_nll_loss(shape, ignore_index, reduction, none_weight, device):
-#     torch.manual_seed(0)
+@pytest.mark.parametrize(
+    "shape",
+    [
+        [5, 10],
+        [3000, 100],
+        [200, 100, 90],
+        [5, 50, 2, 7, 50, 70],
+    ],
+)
+@pytest.mark.parametrize("ignore_index", [1])
+@pytest.mark.parametrize("reduction", ["mean", "sum"])
+@pytest.mark.parametrize("none_weight", [True, False])
+def test_moreh_nll_loss(shape, ignore_index, reduction, none_weight, device):
+    torch.manual_seed(0)
 
-#     run_moreh_nll_loss(shape, ignore_index, reduction, none_weight, device)
+    run_moreh_nll_loss(shape, ignore_index, reduction, none_weight, device)
 
 
 @pytest.mark.parametrize(
