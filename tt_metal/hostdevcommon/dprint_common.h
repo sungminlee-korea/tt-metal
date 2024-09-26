@@ -31,7 +31,6 @@
     DPRINT_PREFIX(WAIT)              \
     DPRINT_PREFIX(BFLOAT16)          \
     DPRINT_PREFIX(SETPRECISION)      \
-    DPRINT_PREFIX(NOC_LOG_XFER)      \
     DPRINT_PREFIX(FIXED)             \
     DPRINT_PREFIX(DEFAULTFLOAT)      \
     DPRINT_PREFIX(HEX)               \

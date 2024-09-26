@@ -15,7 +15,13 @@ using std::vector;
 string output_dir_name = "generated/watcher/";
 string logfile_name = "cq_dump.txt";
 
-void dump_data(vector<unsigned>& device_ids, bool dump_watcher, bool dump_cqs, bool dump_cqs_raw_data, int num_hw_cqs) {
+void dump_data(
+    vector<unsigned>& device_ids,
+    bool dump_watcher,
+    bool dump_cqs,
+    bool dump_cqs_raw_data,
+    bool dump_noc_xfers,
+    int num_hw_cqs) {
     // Don't clear L1, this way we can dump the state.
     llrt::OptionsG.set_clear_l1(false);
 
@@ -69,6 +75,9 @@ void print_usage(const char* exec_name) {
     cout << "\t-w, --dump-watcher: Dump watcher data, available data depends on whether watcher was enabled for "
             "original program."
          << endl;
+    cout << "\t--dump-noc-transfer-data: Dump NOC transfer data. Data is only available if previous run had "
+            "TT_METAL_RECORD_NOC_TRANSFER_DATA defined."
+         << endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -81,7 +90,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Go through user args, handle accordingly.
-    bool dump_watcher = false, dump_cqs = false, dump_cqs_raw_data = false;
+    bool dump_watcher = false, dump_cqs = false, dump_cqs_raw_data = false, dump_noc_xfers = false;
     int num_hw_cqs = 1;
     for (int idx = 1; idx < argc; idx++) {
         string s(argv[idx]);
@@ -116,6 +125,8 @@ int main(int argc, char* argv[]) {
             dump_cqs = true;
         } else if (s == "--dump-cqs-data") {
             dump_cqs_raw_data = true;
+        } else if (s == "--dump-noc-transfer-data") {
+            dump_noc_xfers = true;
         } else {
             cout << "Error: unrecognized command line argument: " << s << endl;
             print_usage(argv[0]);
@@ -124,6 +135,6 @@ int main(int argc, char* argv[]) {
     }
 
     // Call dump function with user config.
-    dump_data(device_ids, dump_watcher, dump_cqs, dump_cqs_raw_data, num_hw_cqs);
+    dump_data(device_ids, dump_watcher, dump_cqs, dump_cqs_raw_data, dump_noc_xfers, num_hw_cqs);
     std::cout << "Watcher dump tool finished." << std::endl;
 }

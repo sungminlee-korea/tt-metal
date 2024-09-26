@@ -97,7 +97,7 @@ class RunTimeOptions {
     bool watcher_append = false;
     bool watcher_auto_unpause = false;
     bool watcher_noinline = false;
-    bool dprint_noc_transfer_data = false;
+    bool record_noc_transfer_data = false;
     bool compile_out_debug_tools_on_dispatch_kernels = false;
 
     TargetSelection feature_targets[RunTimeDebugFeatureCount];
@@ -214,8 +214,8 @@ class RunTimeOptions {
         feature_targets[feature] = targets;
     }
 
-    inline bool get_dprint_noc_transfers() { return dprint_noc_transfer_data; }
-    inline void set_dprint_noc_transfers(bool val) { dprint_noc_transfer_data = val; }
+    inline bool get_record_noc_transfers() { return record_noc_transfer_data; }
+    inline void set_record_noc_transfers(bool val) { record_noc_transfer_data = val; }
 
     inline bool get_compile_out_debug_tools_on_dispatch_kernels() { return compile_out_debug_tools_on_dispatch_kernels; }
 

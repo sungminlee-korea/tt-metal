@@ -158,8 +158,6 @@ private:
 
     std::ofstream* outfile_ = nullptr; // non-cout
     std::ostream* stream_ = nullptr; // either == outfile_ or is &cout
-    std::ofstream* noc_log_ = nullptr;
-    std::map<uint32_t, uint32_t> noc_xfer_counts;
 
     // A map to from {device id, core coord x, y, hart index} to the signal code it's waiting for.
     std::map<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>, uint32_t> hart_waiting_on_signal_;
@@ -362,7 +360,6 @@ DebugPrintServerContext::DebugPrintServerContext() {
         outfile_ = new std::ofstream(file_name);
     }
     stream_ = outfile_ ? outfile_ : &cout;
-    noc_log_ = new std::ofstream("noc_log.csv");
 
     stop_print_server_ = false;
     mute_print_server_ = false;
@@ -391,10 +388,6 @@ DebugPrintServerContext::~DebugPrintServerContext() {
         outfile_->close();
         delete outfile_;
     }
-    for (auto &size_and_count : noc_xfer_counts)
-        *noc_log_ << size_and_count.first << "," << size_and_count.second << "\n";
-    noc_log_->close();
-    delete noc_log_;
     inst = nullptr;
 } // ~DebugPrintServerContext
 
@@ -742,11 +735,6 @@ bool DebugPrintServerContext::PeekOneHartNonBlocking(
                 case DPrintSETPRECISION:
                     stream << std::setprecision(*ptr);
                     TT_ASSERT(sz == 1);
-                break;
-                case DPrintNOC_LOG_XFER:
-                    if (tt::llrt::OptionsG.get_dprint_noc_transfers())
-                        noc_xfer_counts[*reinterpret_cast<uint32_t*>(ptr)]++;
-                    TT_ASSERT(sz == 4);
                 break;
                 case DPrintFIXED:
                     stream << std::fixed;
