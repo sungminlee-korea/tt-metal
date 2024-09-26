@@ -36,13 +36,12 @@ SEARCH_DIR("/opt/riscv32i/riscv32-unknown-elf/lib");
 SECTIONS
 {
   /* Read-only sections, merged into text segment: */
-  PROVIDE (__executable_start = __firmware_start);
-  .init __firmware_start :
+  .text __firmware_start :
   {
-    KEEP (*(SORT_NONE(.init)))
-  } > REGION_CODE
-  .text           :
-  {
+    /* We require the entry point to be the start of text. */
+    PROVIDE (__executable_start = .);
+    *(.text.entry)
+
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)
     *(.text.startup .text.startup.*)
@@ -51,10 +50,14 @@ SECTIONS
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
   } > REGION_CODE
-  .fini           :
-  {
+  /* We do not use .initfini, assert they don't happen rather than simply
+     disregard or pretend they work.  */
+  .initfini : {
+    KEEP (*(SORT_NONE(.init)))
     KEEP (*(SORT_NONE(.fini)))
-  } > REGION_CODE
+  } >REGION_CODE
+  ASSERT(SIZEOF(.initfini) == 0,
+	".init/.fini sections found. Use .init_array/.fini_array");
 
   l1_data :
   {

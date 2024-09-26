@@ -28,9 +28,9 @@ SECTIONS
   PROVIDE (__global_pointer$ = __firmware_global_pointer);
   PROVIDE (__erisc_jump_table = ORIGIN(ERISC_JUMPTABLE));
 
-  .init __firmware_start :
+  .text.entry __firmware_start :
   {
-    KEEP (*(SORT_NONE(.init)))
+    *(.text.entry)
   } > REGION_APP_KERNEL_CODE
   code_l1 :
   {
@@ -38,7 +38,6 @@ SECTIONS
   } > REGION_APP_KERNEL_CODE
   PROVIDE (__ecode_l1 = .);
   .text :
-
   {
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)

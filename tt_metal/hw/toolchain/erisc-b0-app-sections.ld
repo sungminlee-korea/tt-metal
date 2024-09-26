@@ -28,9 +28,9 @@ SECTIONS
   {
     *(code_l1)
   } > REGION_APP_CODE
-  .init :
+  .text.entry :
   {
-    KEEP (*(SORT_NONE(.init)))
+    *(.text.entry)
   } > REGION_APP_CODE
   PROVIDE (__ecode_l1 = .);
   /* TODO: add back when using iram code loading
