@@ -171,7 +171,7 @@ void ElfFile::Impl::loadImage () {
     if ((section.sh_flags & SHF_ALLOC
 	 || section.sh_type == SHT_RELA
 	 || section.sh_type == SHT_SYMTAB)
-	&& (section.sh_offset | section.sh_addr) & (sizeof(word_t) - 1))
+	&& (section.sh_offset | section.sh_addr) & (sizeof(word_t) - 1)
         || section.sh_offset + section.sh_size > Owner.Contents.size())
       TT_THROW("{}: section {} is misaligned", Path, getName(section));
 
@@ -204,7 +204,7 @@ void ElfFile::Impl::loadImage () {
     Owner.Segments.emplace_back(
       std::span(reinterpret_cast<word_t const *>(contents.data()),
 		contents.size() / sizeof(word_t)),
-      phdr.p_vaddr / sizeof(word_t), entryOrBSS sizeof(word_t));
+      phdr.p_vaddr / sizeof(word_t), entryOrBSS / sizeof(word_t));
   }
   if (text < 0)
     TT_THROW("{}: cannot find text segment", Path);
