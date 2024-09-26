@@ -87,9 +87,9 @@ MorehSgdOperation::tensor_return_value_t MorehSgdOperation::create_output_tensor
 std::tuple<MorehSgdOperation::operation_attributes_t, MorehSgdOperation::tensor_args_t> MorehSgdOperation::invoke(
     const Tensor& param_in,
     const Tensor& grad,
-    const std::optional<const Tensor> momentum_buffer_in,
-    const std::optional<const Tensor> param_out,
-    const std::optional<const Tensor> momentum_buffer_out,
+    const std::optional<const Tensor>& momentum_buffer_in,
+    const std::optional<const Tensor>& param_out,
+    const std::optional<const Tensor>& momentum_buffer_out,
     float lr,
     float momentum,
     float dampening,

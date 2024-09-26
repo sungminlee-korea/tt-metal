@@ -65,9 +65,9 @@ struct MorehSgdOperation {
     static std::tuple<operation_attributes_t, tensor_args_t> invoke(
         const Tensor& param_in,
         const Tensor& grad,
-        const std::optional<const Tensor> momentum_buffer_in,
-        const std::optional<const Tensor> param_out,
-        const std::optional<const Tensor> momentum_buffer_out,
+        const std::optional<const Tensor>& momentum_buffer_in,
+        const std::optional<const Tensor>& param_out,
+        const std::optional<const Tensor>& momentum_buffer_out,
 
         float lr,
         float momentum,

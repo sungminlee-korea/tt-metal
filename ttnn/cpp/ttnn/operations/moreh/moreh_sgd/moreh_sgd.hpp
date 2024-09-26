@@ -12,9 +12,9 @@ struct MorehSgd {
     static std::vector<std::optional<Tensor>> invoke(
         const Tensor& param_in,
         const Tensor& grad,
-        const std::optional<const Tensor> momentum_buffer_in,
-        const std::optional<const Tensor> param_out,
-        const std::optional<const Tensor> momentum_buffer_out,
+        const std::optional<const Tensor>& momentum_buffer_in,
+        const std::optional<const Tensor>& param_out,
+        const std::optional<const Tensor>& momentum_buffer_out,
         float lr,
         float momentum,
         float dampening,
