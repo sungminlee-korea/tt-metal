@@ -1318,7 +1318,14 @@ void bind_dropout(py::module& module, const unary_operation_t& operation) {
 }  // namespace detail
 
 void py_module(py::module& module) {
-    detail::bind_unary_operation_overload_complex(module, ttnn::abs);
+    detail::bind_unary_operation_overload_complex(module, ttnn::abs,
+    R"doc(Supported dtypes, layouts, and ranks:
+
+        +----------------------------+---------------------------------+-------------------+
+        |     Dtypes                 |         Layouts                 |     Ranks         |
+        +----------------------------+---------------------------------+-------------------+
+        |    BFLOAT16, BFLOAT8_B     |          TILE                   |      2, 3, 4      |
+        +----------------------------+---------------------------------+-------------------+)doc");
     detail::bind_unary_operation(module, ttnn::acos);
     detail::bind_unary_operation(module, ttnn::asin);
     detail::bind_unary_operation(module, ttnn::atan);
