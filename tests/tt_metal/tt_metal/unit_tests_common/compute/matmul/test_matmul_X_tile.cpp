@@ -19,42 +19,7 @@
 
 using namespace tt;
 using namespace tt::test_utils;
-
 namespace unit_tests_common::matmul::test_matmul_X_tile{
-
-// Function to print two tensors side by side, with differing values in red
-void printTwoTensors(const std::vector<uint32_t>& tensor_a, const std::vector<uint32_t>& tensor_b, int rows = 32, int cols = 32) {
-    const std::string red = "\033[31m";    // ANSI code for red
-    const std::string reset = "\033[0m";   // ANSI code to reset color
-
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < cols; ++j) {
-            int index = i * cols + j;
-
-            // Compare tensor_a and tensor_b
-            if (tensor_a[index] != tensor_b[index]) {
-                // Print differing values in red
-                std::cout << red << std::hex << tensor_a[index] << reset << " ";
-                std::cout << red << std::hex << tensor_b[index] << reset << "   ";
-            } else {
-                // Print matching values normally
-                std::cout << std::hex << tensor_a[index] << " ";
-                std::cout << std::hex << tensor_b[index] << "   ";
-            }
-        }
-        std::cout << std::endl;  // New line at the end of each row
-    }
-}
-template <class T, template <typename...> typename BufferType>
-void printTensor(const BufferType<T>& tensor, int rows = 32, int cols = 32) {
-    for (int i = 0; i < rows; ++i) {
-        for (int j = 0; j < cols; ++j) {
-            std::cout << std::hex << tensor[i * cols + j] << " ";
-        }
-        std::cout << std::endl;  // New line at the end of each row
-    }
-}
-
 struct MatmulTileConfig {
     uint32_t M, K, N;
     bool with_bias = false;
@@ -67,6 +32,29 @@ struct MatmulTileConfig {
     MathFidelity math_fidelity = MathFidelity::HiFi4;
 };
 
+std::vector<uint32_t> create_random_activations(uint32_t M, uint32_t K, uint32_t N) {
+    SHAPE shape = {1, 1, M * 32, K * 32};
+    tt::deprecated::Tensor<bfloat16> tensor = tt::deprecated::initialize_tensor<bfloat16>(
+        shape,
+        tt::deprecated::Initialize::RANDOM,
+        100,
+        std::chrono::system_clock::now().time_since_epoch().count()
+    );
+    auto activations_tilized = test_utils::tilize(tensor.get_values(), M * 32, K * 32);
+    auto activations_tile_layout = convert_to_tile_layout(activations_tilized);
+    auto activations = pack_bfloat16_vec_into_uint32_vec(activations_tile_layout);
+    auto activations_tile_transposed = transpose_tiles(activations, M, K, 1);
+    return activations_tile_transposed;
+}
+
+std::vector<uint32_t> create_identity(uint32_t M, uint32_t K, uint32_t N) {
+    auto identity = create_identity_matrix(K * 32, N * 32, std::min(K, N) * 32); //bfloat16 32x32 identity
+    auto identity_tilized = test_utils::tilize(identity, K * 32, N * 32);
+    auto weights_tile_layout = convert_to_tile_layout(identity_tilized);
+    auto weights = pack_bfloat16_vec_into_uint32_vec(weights_tile_layout);
+    return weights;
+}
+
 void set_math_fid_masks(uint16_t &math_fid_mask, MathFidelity math_fidelity = MathFidelity::HiFi4) {
     auto arch = get_arch_from_string(get_env_arch_name());
     switch (math_fidelity) {
@@ -78,11 +66,9 @@ void set_math_fid_masks(uint16_t &math_fid_mask, MathFidelity math_fidelity = Ma
     }
 }
 
-bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulTileConfig &cfg, vector<uint32_t> activations, vector<std::seed_seq::result_type> weights, deprecated::Tensor<bfloat16> tensor){
-    bool pass = true;
+void matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulTileConfig &cfg, vector<uint32_t> activations, vector<std::seed_seq::result_type> weights, deprecated::Tensor<bfloat16> tensor){
 
     tt_metal::Program program = tt_metal::CreateProgram();
-
     CoreCoord core = {0, 0};
 
     // num_tile == M == N == K in the case of multi_tile, conveniently they were all the same!!
@@ -294,48 +280,24 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     // This is tilized result, will not be modified
     std::vector<uint32_t> result_vec;
     fixture->ReadBuffer(device, dst_dram_buffer, result_vec);
-    // printTensor<uint32_t>(result_vec, 64, 64);
-    std::cout << "result_vec.size() = " << result_vec.size() << std::endl;
 
     std::vector<bfloat16> golden = tensor.get_values();
-    std::cout << "golden.size() = " << golden.size() << std::endl;
-    std::vector<bfloat16> golden_tilized_single = convert_to_tile_layout(golden);
-    std::vector<bfloat16> golden_tilized = test_utils::tilize(golden_tilized_single, M*32, N*32);
-    std::cout << "golden_tilized.size() = " << golden_tilized.size() << std::endl;
+    std::vector<bfloat16> golden_tilized = test_utils::tilize(golden, M*32, N*32);
+    std::vector<bfloat16> golden_tilized_single = convert_to_tile_layout(golden_tilized);
 
-    std::vector<uint32_t> golden_packed(golden_tilized.size());
-    // golden_packed.resize(cfg.fp32_dest_acc_en ? golden_tilized.size() : golden_tilized.size() / 2);
+    std::vector<uint32_t> golden_packed(golden_tilized_single.size());
+    uint16_t math_fid_mask = 0xFFFF;
+    set_math_fid_masks(math_fid_mask, cfg.math_fidelity);
     for (auto i = 0; i < golden_tilized.size(); i++) {
+        golden_tilized_single[i] = bfloat16(golden_tilized_single[i].to_uint16() & math_fid_mask);
         if (cfg.fp32_dest_acc_en) {
-            golden_packed[i] = std::bit_cast<uint32_t>(golden_tilized[i].to_float());
+            golden_packed[i] = std::bit_cast<uint32_t>(golden_tilized_single[i].to_float());
         }
     }
     if (!cfg.fp32_dest_acc_en) {
-        golden_packed = pack_bfloat16_vec_into_uint32_vec(golden_tilized);
+        golden_packed = pack_bfloat16_vec_into_uint32_vec(golden_tilized_single);
     }
-    std::cout << "golden_packed.size() = " << golden_packed.size() << std::endl;
 
-    std::cout << "golden" << std::endl;
-    printTensor<bfloat16>(golden, M*32, N*32);
-    if (cfg.fp32_dest_acc_en) {
-        std::cout << "golden_tilized_single_fp32" << std::endl;
-        printTensor<bfloat16>(golden_tilized_single, M*32, N*32);
-        std::cout << "golden_tilized_fp32" << std::endl;
-        printTensor<bfloat16>(golden_tilized, M*32, N*32);
-        std::cout << "golden_packed_fp32" << std::endl;
-        printTensor<uint32_t>(golden_packed, M*32, N*32);
-        std::cout << "result_vec_fp32" << std::endl;
-        printTensor<uint32_t>(result_vec, M*32, N*32);
-    } else {
-        std::cout << "golden_tilized_single_fp16" << std::endl;
-        printTensor<bfloat16>(golden_tilized_single, M*32, N*32);
-        std::cout << "golden_tilized_fp16" << std::endl;
-        printTensor<bfloat16>(golden_tilized, M*32, N*32);
-        std::cout << "golden_packed_fp16" << std::endl;
-        printTensor<uint32_t>(golden_packed, M*32, N*32/2);
-        std::cout << "result_vec_fp16" << std::endl;
-        printTensor<uint32_t>(result_vec, M*32, N*16);
-    }
     EXPECT_EQ(golden_packed.size(), result_vec.size());
     EXPECT_EQ(golden_packed, result_vec);
 
@@ -348,14 +310,12 @@ bool matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
         DeallocateBuffer(*src2_dram_buffer);
     }
     DeallocateBuffer(*dst_dram_buffer);
-    return pass;
 }
 } // namespace unit_tests_common::matmul::test_matmul_X_tile
 
-using namespace unit_tests_common::matmul::test_matmul_X_tile;
 using namespace tt::test_utils;
 TEST_F(CommonFixture, MatmulSingleTile){
-    for (uint8_t i = uint8_t(MathFidelity::HiFi4); i <= uint8_t(MathFidelity::HiFi4); i++) {
+    for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
         if (i == 1) continue;
         for (bool fp32_dest_acc_en : {true, false}) {
             unit_tests_common::matmul::test_matmul_X_tile::MatmulTileConfig matmul_config = {
@@ -382,32 +342,15 @@ TEST_F(CommonFixture, MatmulSingleTile){
                 100,
                 std::chrono::system_clock::now().time_since_epoch().count()
             );
-            // tt::deprecated::Tensor<bfloat16> tensor = tt::deprecated::initialize_tensor<bfloat16>(
-            //     shape,
-            //     tt::deprecated::Initialize::INCREMENT,
-            //     100,
-            //     0
-            // );
-            // std::cout << "tensor:" << std::endl;
-            // printTensor<bfloat16>(tensor.get_values(), 32, 32);
             auto activations_tile_layout = convert_to_tile_layout(tensor.get_values());
-            // std::cout << "activations_tile_layout:" << std::endl;
-            // printTensor<bfloat16>(activations_tile_layout, 32, 32);
             auto activations = pack_bfloat16_vec_into_uint32_vec(activations_tile_layout);
-            // std::cout << "activations:" << std::endl;
-            // printTensor<uint32_t>(activations, 32, 16);
 
             auto identity = create_identity_matrix(32, 32, 32); //bfloat16 32x32 identity
-            // std::cout << "Identity:" << std::endl;
-            // printTensor<bfloat16>(identity, 32, 32);
             auto weights_tile_layout = convert_to_tile_layout(identity);
-            // std::cout << "weights_tile_layout:" << std::endl;
-            // printTensor<bfloat16>(weights_tile_layout, 32, 32);
             auto weights = pack_bfloat16_vec_into_uint32_vec(weights_tile_layout);
-            // std::cout << "weights:" << std::endl;
-            // printTensor<uint32_t>(weights, 32, 16);
+
             for(unsigned int id = 0; id < devices_.size(); id++){
-                ASSERT_TRUE(unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations, weights, tensor));
+                unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations, weights, tensor);
             }
         }
     }
@@ -416,10 +359,10 @@ TEST_F(CommonFixture, MatmulSingleTile){
 TEST_F(CommonFixture, MatmulMultiTile){
     for (uint8_t i = uint8_t(MathFidelity::HiFi4); i <= uint8_t(MathFidelity::HiFi4); i++) {
         if (i == 1) continue;
-        uint32_t M = 2;
-        uint32_t N = 2;
-        uint32_t K = 2;
-        for (bool fp32_dest_acc_en : {true}) {
+        for (bool fp32_dest_acc_en : {true, false}) {
+            uint32_t M = fp32_dest_acc_en ? 2 : 4;
+            uint32_t N = fp32_dest_acc_en ? 2 : 4;
+            uint32_t K = fp32_dest_acc_en ? 2 : 4;
             unit_tests_common::matmul::test_matmul_X_tile::MatmulTileConfig matmul_config = {
                 .M = M, .K = K, .N = N,
                 .fp32_dest_acc_en = fp32_dest_acc_en,
@@ -437,19 +380,54 @@ TEST_F(CommonFixture, MatmulMultiTile){
                 },
                 .math_fidelity = MathFidelity(i)
             };
+            tt::log_info(tt::LogTest, "Math Fidelity = {}, FP32_DestAcc = {}", i, fp32_dest_acc_en);
+
+            auto activations_tile_transposed = create_random_activations(M, K, N);
+            auto weights = create_identity(M, K, N);
+
+            for(unsigned int id = 0; id < devices_.size(); id++){
+                unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations_tile_transposed, weights, tensor);
+                log_info(LogTest, "Multi tile with no bias passed");
+                matmul_config.with_bias = true;
+                unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations_tile_transposed, weights, tensor);
+                log_info(LogTest, "Multi tile with bias passed");
+            }
+        }
+    }
+}
+
+TEST_F(CommonFixture, MatmulBlock){
+    for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
+        if (i == 1) continue;
+        for (bool fp32_dest_acc_en : {true, false}) {
+            uint32_t M = fp32_dest_acc_en ? 2 : 4;
+            uint32_t N = fp32_dest_acc_en ? 2 : 4;
+            uint32_t K = fp32_dest_acc_en ? 2 : 4;
+            unit_tests_common::matmul::test_matmul_X_tile::MatmulTileConfig matmul_config = {
+                .M = M, .K = K, .N = N,
+                .test_init_short = false,
+                .with_dt = false,
+                .fp32_dest_acc_en = fp32_dest_acc_en,
+                .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
+                .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_block.cpp",
+                .compute_kernel_args = {
+                    1, // block_tile_dim, within block, how many tiles are on the K dim
+                    M, // dst_tile_rows
+                    N, // dst_tile_cols
+                    K, // block_cnt, across blocks, how many tiles are on the K dim
+                    M, // in0_block_tile_cnt, M * block_tile_dim
+                    N, // in1_block_tile_cnt,  N * block_tile_dim
+                    (M * N), // out_block_tile_cnt
+                },
+                .math_fidelity = MathFidelity(i)
+            };
             SHAPE shape = {1, 1, M * 32, K * 32};
             tt::log_info(tt::LogTest, "Math Fidelity = {}, FP32_DestAcc = {}", i, fp32_dest_acc_en);
-            // tt::deprecated::Tensor<bfloat16> tensor = tt::deprecated::initialize_tensor<bfloat16>(
-            //     shape,
-            //     tt::deprecated::Initialize::RANDOM,
-            //     100,
-            //     std::chrono::system_clock::now().time_since_epoch().count()
-            // );
             tt::deprecated::Tensor<bfloat16> tensor = tt::deprecated::initialize_tensor<bfloat16>(
                 shape,
-                tt::deprecated::Initialize::INCREMENT,
+                tt::deprecated::Initialize::RANDOM,
                 100,
-                0
+                std::chrono::system_clock::now().time_since_epoch().count()
             );
             auto activations_tilized = test_utils::tilize(tensor.get_values(), M * 32, K * 32);
             auto activations_tile_layout = convert_to_tile_layout(activations_tilized);
@@ -462,54 +440,8 @@ TEST_F(CommonFixture, MatmulMultiTile){
             auto weights = pack_bfloat16_vec_into_uint32_vec(weights_tile_layout);
 
             for(unsigned int id = 0; id < devices_.size(); id++){
-                ASSERT_TRUE(unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations_tile_transposed, weights, tensor));
-                log_info(LogTest, "Multi tile with no bias passed");
-                // matmul_config.with_bias = true;
-                // ASSERT_TRUE(unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations_tile_transposed, weights, tensor));
-                // log_info(LogTest, "Multi tile with bias passed");
+                unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations_tile_transposed, weights, tensor);
             }
-        }
-    }
-}
-
-TEST_F(CommonFixture, MatmulBlock){
-    for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
-        if (i == 1) continue;
-        uint32_t M = 4;
-        uint32_t N = 4;
-        uint32_t K = 4;
-        unit_tests_common::matmul::test_matmul_X_tile::MatmulTileConfig matmul_config = {
-            .M = M, .K = K, .N = N,
-            .test_init_short = false,
-            .with_dt = false,
-            .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
-            .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_block.cpp",
-            .compute_kernel_args = {
-                1, // block_tile_dim, within block, how many tiles are on the K dim
-                M, // dst_tile_rows
-                N, // dst_tile_cols
-                K, // block_cnt, across blocks, how many tiles are on the K dim
-                M, // in0_block_tile_cnt, M * block_tile_dim
-                N, // in1_block_tile_cnt,  N * block_tile_dim
-                (M * N), // out_block_tile_cnt
-            },
-            .math_fidelity = MathFidelity(i)
-        };
-        tt::log_info(tt::LogTest, "Math Fidelity = {}", i);
-        SHAPE shape = {1, 1, M * 32, K * 32};
-        tt::deprecated::Tensor<bfloat16> tensor = tt::deprecated::initialize_tensor<bfloat16>(shape, tt::deprecated::Initialize::RANDOM, 100, std::chrono::system_clock::now().time_since_epoch().count());
-        auto activations_tilized = test_utils::tilize(tensor.get_values(), M * 32, K * 32);
-        auto activations_tile_layout = convert_to_tile_layout(activations_tilized);
-        auto activations = pack_bfloat16_vec_into_uint32_vec(activations_tile_layout);
-        auto activations_tile_transposed = transpose_tiles(activations, M, K, 1);
-
-        auto identity = create_identity_matrix(K * 32, N * 32, std::min(K, N) * 32); //bfloat16 32x32 identity
-        auto identity_tilized = test_utils::tilize(identity, K * 32, N * 32);
-        auto weights_tile_layout = convert_to_tile_layout(identity_tilized);
-        auto weights = pack_bfloat16_vec_into_uint32_vec(weights_tile_layout);
-
-        for(unsigned int id = 0; id < devices_.size(); id++){
-            ASSERT_TRUE(unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations_tile_transposed, weights, tensor));
         }
     }
 }
@@ -517,41 +449,44 @@ TEST_F(CommonFixture, MatmulBlock){
 TEST_F(CommonFixture, MatmulBlockInitShort){
     for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
         if (i == 1) continue;
-        uint32_t M = 4;
-        uint32_t N = 4;
-        uint32_t K = 4;
-        unit_tests_common::matmul::test_matmul_X_tile::MatmulTileConfig matmul_config = {
-            .M = M, .K = K, .N = N,
-            .test_init_short = true,
-            .with_dt = false,
-            .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
-            .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_block.cpp",
-            .compute_kernel_args = {
-                1, // block_tile_dim, within block, how many tiles are on the K dim
-                M, // dst_tile_rows
-                N, // dst_tile_cols
-                K, // block_cnt, across blocks, how many tiles are on the K dim
-                M, // in0_block_tile_cnt, M * block_tile_dim
-                N, // in1_block_tile_cnt,  N * block_tile_dim
-                (M * N), // out_block_tile_cnt
-            },
-            .math_fidelity = MathFidelity(i)
-        };
-        tt::log_info(tt::LogTest, "Math Fidelity = {}", i);
-        SHAPE shape = {1, 1, M * 32, K * 32};
-        tt::deprecated::Tensor<bfloat16> tensor = tt::deprecated::initialize_tensor<bfloat16>(shape, tt::deprecated::Initialize::RANDOM, 100, std::chrono::system_clock::now().time_since_epoch().count());
-        auto activations_tilized = test_utils::tilize(tensor.get_values(), M * 32, K * 32);
-        auto activations_tile_layout = convert_to_tile_layout(activations_tilized);
-        auto activations = pack_bfloat16_vec_into_uint32_vec(activations_tile_layout);
-        auto activations_tile_transposed = transpose_tiles(activations, M, K, 1);
+        for (bool fp32_dest_acc_en : {true, false}) {
+            uint32_t M = fp32_dest_acc_en ? 2 : 4;
+            uint32_t N = fp32_dest_acc_en ? 2 : 4;
+            uint32_t K = fp32_dest_acc_en ? 2 : 4;
+            unit_tests_common::matmul::test_matmul_X_tile::MatmulTileConfig matmul_config = {
+                .M = M, .K = K, .N = N,
+                .test_init_short = true,
+                .with_dt = false,
+                .fp32_dest_acc_en = fp32_dest_acc_en,
+                .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
+                .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_block.cpp",
+                .compute_kernel_args = {
+                    1, // block_tile_dim, within block, how many tiles are on the K dim
+                    M, // dst_tile_rows
+                    N, // dst_tile_cols
+                    K, // block_cnt, across blocks, how many tiles are on the K dim
+                    M, // in0_block_tile_cnt, M * block_tile_dim
+                    N, // in1_block_tile_cnt,  N * block_tile_dim
+                    (M * N), // out_block_tile_cnt
+                },
+                .math_fidelity = MathFidelity(i)
+            };
+            SHAPE shape = {1, 1, M * 32, K * 32};
+            tt::log_info(tt::LogTest, "Math Fidelity = {}, FP32_DestAcc = {}", i, fp32_dest_acc_en);
+            tt::deprecated::Tensor<bfloat16> tensor = tt::deprecated::initialize_tensor<bfloat16>(shape, tt::deprecated::Initialize::RANDOM, 100, std::chrono::system_clock::now().time_since_epoch().count());
+            auto activations_tilized = test_utils::tilize(tensor.get_values(), M * 32, K * 32);
+            auto activations_tile_layout = convert_to_tile_layout(activations_tilized);
+            auto activations = pack_bfloat16_vec_into_uint32_vec(activations_tile_layout);
+            auto activations_tile_transposed = transpose_tiles(activations, M, K, 1);
 
-        auto identity = create_identity_matrix(K * 32, N * 32, std::min(K, N) * 32); //bfloat16 32x32 identity
-        auto identity_tilized = test_utils::tilize(identity, K * 32, N * 32);
-        auto weights_tile_layout = convert_to_tile_layout(identity_tilized);
-        auto weights = pack_bfloat16_vec_into_uint32_vec(weights_tile_layout);
+            auto identity = create_identity_matrix(K * 32, N * 32, std::min(K, N) * 32); //bfloat16 32x32 identity
+            auto identity_tilized = test_utils::tilize(identity, K * 32, N * 32);
+            auto weights_tile_layout = convert_to_tile_layout(identity_tilized);
+            auto weights = pack_bfloat16_vec_into_uint32_vec(weights_tile_layout);
 
-        for(unsigned int id = 0; id < devices_.size(); id++){
-            ASSERT_TRUE(unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations_tile_transposed, weights, tensor));
+            for(unsigned int id = 0; id < devices_.size(); id++){
+                unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations_tile_transposed, weights, tensor);
+            }
         }
     }
 }
@@ -559,41 +494,44 @@ TEST_F(CommonFixture, MatmulBlockInitShort){
 TEST_F(CommonFixture, MatmulBlockInitShortWithDt){
     for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
         if (i == 1) continue;
-        uint32_t M = 4;
-        uint32_t N = 4;
-        uint32_t K = 4;
-        unit_tests_common::matmul::test_matmul_X_tile::MatmulTileConfig matmul_config = {
-            .M = M, .K = K, .N = N,
-            .test_init_short = true,
-            .with_dt = true,
-            .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
-            .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_block.cpp",
-            .compute_kernel_args = {
-                1, // block_tile_dim, within block, how many tiles are on the K dim
-                M, // dst_tile_rows
-                N, // dst_tile_cols
-                K, // block_cnt, across blocks, how many tiles are on the K dim
-                M, // in0_block_tile_cnt, M * block_tile_dim
-                N, // in1_block_tile_cnt,  N * block_tile_dim
-                (M * N), // out_block_tile_cnt
-            },
-            .math_fidelity = MathFidelity(i)
-        };
-        tt::log_info(tt::LogTest, "Math Fidelity = {}", i);
-        SHAPE shape = {1, 1, M * 32, K * 32};
-        tt::deprecated::Tensor<bfloat16> tensor = tt::deprecated::initialize_tensor<bfloat16>(shape, tt::deprecated::Initialize::RANDOM, 100, std::chrono::system_clock::now().time_since_epoch().count());
-        auto activations_tilized = test_utils::tilize(tensor.get_values(), M * 32, K * 32);
-        auto activations_tile_layout = convert_to_tile_layout(activations_tilized);
-        auto activations = pack_bfloat16_vec_into_uint32_vec(activations_tile_layout);
-        auto activations_tile_transposed = transpose_tiles(activations, M, K, 1);
+        for (bool fp32_dest_acc_en : {true, false}) {
+            uint32_t M = fp32_dest_acc_en ? 2 : 4;
+            uint32_t N = fp32_dest_acc_en ? 2 : 4;
+            uint32_t K = fp32_dest_acc_en ? 2 : 4;
+            unit_tests_common::matmul::test_matmul_X_tile::MatmulTileConfig matmul_config = {
+                .M = M, .K = K, .N = N,
+                .test_init_short = true,
+                .with_dt = true,
+                .fp32_dest_acc_en = fp32_dest_acc_en,
+                .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
+                .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_block.cpp",
+                .compute_kernel_args = {
+                    1, // block_tile_dim, within block, how many tiles are on the K dim
+                    M, // dst_tile_rows
+                    N, // dst_tile_cols
+                    K, // block_cnt, across blocks, how many tiles are on the K dim
+                    M, // in0_block_tile_cnt, M * block_tile_dim
+                    N, // in1_block_tile_cnt,  N * block_tile_dim
+                    (M * N), // out_block_tile_cnt
+                },
+                .math_fidelity = MathFidelity(i)
+            };
+            SHAPE shape = {1, 1, M * 32, K * 32};
+            tt::log_info(tt::LogTest, "Math Fidelity = {}, FP32_DestAcc = {}", i, fp32_dest_acc_en);
+            tt::deprecated::Tensor<bfloat16> tensor = tt::deprecated::initialize_tensor<bfloat16>(shape, tt::deprecated::Initialize::RANDOM, 100, std::chrono::system_clock::now().time_since_epoch().count());
+            auto activations_tilized = test_utils::tilize(tensor.get_values(), M * 32, K * 32);
+            auto activations_tile_layout = convert_to_tile_layout(activations_tilized);
+            auto activations = pack_bfloat16_vec_into_uint32_vec(activations_tile_layout);
+            auto activations_tile_transposed = transpose_tiles(activations, M, K, 1);
 
-        auto identity = create_identity_matrix(K * 32, N * 32, std::min(K, N) * 32); //bfloat16 32x32 identity
-        auto identity_tilized = test_utils::tilize(identity, K * 32, N * 32);
-        auto weights_tile_layout = convert_to_tile_layout(identity_tilized);
-        auto weights = pack_bfloat16_vec_into_uint32_vec(weights_tile_layout);
+            auto identity = create_identity_matrix(K * 32, N * 32, std::min(K, N) * 32); //bfloat16 32x32 identity
+            auto identity_tilized = test_utils::tilize(identity, K * 32, N * 32);
+            auto weights_tile_layout = convert_to_tile_layout(identity_tilized);
+            auto weights = pack_bfloat16_vec_into_uint32_vec(weights_tile_layout);
 
-        for(unsigned int id = 0; id < devices_.size(); id++){
-            ASSERT_TRUE(unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations_tile_transposed, weights, tensor));
+            for(unsigned int id = 0; id < devices_.size(); id++){
+                unit_tests_common::matmul::test_matmul_X_tile::matmul_tile(this, devices_.at(id), matmul_config, activations_tile_transposed, weights, tensor);
+            }
         }
     }
 }
