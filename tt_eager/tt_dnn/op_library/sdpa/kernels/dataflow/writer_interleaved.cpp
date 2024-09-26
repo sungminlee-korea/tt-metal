@@ -63,6 +63,9 @@ void kernel_main() {
     generate_reduce_scaler(cb_identity_scale_in, 0x40404040);
 
     uint32_t out_tile_id = 0;
+    // Wait for compute to deliver output chunk
+    cb_wait_front(cb_out, out_chunk_tiles * q_chunks_per_core);
+
 
     for (uint32_t nb = local_batch_start; nb < local_batch_end; ++nb) {
         const uint32_t q_batch_offset = nb * NQH * St * DHt;
@@ -74,8 +77,6 @@ void kernel_main() {
                 uint32_t q_chunk_offset = q_chunk * Sq_chunk_t * DHt;
                 out_tile_id = q_batch_offset + q_head_offset + q_chunk_offset;
 
-                // Wait for compute to deliver output chunk
-                cb_wait_front(cb_out, out_chunk_tiles);
                 barrier_count = 0;
                 uint32_t l1_read_addr = get_read_ptr(cb_out);
                 for (uint32_t tile = 0; tile < out_chunk_tiles; ++tile) {

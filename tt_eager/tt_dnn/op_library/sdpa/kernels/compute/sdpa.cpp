@@ -18,7 +18,7 @@
 #include "debug/dprint.h"
 #include "debug/assert.h"
 
-#define DEBUG 1
+//#define DEBUG 1
 
 namespace NAMESPACE {
 inline void print_full_tile(uint32_t cb_id, uint32_t tile_id = 0, bool untilize = false) {
@@ -247,6 +247,7 @@ void MAIN {
     constexpr uint32_t cb_out = tt::CB::c_out0;
 
 
+    add_nops(1000);
     mm_init();
     cb_wait_front(cb_q_in, q_chunk_tiles * q_chunks_per_core);
     cb_wait_front(cb_k_in, Sk_chunk_t * DHt * q_chunks_per_core);

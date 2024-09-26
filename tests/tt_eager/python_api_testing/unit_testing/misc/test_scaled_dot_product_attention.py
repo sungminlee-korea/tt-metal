@@ -113,7 +113,7 @@ def test_sdpa_tt_with_program_cache(device, b, nh, nkv, s, d, q_chunk_size, k_ch
     assert device.num_program_cache_entries() == 1
 
 
-def run_test_sdpa_tt_ND(device, b, nh, nkv, s, d, q_chunk_size, k_chunk_size, dtype):
+def run_test_sdpa_tt_ND(device, b, nh, nkv, s, d, q_chunk_size, k_chunk_size, dtype, buggy_tensor):
     torch.manual_seed(1234)
 
     program_config = tt_lib.operations.primary.transformers.SDPAMultiCoreProgramConfig(
@@ -169,6 +169,7 @@ def run_test_sdpa_tt_ND(device, b, nh, nkv, s, d, q_chunk_size, k_chunk_size, dt
 
     diff_pccs = []
     torch.set_printoptions(profile="full")
+    # print(buggy_tensor)
     for idx in tqdm(range(1)):
         tt_back = tt_lib.operations.primary.transformers.scaled_dot_product_attention(
             tt_Q, tt_K, tt_V, tt_attn_mask, is_causal=True, program_config=program_config
@@ -182,6 +183,8 @@ def run_test_sdpa_tt_ND(device, b, nh, nkv, s, d, q_chunk_size, k_chunk_size, dt
             print(f"First iteration PCC: {out_pcc}")
             match_expected = torch.all(E.eq(tt_back))
             print(f"Matched Expected {match_expected}")
+            match_buggy = torch.all(buggy_tensor.eq(tt_back))
+            print(f"Matched Buggy {match_buggy}")
         else:
             if out_pcc != expected_pcc:
                 print(tt_back)
@@ -211,10 +214,10 @@ def run_test_sdpa_tt_ND(device, b, nh, nkv, s, d, q_chunk_size, k_chunk_size, dt
     ),
 )
 def test_sdpa_nd(device, b, nh, nkv, s, d, q_chunk_size, k_chunk_size, dtype):
+    buggy_tensor = torch.load("buggy_tensor.pt")
     if (s % q_chunk_size != 0) or (s % k_chunk_size != 0):
         pytest.skip("s must be divisible by q_chunk_size and k_chunk_size")
-    for idx in tqdm(range(1)):
-        os.environ["TT_NOP_INSERT"] = str(56)
-        tt_lib.device.DisablePersistentKernelCache()
-        run_test_sdpa_tt_ND(device, b, nh, nkv, s, d, q_chunk_size, k_chunk_size, dtype)
+    os.environ["TT_NOP_INSERT"] = str(55)
+    tt_lib.device.DisablePersistentKernelCache()
+    run_test_sdpa_tt_ND(device, b, nh, nkv, s, d, q_chunk_size, k_chunk_size, dtype, buggy_tensor)
     # assert device.num_program_cache_entries() == 1
