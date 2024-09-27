@@ -22,9 +22,9 @@ using namespace tt::test_utils;
 namespace unit_tests_common::matmul::test_matmul_X_tile{
 
 struct MatmulTileStimuli {
-    tt::deprecated::Tensor<bfloat16> t; // input tensor
-    vector<uint32_t> a;                 // activations
-    vector<uint32_t> w;                 // weights
+    vector<bfloat16> t; // Raw tensor values
+    vector<uint32_t> a; // Activations
+    vector<uint32_t> w; // Weights
 };
 
 struct MatmulTileConfig {
@@ -47,7 +47,7 @@ void create_test_stimuli(MatmulTileStimuli &stimuli, uint32_t M, uint32_t K, uin
         100,
         std::chrono::system_clock::now().time_since_epoch().count()
     );
-    stimuli.t = tensor;
+    stimuli.t = tensor.get_values();
     
     auto activations_tilized = test_utils::tilize(tensor.get_values(), M * 32, K * 32);
     auto activations_tile_layout = convert_to_tile_layout(activations_tilized);
@@ -55,7 +55,7 @@ void create_test_stimuli(MatmulTileStimuli &stimuli, uint32_t M, uint32_t K, uin
     auto activations_tile_transposed = transpose_tiles(activations, M, K, 1);
     stimuli.a = activations_tile_transposed;
 
-    auto identity = create_identity_matrix(K * 32, N * 32, std::min(K, N) * 32); //bfloat16 32x32 identity
+    auto identity = create_identity_matrix(K * 32, N * 32, std::min(K, N) * 32);
     auto identity_tilized = test_utils::tilize(identity, K * 32, N * 32);
     auto weights_tile_layout = convert_to_tile_layout(identity_tilized);
     auto weights = pack_bfloat16_vec_into_uint32_vec(weights_tile_layout);
@@ -74,7 +74,7 @@ void set_math_fid_masks(uint16_t &math_fid_mask, MathFidelity math_fidelity = Ma
     }
 }
 
-void matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulTileConfig &cfg, vector<uint32_t> activations, vector<std::seed_seq::result_type> weights, deprecated::Tensor<bfloat16> tensor){
+void matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulTileConfig &cfg, vector<uint32_t> activations, vector<uint32_t> weights, vector<bfloat16> tensor_vals){
 
     tt_metal::Program program = tt_metal::CreateProgram();
     CoreCoord core = {0, 0};
@@ -289,7 +289,7 @@ void matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
     std::vector<uint32_t> result_vec;
     fixture->ReadBuffer(device, dst_dram_buffer, result_vec);
 
-    std::vector<bfloat16> golden = tensor.get_values();
+    std::vector<bfloat16> golden = tensor_vals;
     std::vector<bfloat16> golden_tilized = test_utils::tilize(golden, M*32, N*32);
     std::vector<bfloat16> golden_tilized_single = convert_to_tile_layout(golden_tilized);
 
@@ -324,6 +324,17 @@ void matmul_tile(CommonFixture *fixture, tt_metal::Device *device, const MatmulT
 using namespace tt::test_utils;
 using namespace unit_tests_common::matmul::test_matmul_X_tile;
 
+/* matmul_config.compute_kernel_args = {
+    // block_tile_dim, within block, how many tiles are on the K dim
+    // dst_tile_rows
+    // dst_tile_cols
+    // block_cnt, across blocks, how many tiles are on the K dim
+    // in0_block_tile_cnt, M * block_tile_dim
+    // in1_block_tile_cnt, N * block_tile_dim
+    // out_block_tile_cnt
+}
+*/
+
 TEST_F(CommonFixture, MatmulSingleTile){
     for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
         if (i == 1) continue;
@@ -333,23 +344,15 @@ TEST_F(CommonFixture, MatmulSingleTile){
                 .fp32_dest_acc_en = fp32_dest_acc_en,
                 .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_blocked.cpp",
                 .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul.cpp",
-                .compute_kernel_args = {
-                    1, // block_tile_dim
-                    1, // dst_tile_rows
-                    1, // dst_tile_cols
-                    1, // block_cnt
-                    1, // in0_block_tile_cnt
-                    1, // in1_block_tile_cnt
-                    1 // out_block_tile_cnt
-                },
+                .compute_kernel_args = {1, 1, 1, 1, 1, 1, 1},
                 .math_fidelity = MathFidelity(i)
             };
             tt::log_info(tt::LogTest, "Math Fidelity = {}, FP32_DestAcc = {}", i, fp32_dest_acc_en);
             MatmulTileStimuli stimuli;
-            create_test_stimuli(stimuli, M, K, N);
+            create_test_stimuli(stimuli, 1, 1, 1);
 
             for(unsigned int id = 0; id < devices_.size(); id++){
-                MatmulTileConfig(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
+                matmul_tile(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
             }
         }
     }
@@ -367,16 +370,7 @@ TEST_F(CommonFixture, MatmulMultiTile){
                 .fp32_dest_acc_en = fp32_dest_acc_en,
                 .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
                 .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_with_bias.cpp",
-                .compute_kernel_args = {
-                    1, // block_tile_dim, within block, how many tiles are on the K dim
-                    M, // dst_tile_rows
-                    N, // dst_tile_cols
-                    K, // block_cnt, across blocks, how many tiles are on the K dim
-                    M, // in0_block_tile_cnt, M * block_tile_dim
-                    N, // in1_block_tile_cnt,  N * block_tile_dim
-                    (M * N), // out_block_tile_cnt
-                    matmul_config.with_bias // whether or not to use bias
-                },
+                .compute_kernel_args = {1, M, N, K, M, N, (M * N), matmul_config.with_bias},
                 .math_fidelity = MathFidelity(i)
             };
             tt::log_info(tt::LogTest, "Math Fidelity = {}, FP32_DestAcc = {}", i, fp32_dest_acc_en);
@@ -384,10 +378,10 @@ TEST_F(CommonFixture, MatmulMultiTile){
             create_test_stimuli(stimuli, M, K, N);
 
             for(unsigned int id = 0; id < devices_.size(); id++){
-                MatmulTileConfig(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
+                matmul_tile(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
                 log_info(LogTest, "Multi tile with no bias passed");
                 matmul_config.with_bias = true;
-                MatmulTileConfig(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
+                matmul_tile(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
                 log_info(LogTest, "Multi tile with bias passed");
             }
         }
@@ -408,15 +402,7 @@ TEST_F(CommonFixture, MatmulBlock){
                 .fp32_dest_acc_en = fp32_dest_acc_en,
                 .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
                 .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_block.cpp",
-                .compute_kernel_args = {
-                    1, // block_tile_dim, within block, how many tiles are on the K dim
-                    M, // dst_tile_rows
-                    N, // dst_tile_cols
-                    K, // block_cnt, across blocks, how many tiles are on the K dim
-                    M, // in0_block_tile_cnt, M * block_tile_dim
-                    N, // in1_block_tile_cnt,  N * block_tile_dim
-                    (M * N), // out_block_tile_cnt
-                },
+                .compute_kernel_args = {1, M, N, K, M, N, (M * N)},
                 .math_fidelity = MathFidelity(i)
             };
             tt::log_info(tt::LogTest, "Math Fidelity = {}, FP32_DestAcc = {}", i, fp32_dest_acc_en);
@@ -424,7 +410,7 @@ TEST_F(CommonFixture, MatmulBlock){
             create_test_stimuli(stimuli, M, K, N);
 
             for(unsigned int id = 0; id < devices_.size(); id++){
-                MatmulTileConfig(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
+                matmul_tile(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
             }
         }
     }
@@ -444,15 +430,7 @@ TEST_F(CommonFixture, MatmulBlockInitShort){
                 .fp32_dest_acc_en = fp32_dest_acc_en,
                 .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
                 .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_block.cpp",
-                .compute_kernel_args = {
-                    1, // block_tile_dim, within block, how many tiles are on the K dim
-                    M, // dst_tile_rows
-                    N, // dst_tile_cols
-                    K, // block_cnt, across blocks, how many tiles are on the K dim
-                    M, // in0_block_tile_cnt, M * block_tile_dim
-                    N, // in1_block_tile_cnt,  N * block_tile_dim
-                    (M * N), // out_block_tile_cnt
-                },
+                .compute_kernel_args = {1, M, N, K, M, N, (M * N)},
                 .math_fidelity = MathFidelity(i)
             };
             tt::log_info(tt::LogTest, "Math Fidelity = {}, FP32_DestAcc = {}", i, fp32_dest_acc_en);
@@ -460,7 +438,7 @@ TEST_F(CommonFixture, MatmulBlockInitShort){
             create_test_stimuli(stimuli, M, K, N);
 
             for(unsigned int id = 0; id < devices_.size(); id++){
-                MatmulTileConfig(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
+                matmul_tile(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
             }
         }
     }
@@ -480,24 +458,15 @@ TEST_F(CommonFixture, MatmulBlockInitShortWithDt){
                 .fp32_dest_acc_en = fp32_dest_acc_en,
                 .reader_kernel = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_matmul_with_bias_blocked.cpp",
                 .compute_kernel = "tests/tt_metal/tt_metal/test_kernels/compute/matmul_block.cpp",
-                .compute_kernel_args = {
-                    1, // block_tile_dim, within block, how many tiles are on the K dim
-                    M, // dst_tile_rows
-                    N, // dst_tile_cols
-                    K, // block_cnt, across blocks, how many tiles are on the K dim
-                    M, // in0_block_tile_cnt, M * block_tile_dim
-                    N, // in1_block_tile_cnt,  N * block_tile_dim
-                    (M * N), // out_block_tile_cnt
-                },
+                .compute_kernel_args = {1, M, N, K, M, N, (M * N)},
                 .math_fidelity = MathFidelity(i)
             };
-            
             tt::log_info(tt::LogTest, "Math Fidelity = {}, FP32_DestAcc = {}", i, fp32_dest_acc_en);
             MatmulTileStimuli stimuli;
             create_test_stimuli(stimuli, M, K, N);
 
             for(unsigned int id = 0; id < devices_.size(); id++){
-                MatmulTileConfig(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
+                matmul_tile(this, devices_.at(id), matmul_config, stimuli.a, stimuli.w, stimuli.t);
             }
         }
     }

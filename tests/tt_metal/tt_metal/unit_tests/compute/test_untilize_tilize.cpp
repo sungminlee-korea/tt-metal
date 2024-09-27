@@ -113,7 +113,9 @@ void run_single_core_tilize_program(tt_metal::Device* device, const TestConfig& 
 
     uint32_t ouput_cb_index = 16; // output operands start at index 16
     uint32_t num_output_tiles = num_tiles;
-    tt_metal::CircularBufferConfig cb_output_config = tt_metal::CircularBufferConfig(num_output_tiles * test_config.output_single_tile_size, {{ouput_cb_index, tt::DataFormat::Float16_b}})
+    tt_metal::CircularBufferConfig cb_output_config = tt_metal::CircularBufferConfig(
+        num_output_tiles * test_config.output_single_tile_size,
+        {{ouput_cb_index, test_config.fp32_dest_acc_en ? tt::DataFormat::Float32 : tt::DataFormat::Float16_b}})
         .set_page_size(ouput_cb_index, test_config.output_single_tile_size);
     auto cb_output = tt_metal::CreateCircularBuffer(program, core, cb_output_config);
 
@@ -161,16 +163,21 @@ void run_single_core_tilize_program(tt_metal::Device* device, const TestConfig& 
 
     std::map<string, string> defines = {};
 
-    if (test_config.short_init)
-    {
+    if (test_config.short_init) {
         defines["SHORT_INIT"] = "1";
+    }
+    if (test_config.fp32_dest_acc_en) {
+        defines["DST_ACCUM_MODE"] = "1";
     }
 
     auto eltwise_unary_kernel = tt_metal::CreateKernel(
         program,
         compute_kernel,
         core,
-        tt_metal::ComputeConfig{.compile_args = compute_kernel_args, .defines = defines}
+        tt_metal::ComputeConfig{
+            .fp32_dest_acc_en = test_config.fp32_dest_acc_en,
+            .compile_args = compute_kernel_args,
+            .defines = defines}
     );
 
     std::vector<uint32_t> src0_vec = create_arange_vector_of_bfloat16(input_dram_buffer_size, false);
@@ -277,15 +284,19 @@ Following tests are for Unpack Tilize
 TEST_F(DeviceFixture, ComputeUnpackTilize) {
     vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
-        unit_tests::compute::tilize::TestConfig test_config = {
-            .input_single_tile_size = 2 * 1024,
-            .output_single_tile_size = 2 * 1024,
-            .num_tiles_r = num_tile[0],
-            .num_tiles_c = num_tile[1],
-            .tilize_type = unit_tests::compute::tilize::TilizeType::UNPACK_A,
-            .golden_function = unit_tests::compute::gold_standard_tilize
-        };
-        unit_tests::compute::tilize::run_single_core_tilize_program(this->devices_.at(0), test_config);
+        for (bool fp32_dest_acc_en : {true, false}) {
+            unit_tests::compute::tilize::TestConfig test_config = {
+                .fp32_dest_acc_en = fp32_dest_acc_en,
+                .input_single_tile_size = 2 * 1024,
+                .output_single_tile_size = fp32_dest_acc_en ? (4 * 1024) : (2 * 1024),
+                .num_tiles_r = num_tile[0],
+                .num_tiles_c = num_tile[1],
+                .tilize_type = unit_tests::compute::tilize::TilizeType::UNPACK_A,
+                .golden_function = unit_tests::compute::gold_standard_tilize
+            };
+            tt::log_info(tt::LogTest, "FP32_DestAcc = {}", fp32_dest_acc_en);
+            unit_tests::compute::tilize::run_single_core_tilize_program(this->devices_.at(0), test_config);
+        }
     }
 }
 
