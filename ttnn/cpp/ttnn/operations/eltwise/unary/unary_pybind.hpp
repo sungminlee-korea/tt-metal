@@ -760,6 +760,9 @@ void bind_unary_composite(py::module& module, const unary_operation_t& operation
         Returns:
             ttnn.Tensor: the output tensor.
 
+        Note:
+            {3}
+
         Example:
             >>> tensor = ttnn.from_torch(torch.tensor((1, 2), dtype=torch.bfloat16), device=device)
             >>> output = {1}(tensor)
@@ -1498,7 +1501,7 @@ void py_module(py::module& module) {
         |     Dtypes                 |         Layouts                 |     Ranks         |
         +----------------------------+---------------------------------+-------------------+
         |    BFLOAT16                |          TILE                   |      2, 3, 4      |
-        +----------------------------+---------------------------------+-------------------+)doc");
+        +----------------------------+---------------------------------+-------------------+)doc", "[supported range 1.6 to inf]");
     detail::bind_unary_composite(module, ttnn::sinh, R"doc(Performs sinh function on :attr:`input_tensor`.)doc", "[supported range -88 to 88]");
     detail::bind_unary_composite(module, ttnn::softsign, R"doc(Performs softsign function on :attr:`input_tensor`.)doc");
     detail::bind_unary_composite(module, ttnn::swish, R"doc(Performs swish function on :attr:`input_tensor`.)doc");
