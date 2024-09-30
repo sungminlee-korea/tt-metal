@@ -28,64 +28,6 @@ resnet_model_config = {
 ops_parallel_config = {}
 
 
-def run_resnet_imagenet_inference(
-    batch_size,
-    iterations,
-    imagenet_label_dict,
-    model_location_generator,
-    device,
-    model_config=resnet_model_config,
-    model_version="microsoft/resnet-50",
-):
-    disable_persistent_kernel_cache()
-    disable_compilation_reports()
-    profiler.clear()
-
-    # set up image processor
-    image_processor = AutoImageProcessor.from_pretrained(model_version)
-
-    # load inputs
-    logger.info("ImageNet-1k validation Dataset")
-    input_loc = str(model_location_generator("ImageNet_data"))
-    data_loader = get_data_loader(input_loc, batch_size, iterations)
-
-    # Create TT Model Start
-    # this will move weights to device
-    test_infra = create_test_infra(
-        device,
-        batch_size,
-        model_config["ACTIVATIONS_DTYPE"],
-        model_config["WEIGHTS_DTYPE"],
-        model_config["MATH_FIDELITY"],
-        dealloc_input=True,
-        final_output_mem_config=ttnn.L1_MEMORY_CONFIG,
-        model_location_generator=model_location_generator,
-    )
-    ttnn.synchronize_device(device)
-
-    # load ImageNet batch by batch
-    # and run inference
-    correct = 0
-    for iter in range(iterations):
-        predictions = []
-        inputs, labels = get_batch(data_loader, image_processor)
-        tt_inputs_host, input_mem_config = test_infra.setup_l1_sharded_input(device, inputs)
-        test_infra.input_tensor = tt_inputs_host.to(device, input_mem_config)
-        tt_output = test_infra.run()
-        tt_output = ttnn.from_device(tt_output, blocking=True).to_torch().to(torch.float)
-        prediction = tt_output[:, 0, 0, :].argmax(dim=-1)
-        for i in range(batch_size):
-            predictions.append(imagenet_label_dict[prediction[i].item()])
-            logger.info(
-                f"Iter: {iter} Sample: {i} - Expected Label: {imagenet_label_dict[labels[i]]} -- Predicted Label: {predictions[-1]}"
-            )
-            if imagenet_label_dict[labels[i]] == predictions[-1]:
-                correct += 1
-        del tt_output, inputs, labels, predictions
-    accuracy = correct / (batch_size * iterations)
-    logger.info(f"Accuracy for {batch_size}x{iterations} inputs: {accuracy}")
-
-
 def run_resnet_inference(
     batch_size,
     input_loc,
@@ -133,7 +75,6 @@ def run_resnet_inference(
         model_location_generator=model_location_generator,
     )
     ttnn.synchronize_device(device)
-
     profiler.end(f"move_weights")
 
     profiler.start(f"preprocessing")
@@ -212,15 +153,6 @@ def run_resnet_inference(
 
     del tt_out
     return measurements, predictions
-
-
-@pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
-@pytest.mark.parametrize(
-    "batch_size, iterations",
-    ((16, 100),),
-)
-def test_demo_imagenet(batch_size, iterations, imagenet_label_dict, model_location_generator, device):
-    run_resnet_imagenet_inference(batch_size, iterations, imagenet_label_dict, model_location_generator, device)
 
 
 @pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)

@@ -2,14 +2,10 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 
-# from torchsummary import summary
 
-import ttnn
-
-
-class SimpleVGG(nn.Module):
+class VGG_TORCH(nn.Module):
     def __init__(self, num_classes=1000):
-        super(SimpleVGG, self).__init__()
+        super(VGG_TORCH, self).__init__()
 
         # Convolutional Block 1
         self.conv1 = nn.Sequential(
@@ -55,24 +51,3 @@ class SimpleVGG(nn.Module):
         x = self.conv3(x)
         x = self.classifier(x)
         return x
-
-
-class VGG11:
-    def __init__(self, device, param, num_classes=1000):
-        self.device = device
-
-        breakpoint()
-
-    def foward(self, x):
-        return 0
-
-
-if __name__ == "__main__":
-    num_classes = 1000
-    device_id = 4
-
-    device = ttnn.open_device(device_id=device_id)
-
-    vgg_torch = SimpleVGG(num_classes)
-    parameters = vgg_torch.state_dict()
-    vgg_ttnn = VGG11(device, parameters, num_classes)
