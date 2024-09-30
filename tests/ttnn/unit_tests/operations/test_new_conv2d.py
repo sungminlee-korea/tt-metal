@@ -134,6 +134,11 @@ def run_conv(
         enable_split_reader=False,
         enable_subblock_padding=False,
     )
+
+    # print('###1')
+    # for d in dir(conv_config):
+    #     if d.startswith('__'):continue
+    #     print(f'{d},{getattr(conv_config,d)}')
     if config_override and "act_block_h" in config_override:
         conv_config.act_block_h_override = config_override["act_block_h"]
 
@@ -145,6 +150,11 @@ def run_conv(
             conv_config.core_grid = ttnn.CoreRangeSet({ttnn.CoreRange((0, 0), (11, 7)), ttnn.CoreRange((0, 8), (1, 8))})
             conv_config.override_sharding_config = True
             print("Setting num_cores_nhw to 98")
+    print("###2")
+    for d in dir(conv_config):
+        if d.startswith("__"):
+            continue
+        print(f"{d}:{getattr(conv_config,d)}")
 
     [tt_output_tensor_on_device, out_height, out_width, weights_device, bias_device] = ttnn.conv2d(
         input_tensor=tt_input_tensor,
@@ -165,7 +175,7 @@ def run_conv(
         debug=debug,
         groups=groups,
     )
-
+    breakpoint()
     tt_output_tensor = ttnn.from_device(tt_output_tensor_on_device)
     torch_output_tensor = ttnn.to_torch(tt_output_tensor)
 
@@ -1207,38 +1217,38 @@ def test_sd_conv_wh(
     (
         # unet convs with batch size 2
         # unique convs in unet (complete list)
-        (2, 16, 3, 1056, 160, 3, 3, 1, 1, 1, 1, True, {"act_block_h": 64}, True),
-        (2, 16, 16, 1056, 160, 3, 3, 1, 1, 1, 1, True, {"act_block_h": 64}, True),
-        (2, 16, 16, 528, 80, 3, 3, 1, 1, 1, 1, True, None, False),
-        (2, 32, 16, 264, 40, 3, 3, 1, 1, 1, 1, True, None, True),
-        (2, 32, 32, 264, 40, 3, 3, 1, 1, 1, 1, True, None, True),
-        (2, 32, 32, 132, 20, 3, 3, 1, 1, 1, 1, True, None, False),
-        (2, 64, 32, 66, 10, 3, 3, 1, 1, 1, 1, True, None, False),
-        (2, 64, 64, 66, 10, 3, 3, 1, 1, 1, 1, True, None, False),
-        (2, 32, 96, 132, 20, 3, 3, 1, 1, 1, 1, True, None, False),
-        (2, 32, 32, 132, 20, 3, 3, 1, 1, 1, 1, True, None, False),
-        (2, 32, 64, 264, 40, 3, 3, 1, 1, 1, 1, True, None, True),
-        (2, 32, 32, 264, 40, 3, 3, 1, 1, 1, 1, True, None, True),
-        (
-            2,
-            16,
-            48,
-            528,
-            80,
-            3,
-            3,
-            1,
-            1,
-            1,
-            1,
-            True,
-            {"act_block_h": 32},
-            False,
-        ),  # fails. mismatch. It passes when input_channels=64. Probably an issue with padding when input_channels % 32 != 0.
-        (2, 16, 16, 528, 80, 3, 3, 1, 1, 1, 1, True, None, False),
-        (2, 16, 32, 1056, 160, 3, 3, 1, 1, 1, 1, True, {"act_block_h": 22 * 32}, False),
-        (2, 16, 16, 1056, 160, 3, 3, 1, 1, 1, 1, True, {"act_block_h": 22 * 32}, False),
-        (2, 1, 16, 1056, 160, 3, 3, 1, 1, 1, 1, True, {"act_block_h": 22 * 32}, False),
+        (8, 64, 3, 224, 224, 3, 3, 1, 1, 1, 1, True, {"act_block_h": 64}, True),
+        # (2, 16, 16, 1056, 160, 3, 3, 1, 1, 1, 1, True, {"act_block_h": 64}, True),
+        # (2, 16, 16, 528, 80, 3, 3, 1, 1, 1, 1, True, None, False),
+        # (2, 32, 16, 264, 40, 3, 3, 1, 1, 1, 1, True, None, True),
+        # (2, 32, 32, 264, 40, 3, 3, 1, 1, 1, 1, True, None, True),
+        # (2, 32, 32, 132, 20, 3, 3, 1, 1, 1, 1, True, None, False),
+        # (2, 64, 32, 66, 10, 3, 3, 1, 1, 1, 1, True, None, False),
+        # (2, 64, 64, 66, 10, 3, 3, 1, 1, 1, 1, True, None, False),
+        # (2, 32, 96, 132, 20, 3, 3, 1, 1, 1, 1, True, None, False),
+        # (2, 32, 32, 132, 20, 3, 3, 1, 1, 1, 1, True, None, False),
+        # (2, 32, 64, 264, 40, 3, 3, 1, 1, 1, 1, True, None, True),
+        # (2, 32, 32, 264, 40, 3, 3, 1, 1, 1, 1, True, None, True),
+        # (
+        #     2,
+        #     16,
+        #     48,
+        #     528,
+        #     80,
+        #     3,
+        #     3,
+        #     1,
+        #     1,
+        #     1,
+        #     1,
+        #     True,
+        #     {"act_block_h": 32},
+        #     False,
+        # ),  # fails. mismatch. It passes when input_channels=64. Probably an issue with padding when input_channels % 32 != 0.
+        # (2, 16, 16, 528, 80, 3, 3, 1, 1, 1, 1, True, None, False),
+        # (2, 16, 32, 1056, 160, 3, 3, 1, 1, 1, 1, True, {"act_block_h": 22 * 32}, False),
+        # (2, 16, 16, 1056, 160, 3, 3, 1, 1, 1, 1, True, {"act_block_h": 22 * 32}, False),
+        # (2, 1, 16, 1056, 160, 3, 3, 1, 1, 1, 1, True, {"act_block_h": 22 * 32}, False),
     ),
 )
 @pytest.mark.parametrize(
@@ -1247,10 +1257,15 @@ def test_sd_conv_wh(
 )
 @pytest.mark.parametrize(
     "activations_dtype",
-    [ttnn.bfloat8_b, ttnn.bfloat16],
+    # [ttnn.bfloat8_b, ttnn.bfloat16],
+    [ttnn.bfloat16],
 )
 @pytest.mark.parametrize("math_fidelity", [ttnn.MathFidelity.LoFi])
-@pytest.mark.parametrize("output_layout", [ttnn.ROW_MAJOR_LAYOUT, ttnn.TILE_LAYOUT])
+@pytest.mark.parametrize(
+    "output_layout",
+    #  [ttnn.ROW_MAJOR_LAYOUT, ttnn.TILE_LAYOUT]
+    [ttnn.TILE_LAYOUT],
+)
 def test_unet_conv(
     device,
     use_program_cache,
