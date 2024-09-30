@@ -26,6 +26,8 @@ namespace tt {
 
 namespace tt_metal {
 
+inline namespace v0 {
+
 class Device;
 
 enum class BufferType {
@@ -326,6 +328,8 @@ using HostDataType = std::variant<
     const std::shared_ptr<std::vector<float>>,
     const std::shared_ptr<std::vector<bfloat16>>,
     const void *>;
+
+} // namespace v0
 
 }  // namespace tt_metal
 

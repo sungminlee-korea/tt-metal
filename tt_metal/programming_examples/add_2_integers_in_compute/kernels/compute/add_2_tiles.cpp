@@ -8,9 +8,9 @@
 
 namespace NAMESPACE {
 void MAIN {
-    constexpr auto cb_in0 = tt::CB::c_in0;
-    constexpr auto cb_in1 = tt::CB::c_in1;
-    constexpr auto cb_out0 =  tt::CB::c_out0;
+    constexpr auto cb_in0 = tt::CB::cb_0;
+    constexpr auto cb_in1 = tt::CB::cb_1;
+    constexpr auto cb_out0 =  tt::CB::cb_16;
 
     binary_op_init_common(cb_in0, cb_in1, cb_out0);
     add_tiles_init();
@@ -39,17 +39,17 @@ void MAIN {
     /*
     acquire_dst(tt::DstMode::Full);
 
-    cb_wait_front(tt::CB::c_in0, 1);
-    cb_wait_front(tt::CB::c_in1, 1);
+    cb_wait_front(tt::CB::cb_0, 1);
+    cb_wait_front(tt::CB::cb_1, 1);
 
-    add_tiles(tt::CB::c_in0, tt::CB::c_in1, 0, 0, 0);
+    add_tiles(tt::CB::cb_0, tt::CB::cb_1, 0, 0, 0);
 
-    cb_pop_front(tt::CB::c_in0, 1);
-    cb_pop_front(tt::CB::c_in1, 1);
+    cb_pop_front(tt::CB::cb_0, 1);
+    cb_pop_front(tt::CB::cb_1, 1);
 
-    cb_reserve_back(tt::CB::c_out0, 1);
-    pack_tile(0, tt::CB::c_out0);
-    cb_push_back(tt::CB::c_out0, 1);
+    cb_reserve_back(tt::CB::cb_16, 1);
+    pack_tile(0, tt::CB::cb_16);
+    cb_push_back(tt::CB::cb_16, 1);
 
     release_dst(tt::DstMode::Full);
     */

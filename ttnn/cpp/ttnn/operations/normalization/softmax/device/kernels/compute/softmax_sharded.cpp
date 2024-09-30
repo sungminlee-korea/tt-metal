@@ -24,16 +24,16 @@ void MAIN {
     constexpr uint32_t subblock_w                     = get_compile_time_arg_val(2);
     constexpr uint32_t num_subblocks_w                = get_compile_time_arg_val(3);
 
-    binary_op_init_common(tt::CB::c_in0, tt::CB::c_in1, tt::CB::c_intermed0);
+    binary_op_init_common(tt::CB::cb_0, tt::CB::cb_1, tt::CB::cb_24);
 
-    constexpr auto cb_in0 = tt::CB::c_in0;
-    constexpr auto cb_bcast_scaler = tt::CB::c_in1;
-    constexpr auto cb_fused_scale = tt::CB::c_in2;
-    constexpr auto cb_fused_attn = tt::CB::c_in3;
-    constexpr auto cb_exps = tt::CB::c_intermed0;
-    constexpr auto cb_recipsumexps = tt::CB::c_intermed1;
-    constexpr auto cb_scale_mask = tt::CB::c_intermed2;
-    constexpr auto cb_out0 = tt::CB::c_out0;
+    constexpr auto cb_in0 = tt::CB::cb_0;
+    constexpr auto cb_bcast_scaler = tt::CB::cb_1;
+    constexpr auto cb_fused_scale = tt::CB::cb_2;
+    constexpr auto cb_fused_attn = tt::CB::cb_3;
+    constexpr auto cb_exps = tt::CB::cb_24;
+    constexpr auto cb_recipsumexps = tt::CB::cb_25;
+    constexpr auto cb_scale_mask = tt::CB::cb_26;
+    constexpr auto cb_out0 = tt::CB::cb_16;
 
     constexpr int dst0 = 0;
     int index_subblock_w_offset = 0;

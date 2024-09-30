@@ -40,24 +40,24 @@ void MAIN {
 
     constexpr uint32_t onetile = 1;
 
-    constexpr uint32_t cb_inp = tt::CB::c_in0;
-    constexpr uint32_t cb_stats = tt::CB::c_in1;
+    constexpr uint32_t cb_inp = tt::CB::cb_0;
+    constexpr uint32_t cb_stats = tt::CB::cb_1;
 
-    constexpr uint32_t cb_eps = tt::CB::c_in4;
-    constexpr uint32_t cb_reduce = tt::CB::c_in5;
+    constexpr uint32_t cb_eps = tt::CB::cb_4;
+    constexpr uint32_t cb_reduce = tt::CB::cb_5;
 
-    constexpr uint32_t cb_out = tt::CB::c_out0;
+    constexpr uint32_t cb_out = tt::CB::cb_16;
 
-    constexpr uint32_t cb_stats_reduced = tt::CB::c_intermed0; // [E(x**2), E(x)]
-    constexpr uint32_t cb_var_eps = tt::CB::c_intermed3; // var + epsilon (or E(x**2) + epsilon)
-    constexpr uint32_t cb_recip_sqrt_var = tt::CB::c_intermed4; // 1/sqrt(var+eps)
-    constexpr uint32_t cb_x_normed = tt::CB::c_intermed6; // (x - E(x)) * 1/sqrt(var+eps) or x * 1/sqrt(E(x**2) + eps)
+    constexpr uint32_t cb_stats_reduced = tt::CB::cb_24; // [E(x**2), E(x)]
+    constexpr uint32_t cb_var_eps = tt::CB::cb_27; // var + epsilon (or E(x**2) + epsilon)
+    constexpr uint32_t cb_recip_sqrt_var = tt::CB::cb_28; // 1/sqrt(var+eps)
+    constexpr uint32_t cb_x_normed = tt::CB::cb_30; // (x - E(x)) * 1/sqrt(var+eps) or x * 1/sqrt(E(x**2) + eps)
 
-    constexpr uint32_t cb_var = tt::CB::c_intermed2; // E(x**2) - E(x)**2 or E(x**2)
+    constexpr uint32_t cb_var = tt::CB::cb_26; // E(x**2) - E(x)**2 or E(x**2)
     #ifndef RMSNORM
     // Layernorm-specific CBs
-    constexpr uint32_t cb_mean_squared = tt::CB::c_intermed1; // E(x)**2
-    constexpr uint32_t cb_x_minus_mean = tt::CB::c_intermed5; // x - E(x)
+    constexpr uint32_t cb_mean_squared = tt::CB::cb_25; // E(x)**2
+    constexpr uint32_t cb_x_minus_mean = tt::CB::cb_29; // x - E(x)
 
     constexpr uint32_t cb_norm_x_input = cb_x_minus_mean;
     constexpr uint32_t stats_tile_stride = 2;
@@ -66,11 +66,11 @@ void MAIN {
     constexpr uint32_t stats_tile_stride = 1;
     #endif
 
-    constexpr uint32_t cb_gamma = tt::CB::c_in2;
-    constexpr uint32_t cb_beta = tt::CB::c_in3;
+    constexpr uint32_t cb_gamma = tt::CB::cb_2;
+    constexpr uint32_t cb_beta = tt::CB::cb_3;
     uint32_t cb_times_gamma_out = cb_out;
     if constexpr(do_gamma and do_beta) {
-        cb_times_gamma_out = tt::CB::c_intermed7;
+        cb_times_gamma_out = tt::CB::cb_31;
     }
 
     binary_op_init_common(cb_inp, cb_inp, cb_stats_reduced);

@@ -64,16 +64,16 @@ operation::ProgramWithCallbacks moreh_nll_loss_step2_impl_2d(
         all_cores,
         data_format,
         {
-            {CB::c_in0, 1},                                                 // input
-            {CB::c_in1, 1, tt::DataFormat::Int32},                          // target
-            {CB::c_in2, static_cast<uint32_t>(weight_has_value ? 1 : 0)},   // weight
-            {CB::c_in3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},  // divisor
-            {CB::c_intermed0, 1, fp32_dest_acc_en_data_format},             // tmp_weight to reduce
-            {CB::c_intermed1, 1, fp32_dest_acc_en_data_format},             // tmp_input to reduce
-            {CB::c_intermed2, 1, fp32_dest_acc_en_data_format},             // tmp1
-            {CB::c_intermed3, 1, fp32_dest_acc_en_data_format},             // tmp2
-            {CB::c_intermed4, 1, fp32_dest_acc_en_data_format},             // tmp3
-            {CB::c_out0, 1},                                                // output
+            {CB::cb_0, 1},                                                 // input
+            {CB::cb_1, 1, tt::DataFormat::Int32},                          // target
+            {CB::cb_2, static_cast<uint32_t>(weight_has_value ? 1 : 0)},   // weight
+            {CB::cb_3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},  // divisor
+            {CB::cb_24, 1, fp32_dest_acc_en_data_format},             // tmp_weight to reduce
+            {CB::cb_25, 1, fp32_dest_acc_en_data_format},             // tmp_input to reduce
+            {CB::cb_26, 1, fp32_dest_acc_en_data_format},             // tmp1
+            {CB::cb_27, 1, fp32_dest_acc_en_data_format},             // tmp2
+            {CB::cb_28, 1, fp32_dest_acc_en_data_format},             // tmp3
+            {CB::cb_16, 1},                                                // output
         });
 
     // create read/wrtie kernel
@@ -240,16 +240,16 @@ operation::ProgramWithCallbacks moreh_nll_loss_step2_impl_3d(
         all_cores,
         data_format,
         {
-            {CB::c_in0, 1},                                                 // input
-            {CB::c_in1, 1, tt::DataFormat::Int32},                          // target
-            {CB::c_in2, static_cast<uint32_t>(weight_has_value ? 1 : 0)},   // weight
-            {CB::c_in3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},  // divisor
-            {CB::c_intermed0, 1, fp32_dest_acc_en_data_format},             // tmp_weight to reduce
-            {CB::c_intermed1, 1, fp32_dest_acc_en_data_format},             // tmp_input to reduce
-            {CB::c_intermed2, 1, fp32_dest_acc_en_data_format},             // tmp1
-            {CB::c_intermed3, 1, fp32_dest_acc_en_data_format},             // tmp2
-            {CB::c_intermed4, 1, fp32_dest_acc_en_data_format},             // tmp3
-            {CB::c_out0, 1},                                                // output
+            {CB::cb_0, 1},                                                 // input
+            {CB::cb_1, 1, tt::DataFormat::Int32},                          // target
+            {CB::cb_2, static_cast<uint32_t>(weight_has_value ? 1 : 0)},   // weight
+            {CB::cb_3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},  // divisor
+            {CB::cb_24, 1, fp32_dest_acc_en_data_format},             // tmp_weight to reduce
+            {CB::cb_25, 1, fp32_dest_acc_en_data_format},             // tmp_input to reduce
+            {CB::cb_26, 1, fp32_dest_acc_en_data_format},             // tmp1
+            {CB::cb_27, 1, fp32_dest_acc_en_data_format},             // tmp2
+            {CB::cb_28, 1, fp32_dest_acc_en_data_format},             // tmp3
+            {CB::cb_16, 1},                                                // output
         });
 
     // create read/wrtie kernel
@@ -426,16 +426,16 @@ operation::ProgramWithCallbacks moreh_nll_loss_step2_impl_4d(
         all_cores,
         data_format,
         {
-            {CB::c_in0, 1},                                                              // input
-            {CB::c_in1, 1, tt::DataFormat::Int32},                                       // target
-            {CB::c_in2, static_cast<uint32_t>(weight_has_value ? weight_num_tile : 0)},  // weight
-            {CB::c_in3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},               // divisor
-            {CB::c_intermed0, 1, fp32_dest_acc_en_data_format},                          // tmp_weight to reduce
-            {CB::c_intermed1, 1, fp32_dest_acc_en_data_format},                          // tmp_input to reduce
-            {CB::c_intermed2, 1, fp32_dest_acc_en_data_format},                          // tmp1
-            {CB::c_intermed3, 1, fp32_dest_acc_en_data_format},                          // tmp2
-            {CB::c_intermed4, 1, fp32_dest_acc_en_data_format},                          // tmp3
-            {CB::c_out0, 1},                                                             // output
+            {CB::cb_0, 1},                                                              // input
+            {CB::cb_1, 1, tt::DataFormat::Int32},                                       // target
+            {CB::cb_2, static_cast<uint32_t>(weight_has_value ? weight_num_tile : 0)},  // weight
+            {CB::cb_3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},               // divisor
+            {CB::cb_24, 1, fp32_dest_acc_en_data_format},                          // tmp_weight to reduce
+            {CB::cb_25, 1, fp32_dest_acc_en_data_format},                          // tmp_input to reduce
+            {CB::cb_26, 1, fp32_dest_acc_en_data_format},                          // tmp1
+            {CB::cb_27, 1, fp32_dest_acc_en_data_format},                          // tmp2
+            {CB::cb_28, 1, fp32_dest_acc_en_data_format},                          // tmp3
+            {CB::cb_16, 1},                                                             // output
         });
 
     // create read/wrtie kernel

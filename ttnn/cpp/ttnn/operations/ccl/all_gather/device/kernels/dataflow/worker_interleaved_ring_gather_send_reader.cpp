@@ -78,7 +78,7 @@ void kernel_main() {
 
     ASSERT(half_cb_n_pages > rem_num_pages);
 
-    constexpr uint32_t cb_id_in0 = tt::CB::c_in0;
+    constexpr uint32_t cb_id_in0 = tt::CB::cb_0;
 
     #ifdef ROW_MAJOR_LAYOUT
         #ifdef INTERLEAVED_MEM_LAYOUT

@@ -49,13 +49,13 @@ operation::ProgramWithCallbacks moreh_softmax_c_large(const Tensor &input, const
         all_cores,
         data_format,
         {
-            {CB::c_in0, 2},         // input
-            {CB::c_out0, 2},        // output
-            {CB::c_intermed0, 1, intermed_data_format},   // exp(x)
-            {CB::c_intermed1, 1, intermed_data_format},   // recips
-            {CB::c_intermed2, 2, intermed_data_format},   // add
-            {CB::c_intermed3, 1},   // max
-            {CB::c_intermed4, 1, intermed_data_format},   // tmp
+            {CB::cb_0, 2},         // input
+            {CB::cb_16, 2},        // output
+            {CB::cb_24, 1, intermed_data_format},   // exp(x)
+            {CB::cb_25, 1, intermed_data_format},   // recips
+            {CB::cb_26, 2, intermed_data_format},   // add
+            {CB::cb_27, 1},   // max
+            {CB::cb_28, 1, intermed_data_format},   // tmp
         });
 
     // create read/wrtie kernel

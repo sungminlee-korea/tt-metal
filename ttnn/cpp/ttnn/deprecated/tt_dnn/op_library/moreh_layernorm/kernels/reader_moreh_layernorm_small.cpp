@@ -17,13 +17,13 @@ void kernel_main() {
     const auto mask_h = get_arg_val<uint32_t>(i++);
     const auto mask_w = get_arg_val<uint32_t>(i++);
 
-    constexpr uint32_t cb_id_input = tt::CB::c_in0;
-    constexpr uint32_t cb_id_scaler = tt::CB::c_in1;
-    constexpr uint32_t cb_id_eps = tt::CB::c_in2;
-    constexpr uint32_t cb_id_gamma = tt::CB::c_in3;
-    constexpr uint32_t cb_id_beta = tt::CB::c_in4;
-    constexpr uint32_t cb_id_mask_h = tt::CB::c_in5;
-    constexpr uint32_t cb_id_mask_w = tt::CB::c_in6;
+    constexpr uint32_t cb_id_input = tt::CB::cb_0;
+    constexpr uint32_t cb_id_scaler = tt::CB::cb_1;
+    constexpr uint32_t cb_id_eps = tt::CB::cb_2;
+    constexpr uint32_t cb_id_gamma = tt::CB::cb_3;
+    constexpr uint32_t cb_id_beta = tt::CB::cb_4;
+    constexpr uint32_t cb_id_mask_h = tt::CB::cb_5;
+    constexpr uint32_t cb_id_mask_w = tt::CB::cb_6;
 
     const uint32_t input_tile_bytes = get_tile_size(cb_id_input);
     const auto input_data_format = get_dataformat(cb_id_input);

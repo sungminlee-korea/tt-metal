@@ -82,15 +82,15 @@ operation::ProgramWithCallbacks moreh_softmax_h_small(const Tensor &input, const
         all_cores,
         data_format,
         {
-            {CB::c_in0, Ht},         // input
-            {CB::c_in1, 1},         // mask
-            {CB::c_in2, 1},          // scaler
-            {CB::c_out0, Ht},        // output
-            {CB::c_intermed0, Ht, intermed_data_format},  // exp(x)
-            {CB::c_intermed1, 1, intermed_data_format},   // reduce
-            {CB::c_intermed2, 1, intermed_data_format},     // max
-            {CB::c_intermed3, Ht, intermed_data_format},     // x - max
-            {CB::c_intermed4, 1, intermed_data_format}     // tmp
+            {CB::cb_0, Ht},         // input
+            {CB::cb_1, 1},         // mask
+            {CB::cb_2, 1},          // scaler
+            {CB::cb_16, Ht},        // output
+            {CB::cb_24, Ht, intermed_data_format},  // exp(x)
+            {CB::cb_25, 1, intermed_data_format},   // reduce
+            {CB::cb_26, 1, intermed_data_format},     // max
+            {CB::cb_27, Ht, intermed_data_format},     // x - max
+            {CB::cb_28, 1, intermed_data_format}     // tmp
         });
 
     // create read/wrtie kernel

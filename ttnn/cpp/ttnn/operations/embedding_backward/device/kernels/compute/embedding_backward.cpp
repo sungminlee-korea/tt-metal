@@ -13,12 +13,12 @@ void MAIN {
     constexpr uint32_t max_tiles_per_core = get_compile_time_arg_val(0);
     constexpr uint32_t input_height = get_compile_time_arg_val(1);
 
-    constexpr uint32_t cb_grad = tt::CB::c_in0;
-    constexpr uint32_t cb_index = tt::CB::c_in1;
-    constexpr uint32_t cb_out_intermed = tt::CB::c_in2;
-    constexpr uint32_t cb_mask = tt::CB::c_intermed0;
-    constexpr uint32_t cb_chunk_count_scratch = tt::CB::c_intermed1;
-    constexpr uint32_t cb_out = tt::CB::c_out0;
+    constexpr uint32_t cb_grad = tt::CB::cb_0;
+    constexpr uint32_t cb_index = tt::CB::cb_1;
+    constexpr uint32_t cb_out_intermed = tt::CB::cb_2;
+    constexpr uint32_t cb_mask = tt::CB::cb_24;
+    constexpr uint32_t cb_chunk_count_scratch = tt::CB::cb_25;
+    constexpr uint32_t cb_out = tt::CB::cb_16;
 
     unary_op_init_common(cb_grad);
 

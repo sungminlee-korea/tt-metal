@@ -93,10 +93,10 @@ void MAIN {
 
     constexpr uint32_t num_output_tiles = out_ntiles_c;
 
-    constexpr uint32_t in_cb_id = tt::CB::c_in0; // and tt::CB::c_in1 for split reader
-    constexpr uint32_t in_scalar_cb_id = tt::CB::c_in4;
-    constexpr uint32_t in_tiled_cb_id = tt::CB::c_intermed0;
-    constexpr uint32_t out_cb_id = tt::CB::c_out0;
+    constexpr uint32_t in_cb_id = tt::CB::cb_0; // and tt::CB::cb_1 for split reader
+    constexpr uint32_t in_scalar_cb_id = tt::CB::cb_4;
+    constexpr uint32_t in_tiled_cb_id = tt::CB::cb_24;
+    constexpr uint32_t out_cb_id = tt::CB::cb_16;
 
     constexpr bool is_partial_tile = in_c < 32;
     static_assert((!is_partial_tile || (in_c == 16)), "Partial tile must have c_dim 16");

@@ -7,18 +7,18 @@
 namespace NAMESPACE {
 
 void MAIN {
-    constexpr auto cb_param_in = tt::CB::c_in0;
-    constexpr auto cb_grad = tt::CB::c_in1;
-    constexpr auto cb_momentum_in = tt::CB::c_in2;
+    constexpr auto cb_param_in = tt::CB::cb_0;
+    constexpr auto cb_grad = tt::CB::cb_1;
+    constexpr auto cb_momentum_in = tt::CB::cb_2;
 
-    constexpr auto cb_param_out = tt::CB::c_out0;
-    constexpr auto cb_momentum_out = tt::CB::c_out1;
+    constexpr auto cb_param_out = tt::CB::cb_16;
+    constexpr auto cb_momentum_out = tt::CB::cb_17;
 
-    constexpr auto cb_scalar_args = tt::CB::c_intermed0;
-    constexpr auto cb_tmp1 = tt::CB::c_intermed1;
-    constexpr auto cb_tmp2 = tt::CB::c_intermed2;
-    constexpr auto cb_tmp3 = tt::CB::c_intermed3;
-    constexpr auto cb_tmp4 = tt::CB::c_intermed4;
+    constexpr auto cb_scalar_args = tt::CB::cb_24;
+    constexpr auto cb_tmp1 = tt::CB::cb_25;
+    constexpr auto cb_tmp2 = tt::CB::cb_26;
+    constexpr auto cb_tmp3 = tt::CB::cb_27;
+    constexpr auto cb_tmp4 = tt::CB::cb_28;
 
     constexpr uint32_t lr_tile = 0;
     constexpr uint32_t momentum_tile = 1;

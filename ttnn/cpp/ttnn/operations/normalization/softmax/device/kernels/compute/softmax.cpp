@@ -34,22 +34,22 @@ void MAIN {
     const uint32_t ndst = get_arg_val<uint32_t>(3);
     const uint32_t start_ht = get_arg_val<uint32_t>(4);
     const uint32_t mask_padded_data = get_arg_val<uint32_t>(5);
-    binary_op_init_common(tt::CB::c_in0, tt::CB::c_in2, tt::CB::c_intermed0);
+    binary_op_init_common(tt::CB::cb_0, tt::CB::cb_2, tt::CB::cb_24);
 
     constexpr uint32_t onetile = 1;
     // reserve one tile for zeros on cb_in2
     // We only do the reserve for the intermediates once and use pack_tile
     // So effectively these are used as pre-allocated arrays
     // Note that the entire W dimension must fit in the intermed0 CB for this kernel to be correct
-    constexpr auto cb_bcast_scaler = tt::CB::c_in2;
-    constexpr auto cb_fused_scale = tt::CB::c_in3;
-    constexpr auto cb_fused_attn = tt::CB::c_in4;
-    constexpr auto cb_mask_padded = tt::CB::c_in5;
-    constexpr auto cb_exps = tt::CB::c_intermed0;
-    constexpr auto cb_scale_mask = tt::CB::c_intermed3;
-    constexpr auto cb_recipsumexps = tt::CB::c_intermed1;
-    constexpr auto cb_in0 = tt::CB::c_in0;
-    constexpr auto cb_out0 = tt::CB::c_out0;
+    constexpr auto cb_bcast_scaler = tt::CB::cb_2;
+    constexpr auto cb_fused_scale = tt::CB::cb_3;
+    constexpr auto cb_fused_attn = tt::CB::cb_4;
+    constexpr auto cb_mask_padded = tt::CB::cb_5;
+    constexpr auto cb_exps = tt::CB::cb_24;
+    constexpr auto cb_scale_mask = tt::CB::cb_27;
+    constexpr auto cb_recipsumexps = tt::CB::cb_25;
+    constexpr auto cb_in0 = tt::CB::cb_0;
+    constexpr auto cb_out0 = tt::CB::cb_16;
 
 
     cb_wait_front(cb_bcast_scaler, 1); // comes from the reader

@@ -71,12 +71,12 @@ MorehMeanOperation::MorehMeanHFactory::cached_program_t MorehMeanOperation::More
         all_cores,
         data_format,
         {
-            {CB::c_in0, num_input_tiles},                        // input
-            {CB::c_in2, 1},                                      // scaler
-            {CB::c_in3, 1},                                      // mask
-            {CB::c_intermed0, 1, fp32_dest_acc_en_data_format},  //
-            {CB::c_intermed1, 1},                                //
-            {CB::c_out0, 1},                                     // output
+            {CB::cb_0, num_input_tiles},                        // input
+            {CB::cb_2, 1},                                      // scaler
+            {CB::cb_3, 1},                                      // mask
+            {CB::cb_24, 1, fp32_dest_acc_en_data_format},  //
+            {CB::cb_25, 1},                                //
+            {CB::cb_16, 1},                                     // output
         });
 
     float scaler = 1.0f / origin_H;
@@ -98,7 +98,7 @@ MorehMeanOperation::MorehMeanHFactory::cached_program_t MorehMeanOperation::More
         reader_defines);
 
     std::vector<uint32_t> writer_compile_time_args = {
-        static_cast<uint32_t>(CB::c_out0), static_cast<uint32_t>(is_dram(output))};
+        static_cast<uint32_t>(CB::cb_16), static_cast<uint32_t>(is_dram(output))};
 
     const auto writer_kernel_id = CreateWriteKernel(
         program,

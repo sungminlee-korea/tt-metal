@@ -31,7 +31,7 @@ MorehArangeOperation::ProgramFactory::cached_program_t MorehArangeOperation::Pro
         all_cores,
         data_format,
         {
-            {tt::CB::c_out0, 1},
+            {tt::CB::cb_16, 1},
         });
 
     // Create write kernel

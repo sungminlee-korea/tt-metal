@@ -23,31 +23,31 @@ void MAIN {
     uint32_t step = get_arg_val<uint32_t>(0);
     constexpr uint32_t per_core_tile_cnt = get_compile_time_arg_val(0);
 
-    constexpr auto cb_param_in = tt::CB::c_in0;
-    constexpr auto cb_grad_in = tt::CB::c_in1;
-    constexpr auto cb_exp_avg_in = tt::CB::c_in2;
-    constexpr auto cb_exp_avg_sq_in = tt::CB::c_in3;
+    constexpr auto cb_param_in = tt::CB::cb_0;
+    constexpr auto cb_grad_in = tt::CB::cb_1;
+    constexpr auto cb_exp_avg_in = tt::CB::cb_2;
+    constexpr auto cb_exp_avg_sq_in = tt::CB::cb_3;
 #ifdef AMSGRAD
-    constexpr auto cb_max_exp_avg_sq_in = tt::CB::c_in4;
+    constexpr auto cb_max_exp_avg_sq_in = tt::CB::cb_4;
 #endif
     // lr, beta1, beta2, eps, weight_decay
-    constexpr auto cb_scalar_args = tt::CB::c_in5;
-    constexpr auto cb_one = tt::CB::c_in6;
-    constexpr auto cb_param_out = tt::CB::c_out0;
-    constexpr auto cb_exp_avg_out = tt::CB::c_out1;
-    constexpr auto cb_exp_avg_sq_out = tt::CB::c_out2;
+    constexpr auto cb_scalar_args = tt::CB::cb_5;
+    constexpr auto cb_one = tt::CB::cb_6;
+    constexpr auto cb_param_out = tt::CB::cb_16;
+    constexpr auto cb_exp_avg_out = tt::CB::cb_17;
+    constexpr auto cb_exp_avg_sq_out = tt::CB::cb_18;
 #ifdef AMSGRAD
-    constexpr auto cb_max_exp_avg_sq_out = tt::CB::c_out3;
+    constexpr auto cb_max_exp_avg_sq_out = tt::CB::cb_19;
 #endif
 
-    constexpr auto tmp_cb_grad = tt::CB::c_intermed0;
-    constexpr auto tmp_cb_exp_avg = tt::CB::c_intermed1;
-    constexpr auto tmp_cb_exp_avg_sq = tt::CB::c_intermed2;
+    constexpr auto tmp_cb_grad = tt::CB::cb_24;
+    constexpr auto tmp_cb_exp_avg = tt::CB::cb_25;
+    constexpr auto tmp_cb_exp_avg_sq = tt::CB::cb_26;
 #ifdef AMSGRAD
-    constexpr auto tmp_cb_max_exp_avg_sq = tt::CB::c_intermed3;
+    constexpr auto tmp_cb_max_exp_avg_sq = tt::CB::cb_27;
 #endif
-    constexpr auto cb_tmp1 = tt::CB::c_intermed6;
-    constexpr auto cb_tmp2 = tt::CB::c_intermed7;
+    constexpr auto cb_tmp1 = tt::CB::cb_30;
+    constexpr auto cb_tmp2 = tt::CB::cb_31;
 
     constexpr uint32_t dst0 = 0;
     constexpr uint32_t dst1 = 1;

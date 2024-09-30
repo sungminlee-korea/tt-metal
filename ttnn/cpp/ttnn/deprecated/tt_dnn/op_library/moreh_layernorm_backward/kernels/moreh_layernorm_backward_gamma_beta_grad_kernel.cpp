@@ -17,26 +17,26 @@ void MAIN {
     constexpr bool is_lastdim_layernorm = get_compile_time_arg_val(7) == 1;
     constexpr bool is_groupnorm = get_compile_time_arg_val(8) == 1;
 
-    constexpr auto cb_dy = tt::CB::c_in0;      // output_grad(==dy)
-    constexpr auto cb_x = tt::CB::c_in1;       // input(==x)
-    constexpr auto cb_mean = tt::CB::c_in2;    // mean
-    constexpr auto cb_rstd = tt::CB::c_in3;    // rstd
-    constexpr auto cb_scaler = tt::CB::c_in4;  // scaler
-    constexpr auto cb_mask_h = tt::CB::c_in5;  // mask_h
-    constexpr auto cb_mask_w = tt::CB::c_in6;  // mask_w
+    constexpr auto cb_dy = tt::CB::cb_0;      // output_grad(==dy)
+    constexpr auto cb_x = tt::CB::cb_1;       // input(==x)
+    constexpr auto cb_mean = tt::CB::cb_2;    // mean
+    constexpr auto cb_rstd = tt::CB::cb_3;    // rstd
+    constexpr auto cb_scaler = tt::CB::cb_4;  // scaler
+    constexpr auto cb_mask_h = tt::CB::cb_5;  // mask_h
+    constexpr auto cb_mask_w = tt::CB::cb_6;  // mask_w
 
     // Sum[y * dy]
-    constexpr auto cb_dgamma = tt::CB::c_out0;  // gamma_grad(==dgamma)
+    constexpr auto cb_dgamma = tt::CB::cb_16;  // gamma_grad(==dgamma)
     // Sum[dy]
-    constexpr auto cb_dbeta = tt::CB::c_out1;  // beta_grad(==dbeta)
+    constexpr auto cb_dbeta = tt::CB::cb_17;  // beta_grad(==dbeta)
 
     // y = (x - mean) / rstd
-    constexpr auto cb_y = tt::CB::c_intermed0;       // output(==y)
-    constexpr auto cb_ydy = tt::CB::c_intermed1;     // y * dy
-    constexpr auto cb_dyadd = tt::CB::c_intermed2;   // Add[dy]
-    constexpr auto cb_ydyadd = tt::CB::c_intermed3;  // Add[y * dy]
-    constexpr auto cb_xmm = tt::CB::c_intermed4;     // x - mean
-    constexpr auto cb_dycopy = tt::CB::c_intermed5;  // dycopy
+    constexpr auto cb_y = tt::CB::cb_24;       // output(==y)
+    constexpr auto cb_ydy = tt::CB::cb_25;     // y * dy
+    constexpr auto cb_dyadd = tt::CB::cb_26;   // Add[dy]
+    constexpr auto cb_ydyadd = tt::CB::cb_27;  // Add[y * dy]
+    constexpr auto cb_xmm = tt::CB::cb_28;     // x - mean
+    constexpr auto cb_dycopy = tt::CB::cb_29;  // dycopy
 
     constexpr uint32_t onetile = 1;
 
@@ -55,7 +55,7 @@ void MAIN {
 
     constexpr uint32_t HtWt = Ht * Wt;
 
-    binary_op_init_common(tt::CB::c_in0, tt::CB::c_in0);
+    binary_op_init_common(tt::CB::cb_0, tt::CB::cb_0);
 
     cb_wait_front(cb_scaler, onetile);  // comes from the reader
 

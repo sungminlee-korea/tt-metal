@@ -126,15 +126,15 @@ void MAIN {
 
 
     #ifdef SHARDED
-    constexpr auto cb_in = tt::CB::c_intermed0;
-    constexpr auto cb_tilize = tt::CB::c_intermed1;
-    constexpr auto cb_untilize = tt::CB::c_intermed2;
-    constexpr auto cb_out = (Ht > 8) ? tt::CB::c_intermed3 : tt::CB::c_out0; // temporary fix until pack_untilze is fully fixed
+    constexpr auto cb_in = tt::CB::cb_24;
+    constexpr auto cb_tilize = tt::CB::cb_25;
+    constexpr auto cb_untilize = tt::CB::cb_26;
+    constexpr auto cb_out = (Ht > 8) ? tt::CB::cb_27 : tt::CB::cb_16; // temporary fix until pack_untilze is fully fixed
     #else
-    constexpr auto cb_in = tt::CB::c_in0;
-    constexpr auto cb_tilize = tt::CB::c_intermed0;
-    constexpr auto cb_untilize = tt::CB::c_intermed1;
-    constexpr auto cb_out = tt::CB::c_out0;
+    constexpr auto cb_in = tt::CB::cb_0;
+    constexpr auto cb_tilize = tt::CB::cb_24;
+    constexpr auto cb_untilize = tt::CB::cb_25;
+    constexpr auto cb_out = tt::CB::cb_16;
     #endif
 
     unary_op_init_common(cb_in, cb_out);

@@ -119,15 +119,15 @@ void MAIN {
     constexpr uint32_t out_block_w = in1_block_w;
 
     // CB indices
-    constexpr uint32_t in0_cb_id                                = tt::CB::c_in0;
-    constexpr uint32_t in1_cb_id                                = tt::CB::c_in1;
-    constexpr uint32_t in0_pretilize_cb_id                      = tt::CB::c_in6;
-    constexpr uint32_t in0_cb_second_reader_id                  = tt::CB::c_in7;
-    constexpr uint32_t eltwise_mul_partials_cb                  = tt::CB::c_intermed0;
-    constexpr uint32_t tilized_in0_cb_id                        = tt::CB::c_intermed1;
-    constexpr uint32_t temp_sum_cb                              = tt::CB::c_intermed3;
-    constexpr uint32_t prev_eltwise_cb                          = tt::CB::c_intermed5;
-    constexpr uint32_t out_cb_id                                = tt::CB::c_out0;
+    constexpr uint32_t in0_cb_id                                = tt::CB::cb_0;
+    constexpr uint32_t in1_cb_id                                = tt::CB::cb_1;
+    constexpr uint32_t in0_pretilize_cb_id                      = tt::CB::cb_6;
+    constexpr uint32_t in0_cb_second_reader_id                  = tt::CB::cb_7;
+    constexpr uint32_t eltwise_mul_partials_cb                  = tt::CB::cb_24;
+    constexpr uint32_t tilized_in0_cb_id                        = tt::CB::cb_25;
+    constexpr uint32_t temp_sum_cb                              = tt::CB::cb_27;
+    constexpr uint32_t prev_eltwise_cb                          = tt::CB::cb_29;
+    constexpr uint32_t out_cb_id                                = tt::CB::cb_16;
 
     constexpr uint32_t in0_num_subblocks_read = in0_num_subblocks;
 

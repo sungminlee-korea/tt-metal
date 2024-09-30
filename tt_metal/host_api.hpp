@@ -30,6 +30,8 @@ namespace tt {
 
 namespace tt_metal {
 
+inline namespace v0{
+
 class Program;
 class Device;
 class CommandQueue;
@@ -131,6 +133,7 @@ KernelHandle CreateKernel(
 //                  HOST API: buffers
 // ==================================================
 /**
+ * Deprecated
  * Creates a Circular Buffer (CB) in L1 memory of all cores within core ranges (inclusive) and adds it to the program. There can be a total of NUM_CIRCULAR_BUFFERS (32) circular buffers per core.
  * Circular buffers hold data and have an associated config which indicates usage of the address space.
  * If the config is specified for multiple buffer indices, the circular buffer address space is shared and each buffer index can potentially have a unique view of the shared space.
@@ -151,6 +154,11 @@ CBHandle CreateCircularBuffer(
     const std::variant<CoreCoord, CoreRange, CoreRangeSet> &core_spec,
     const CircularBufferConfig &config);
 
+CBHandle CreateCB(
+    Program &program,
+    const std::variant<VirtualCoreCoord, VirtualCoreRange, VirtualCoreRangeSet> &core_spec,
+    const CBConfig &config);
+
 /**
  * Gets a reference to the config owned by circular buffer at the given circular buffer ID.
  *
@@ -162,6 +170,19 @@ CBHandle CreateCircularBuffer(
  * | cb_handle | ID of the circular buffer, returned by `CreateCircularBuffers` | CBHandle (uintptr_t) |       |    Yes      |
 */
 const CircularBufferConfig &GetCircularBufferConfig(Program &program, CBHandle cb_handle);
+
+// #7493
+/**
+ * Gets the enum assigned to the circular buffer.
+ *
+ * Return value: CB
+ *
+ * | Argument  | Description                                                    | Type                         | Valid Range | Required |
+ * |-----------|----------------------------------------------------------------|------------------------------|-------------|----------|
+ * | program   | The program containing the circular buffer                     | Program &                    |             | Yes      |
+ * | cb_handle | ID of the circular buffer, returned by `CreateCircularBuffers` | CBHandle (uintptr_t) |       |    Yes      |
+*/
+const CB GetCircularBufferEnum(Program &program, CBHandle cb_handle);
 
 /**
  * Update the total size of the circular buffer at the given circular buffer handle. Updating a program-local circular buffer requires all circular buffers in the program to be reallocated.
@@ -630,6 +651,40 @@ bool EventQuery(const std::shared_ptr<Event> &event);
  * | cq_id        | The specific command queue id to synchronize  .                        | uint8_t                       |                                    | No       |
  */
 void Synchronize(Device *device, const std::optional<uint8_t> cq_id = std::nullopt);
+
+} // namespace v0
+
+// # 7493
+namespace v1{
+
+class CircularBufferConfig;
+
+// ==================================================
+//                  HOST API: buffers
+// ==================================================
+/**
+ * Creates a Circular Buffer (CB) in L1 memory of all cores within core ranges (inclusive) and adds it to the program. There can be a total of NUM_CIRCULAR_BUFFERS (32) circular buffers per core.
+ * Circular buffers hold data and have an associated config which indicates usage of the address space.
+ * If the config is specified for multiple buffer indices, the circular buffer address space is shared and each buffer index can potentially have a unique view of the shared space.
+ *
+ * Circular buffers can be dynamically allocated or program-local allocated. If the config is created with an L1 buffer or sets a globally allocated address it is dynamic and shares the same address space as the L1 buffer.
+ * Otherwise, the circular buffer address space is managed by the program. Address space for program-local circular buffers does not persist across programs.
+ *
+ * Return value: Circular Buffer ID (uintptr_t)
+ *
+ * | Argument  | Description                                                                                                                                       | Type                                                     | Valid Range | Required |
+ * |-----------|---------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|-------------|----------|
+ * | program   | The program to which buffer will be added to                                                                                                      | Program &                                                |             | Yes      |
+ * | core_spec | Either a single logical core, a range of logical cores or a set of logical core ranges that indicate where the circular buffer will be configured | const std::variant<CoreCoord, CoreRange, CoreRangeSet> & |             | Yes      |
+ * | config    | Config for circular buffer                                                                                                                        | const CircularBufferConfig &                             |             | Yes      |
+ */
+CBHandle CreateCircularBuffer(
+    v0::Program &program,
+    const std::variant<CoreCoord, CoreRange, CoreRangeSet> &core_spec,
+    const CircularBufferConfig &config);
+
+} // namespace v1
+
 
 }  // namespace tt_metal
 

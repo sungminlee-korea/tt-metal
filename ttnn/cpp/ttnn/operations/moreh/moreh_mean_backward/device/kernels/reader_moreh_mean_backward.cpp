@@ -68,9 +68,9 @@ void kernel_main() {
     }
 
     constexpr uint32_t onetile = 1;
-    constexpr uint32_t cb_id_in0 = tt::CB::c_in0;
-    constexpr uint32_t cb_id_in1 = tt::CB::c_in1;
-    constexpr uint32_t cb_id_in2 = tt::CB::c_in2;
+    constexpr uint32_t cb_id_in0 = tt::CB::cb_0;
+    constexpr uint32_t cb_id_in1 = tt::CB::cb_1;
+    constexpr uint32_t cb_id_in2 = tt::CB::cb_2;
 
     // zero tile
     union {

@@ -148,13 +148,13 @@ void kernel_main() {
     *reduce_sender_semaphore_addr_ptr = VALID;
     volatile tt_l1_ptr uint32_t* reduce_receiver_semaphore_addr_ptr = reinterpret_cast<volatile tt_l1_ptr uint32_t*>(reduce_receiver_semaphore_addr);
 
-    constexpr uint32_t cb_ex_partial = tt::CB::dataflow0;
-    constexpr uint32_t cb_ex = tt::CB::dataflow1;
-    constexpr uint32_t cb_ex_external = tt::CB::dataflow2;
-    constexpr uint32_t cb_in0 = tt::CB::c_in0; // sharded cb
-    constexpr uint32_t cb_repack = tt::CB::c_intermed2;
-    constexpr uint32_t cb_repack_out = tt::CB::c_intermed7;
-    constexpr uint32_t cb_out0 = tt::CB::c_out0;
+    constexpr uint32_t cb_ex_partial = tt::CB::cb_8;
+    constexpr uint32_t cb_ex = tt::CB::cb_9;
+    constexpr uint32_t cb_ex_external = tt::CB::cb_10;
+    constexpr uint32_t cb_in0 = tt::CB::cb_0; // sharded cb
+    constexpr uint32_t cb_repack = tt::CB::cb_26;
+    constexpr uint32_t cb_repack_out = tt::CB::cb_31;
+    constexpr uint32_t cb_out0 = tt::CB::cb_16;
 
     const uint32_t single_tile_size_bytes = get_tile_size(cb_ex_partial);
     const DataFormat data_format = get_dataformat(cb_ex_partial);

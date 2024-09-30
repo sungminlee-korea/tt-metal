@@ -80,10 +80,10 @@ operation::ProgramWithCallbacks moreh_cumsum_nc(
         all_cores,
         cb_data_format,
         {
-            {CB::c_in0, in0_t},              // input
-            {CB::c_in1, in1_t},              // zero
-            {CB::c_intermed0, intermed0_t},  // accumulated sum
-            {CB::c_out0, out0_t},            // output
+            {CB::cb_0, in0_t},              // input
+            {CB::cb_1, in1_t},              // zero
+            {CB::cb_24, intermed0_t},  // accumulated sum
+            {CB::cb_16, out0_t},            // output
         });
 
     ////////////////////////////////////////////////////////////////////////////

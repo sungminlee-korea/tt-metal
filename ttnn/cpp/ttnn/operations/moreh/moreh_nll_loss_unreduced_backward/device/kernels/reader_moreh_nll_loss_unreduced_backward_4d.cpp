@@ -16,11 +16,11 @@ void kernel_main() {
     auto C = get_arg_val<uint32_t>(i++);
     auto Ct = get_arg_val<uint32_t>(i++);
 
-    constexpr uint32_t cb_target = tt::CB::c_in0;
-    constexpr uint32_t cb_output_grad = tt::CB::c_in1;
-    constexpr uint32_t cb_weight = tt::CB::c_in2;
+    constexpr uint32_t cb_target = tt::CB::cb_0;
+    constexpr uint32_t cb_output_grad = tt::CB::cb_1;
+    constexpr uint32_t cb_weight = tt::CB::cb_2;
 
-    constexpr uint32_t cb_input_grad = tt::CB::c_out0;
+    constexpr uint32_t cb_input_grad = tt::CB::cb_16;
 
     // ublocks size defined in tiles
     const uint32_t target_tile_bytes = get_tile_size(cb_target);

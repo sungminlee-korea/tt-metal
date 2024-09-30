@@ -62,7 +62,7 @@ CBHandle MakeCircularBuffer(Program& program, const CoreSpec& core, tt::CB cb, u
 // backed by SRAM. There can be multiple circular buffers on a single Tensix core.
 // @param program: The program to create the circular buffer on.
 // @param core: The core to create the circular buffer on.
-// @param cb: Which circular buffer to create (c_in0, c_in1, c_out0, c_out1, etc..). This is just an ID
+// @param cb: Which circular buffer to create (cb_0, cb_1, cb_16, cb_17, etc..). This is just an ID
 // @param n_tiles: The number of tiles the circular buffer can hold.
 CBHandle MakeCircularBufferBFP16(Program& program, const CoreSpec& core, tt::CB cb, uint32_t n_tiles)
 {
@@ -134,9 +134,9 @@ int main(int argc, char **argv)
 
     const uint32_t tiles_per_cb = 4;
     // Create 3 circular buffers. These will be used by the data movement kernels to stream data into the compute cores and for the compute cores to stream data out.
-    CBHandle cb_a = MakeCircularBufferBFP16(program, core, tt::CB::c_in0, tiles_per_cb);
-    CBHandle cb_b = MakeCircularBufferBFP16(program, core, tt::CB::c_in1, tiles_per_cb);
-    CBHandle cb_c = MakeCircularBufferBFP16(program, core, tt::CB::c_out0, tiles_per_cb);
+    CBHandle cb_a = MakeCircularBufferBFP16(program, core, tt::CB::cb_0, tiles_per_cb);
+    CBHandle cb_b = MakeCircularBufferBFP16(program, core, tt::CB::cb_1, tiles_per_cb);
+    CBHandle cb_c = MakeCircularBufferBFP16(program, core, tt::CB::cb_16, tiles_per_cb);
 
     EnqueueWriteBuffer(cq, a, a_data, false);
     EnqueueWriteBuffer(cq, b, b_data, false);

@@ -13,12 +13,12 @@ void MAIN {
     const bool do_mask_h = (arg_fetcher.get_next_arg_val<uint32_t>() == 1);
     const bool do_mask_w = (arg_fetcher.get_next_arg_val<uint32_t>() == 1);
 
-    constexpr auto cb_in0 = tt::CB::c_in0;
-    constexpr auto cb_scaler = tt::CB::c_in1;
-    constexpr auto cb_mask_h_w = tt::CB::c_in2;
-    constexpr auto cb_intermed0 = tt::CB::c_intermed0;
-    constexpr auto cb_intermed1 = tt::CB::c_intermed1;
-    constexpr auto cb_out0 = tt::CB::c_out0;
+    constexpr auto cb_in0 = tt::CB::cb_0;
+    constexpr auto cb_scaler = tt::CB::cb_1;
+    constexpr auto cb_mask_h_w = tt::CB::cb_2;
+    constexpr auto cb_intermed0 = tt::CB::cb_24;
+    constexpr auto cb_intermed1 = tt::CB::cb_25;
+    constexpr auto cb_out0 = tt::CB::cb_16;
     constexpr uint32_t dst0 = 0;
     constexpr uint32_t dst1 = 1;
 

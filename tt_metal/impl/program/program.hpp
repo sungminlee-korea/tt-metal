@@ -18,6 +18,8 @@ namespace tt {
 
 namespace tt_metal {
 
+inline namespace v0{
+
 // Fwd declares
 class Buffer;
 class Kernel;
@@ -25,6 +27,7 @@ class CircularBuffer;
 class Device;
 class Program;
 class JitBuildOptions;
+
 class CircularBufferConfig;
 namespace detail{
     void ValidateCircularBufferRegion(const Program &program, const Device *device);
@@ -98,6 +101,9 @@ class Program {
     }
 
     const std::vector<std::shared_ptr<CircularBuffer>> &circular_buffers() const { return circular_buffers_; }
+
+    // #7493
+    const std::size_t num_circular_buffers() const { return circular_buffers_.size();};
 
     const std::vector< Semaphore > & semaphores() const { return semaphores_; }
 
@@ -216,7 +222,7 @@ class Program {
 
     std::vector<ProgramConfig> program_configs_;
     std::vector<uint32_t> program_config_sizes_;
-    friend CBHandle CreateCircularBuffer(Program &program, const std::variant<CoreCoord, CoreRange, CoreRangeSet> &core_spec, const CircularBufferConfig &config);
+    friend CBHandle CreateCircularBuffer(Program &program, const std::variant<CoreCoord, CoreRange, CoreRangeSet> &core_spec, const v0::CircularBufferConfig &config);
     friend std::shared_ptr<CircularBuffer> detail::GetCircularBuffer(const Program &program, CBHandle id);
     friend void detail::ValidateCircularBufferRegion(const Program &program, const Device *device);
 
@@ -226,7 +232,7 @@ class Program {
     friend uint32_t CreateSemaphore(Program &program, const std::variant<CoreRange,CoreRangeSet> &core_spec, uint32_t initial_value, CoreType core_type);
     KernelHandle add_kernel(std::shared_ptr<Kernel> kernel, const HalProgrammableCoreType &core_type);
 
-    CBHandle add_circular_buffer(const CoreRangeSet &core_range_set, const CircularBufferConfig &config);
+    CBHandle add_circular_buffer(const CoreRangeSet &core_range_set, const v0::CircularBufferConfig &config);
     std::shared_ptr<CircularBuffer> get_circular_buffer(CBHandle cb_id) const;
 
     void add_semaphore(const CoreRangeSet & crs, uint32_t semaphore_id, uint32_t init_value, CoreType core_type);
@@ -251,6 +257,8 @@ class Program {
     friend class HWCommandQueue;
     friend class EnqueueProgramCommand;
 };
+
+} // namespace v0
 
 }  // namespace tt_metal
 

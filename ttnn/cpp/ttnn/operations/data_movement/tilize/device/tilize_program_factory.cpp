@@ -173,10 +173,10 @@ operation::ProgramWithCallbacks tilize_multi_core_interleaved(const Tensor& a, T
     auto [ncores, all_cores, core_range, core_range_cliff, nblocks_per_core, nblocks_per_core_cliff] =
         ttnn::split_blocks_for_tilize(grid_size, nblocks);
 
-    create_cb(tt::CB::c_in0, program, all_cores, input_single_tile_size, ntiles_per_block, input_cb_data_format);
+    create_cb(tt::CB::cb_0, program, all_cores, input_single_tile_size, ntiles_per_block, input_cb_data_format);
 
     auto [output_cb_index, _] =
-        create_cb(tt::CB::c_out0, program, all_cores, output_single_tile_size, ntiles_per_block, output_cb_data_format);
+        create_cb(tt::CB::cb_16, program, all_cores, output_single_tile_size, ntiles_per_block, output_cb_data_format);
 
     Buffer* src0_buffer = a.buffer();
     Buffer* dst_buffer = output.buffer();
@@ -332,7 +332,7 @@ operation::ProgramWithCallbacks tilize_multi_core_sharded(const Tensor& input, T
     uint32_t num_cores = all_cores.num_cores();
 
     auto [src0_cb_index, cb_src0] = create_cb(
-        tt::CB::c_in0,
+        tt::CB::cb_0,
         program,
         all_cores,
         input_single_tile_size,
@@ -341,7 +341,7 @@ operation::ProgramWithCallbacks tilize_multi_core_sharded(const Tensor& input, T
         input.buffer());
 
     auto [output_cb_index, cb_output] = create_cb(
-        tt::CB::c_out0,
+        tt::CB::cb_16,
         program,
         all_cores,
         output_single_tile_size,

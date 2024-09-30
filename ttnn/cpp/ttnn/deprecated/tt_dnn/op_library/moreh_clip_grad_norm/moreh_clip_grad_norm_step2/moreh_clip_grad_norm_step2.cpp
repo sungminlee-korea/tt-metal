@@ -63,13 +63,13 @@ operation::ProgramWithCallbacks moreh_clip_grad_norm_step2_impl(
         single_core,
         cb_data_format,
         {
-            {CB::c_in0, in0_t},        // input(==tmp_pow_sum)
-            {CB::c_in1, in1_t},        // decimal
-            {CB::c_out0, out0_t},      // output(==total_norm)
-            {CB::c_intermed0, im0_t},  // Sum[tmp_pow_sum](==x)
-            {CB::c_intermed1, im1_t},  // x^p
-            {CB::c_intermed2, im2_t},  // log(x)
-            {CB::c_intermed3, im3_t},  // exp(log(x) * decimal)
+            {CB::cb_0, in0_t},        // input(==tmp_pow_sum)
+            {CB::cb_1, in1_t},        // decimal
+            {CB::cb_16, out0_t},      // output(==total_norm)
+            {CB::cb_24, im0_t},  // Sum[tmp_pow_sum](==x)
+            {CB::cb_25, im1_t},  // x^p
+            {CB::cb_26, im2_t},  // log(x)
+            {CB::cb_27, im3_t},  // exp(log(x) * decimal)
         });
 
     ////////////////////////////////////////////////////////////////////////////

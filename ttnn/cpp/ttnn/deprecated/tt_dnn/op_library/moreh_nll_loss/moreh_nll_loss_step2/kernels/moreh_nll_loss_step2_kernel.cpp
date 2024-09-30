@@ -10,16 +10,16 @@ namespace NAMESPACE {
 void MAIN {
     constexpr uint32_t per_core_tile_cnt = get_compile_time_arg_val(0);
 
-    constexpr uint32_t cb_weight = tt::CB::c_in2;
-    constexpr uint32_t cb_divisor = tt::CB::c_in3;
+    constexpr uint32_t cb_weight = tt::CB::cb_2;
+    constexpr uint32_t cb_divisor = tt::CB::cb_3;
 
-    constexpr uint32_t cb_tmp_weight = tt::CB::c_intermed0;
-    constexpr uint32_t cb_tmp_input = tt::CB::c_intermed1;
-    constexpr uint32_t cb_tmp1 = tt::CB::c_intermed2;
-    constexpr uint32_t cb_divisor_recip = tt::CB::c_intermed3;  // 1/divisor
-    constexpr uint32_t cb_tmp3 = tt::CB::c_intermed4;
+    constexpr uint32_t cb_tmp_weight = tt::CB::cb_24;
+    constexpr uint32_t cb_tmp_input = tt::CB::cb_25;
+    constexpr uint32_t cb_tmp1 = tt::CB::cb_26;
+    constexpr uint32_t cb_divisor_recip = tt::CB::cb_27;  // 1/divisor
+    constexpr uint32_t cb_tmp3 = tt::CB::cb_28;
 
-    constexpr uint32_t cb_output = tt::CB::c_out0;
+    constexpr uint32_t cb_output = tt::CB::cb_16;
 
     constexpr uint32_t dst0 = 0;
     constexpr uint32_t onetile = 1;

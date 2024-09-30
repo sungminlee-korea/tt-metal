@@ -358,23 +358,23 @@ void MAIN {
     constexpr uint32_t qk_chunk_tiles = Sq_chunk_t * Sk_chunk_t;
     constexpr uint32_t out_chunk_tiles = Sq_chunk_t * DHt;
 
-    constexpr uint32_t cb_q_in = tt::CB::c_in0;
-    constexpr uint32_t cb_k_in = tt::CB::c_in1;
-    constexpr uint32_t cb_v_in = tt::CB::c_in2;
-    constexpr uint32_t cb_mask_in = tt::CB::c_in3;
-    constexpr uint32_t cb_scale_in = tt::CB::c_in4;
-    constexpr uint32_t cb_identity_scale_in = tt::CB::c_in5;
+    constexpr uint32_t cb_q_in = tt::CB::cb_0;
+    constexpr uint32_t cb_k_in = tt::CB::cb_1;
+    constexpr uint32_t cb_v_in = tt::CB::cb_2;
+    constexpr uint32_t cb_mask_in = tt::CB::cb_3;
+    constexpr uint32_t cb_scale_in = tt::CB::cb_4;
+    constexpr uint32_t cb_identity_scale_in = tt::CB::cb_5;
 
-    constexpr uint32_t cb_qk_im = tt::CB::c_intermed0;
-    constexpr uint32_t cb_out_im = tt::CB::c_intermed1;
-    constexpr uint32_t cb_out_accumulate_im = tt::CB::c_intermed2;
-    constexpr uint32_t cb_cur_max = tt::CB::c_intermed3;
-    constexpr uint32_t cb_prev_max = tt::CB::c_intermed4;
-    constexpr uint32_t cb_cur_sum = tt::CB::c_intermed5;
-    constexpr uint32_t cb_prev_sum = tt::CB::c_intermed6;
-    constexpr uint32_t cb_exp_max_diff = tt::CB::c_intermed7;
+    constexpr uint32_t cb_qk_im = tt::CB::cb_24;
+    constexpr uint32_t cb_out_im = tt::CB::cb_25;
+    constexpr uint32_t cb_out_accumulate_im = tt::CB::cb_26;
+    constexpr uint32_t cb_cur_max = tt::CB::cb_27;
+    constexpr uint32_t cb_prev_max = tt::CB::cb_28;
+    constexpr uint32_t cb_cur_sum = tt::CB::cb_29;
+    constexpr uint32_t cb_prev_sum = tt::CB::cb_30;
+    constexpr uint32_t cb_exp_max_diff = tt::CB::cb_31;
 
-    constexpr uint32_t cb_out = tt::CB::c_out0;
+    constexpr uint32_t cb_out = tt::CB::cb_16;
 
 
     mm_init();

@@ -34,8 +34,8 @@ namespace primary {
             .set_page_size(src0_cb_index, single_tile_size);
         auto cb_src0 = tt_metal::CreateCircularBuffer(program, core, cb_src0_config);
 
-        tt_metal::CircularBufferConfig cb_inter_config = tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size, {{tt::CB::c_intermed0, cb_data_format}})
-            .set_page_size(tt::CB::c_intermed0, single_tile_size);
+        tt_metal::CircularBufferConfig cb_inter_config = tt_metal::CircularBufferConfig(num_input_tiles * single_tile_size, {{tt::CB::cb_24, cb_data_format}})
+            .set_page_size(tt::CB::cb_24, single_tile_size);
         auto cb_interm = tt_metal::CreateCircularBuffer(program, core, cb_inter_config);
 
         uint32_t output_cb_index = 16; // output operands start at index 16

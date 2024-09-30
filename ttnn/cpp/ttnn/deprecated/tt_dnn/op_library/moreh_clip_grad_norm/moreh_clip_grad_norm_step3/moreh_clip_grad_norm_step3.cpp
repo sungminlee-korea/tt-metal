@@ -67,9 +67,9 @@ operation::ProgramWithCallbacks moreh_clip_grad_norm_step3_impl(
         core_group_1,
         cb_data_format,
         {
-            {CB::c_in0, in0_t},    // input(inplace)
-            {CB::c_in1, in1_t},    // clip_coef_clamped
-            {CB::c_out0, out0_t},  // output(inplace)
+            {CB::cb_0, in0_t},    // input(inplace)
+            {CB::cb_1, in1_t},    // clip_coef_clamped
+            {CB::cb_16, out0_t},  // output(inplace)
         });
 
     ////////////////////////////////////////////////////////////////////////////

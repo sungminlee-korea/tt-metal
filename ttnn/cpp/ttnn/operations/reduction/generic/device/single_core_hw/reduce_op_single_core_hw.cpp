@@ -63,8 +63,8 @@ operation::ProgramWithCallbacks reduce_single_core_hw(
     auto cb_src0 = tt_metal::CreateCircularBuffer(program, core, cb_src0_config);
 
     tt_metal::CircularBufferConfig cb_scaler_config =
-        tt_metal::CircularBufferConfig(num_input_tiles * scaler_single_tile_size, {{CB::c_in2, scaler_cb_data_format}})
-            .set_page_size(CB::c_in2, scaler_single_tile_size);
+        tt_metal::CircularBufferConfig(num_input_tiles * scaler_single_tile_size, {{CB::cb_2, scaler_cb_data_format}})
+            .set_page_size(CB::cb_2, scaler_single_tile_size);
     auto cb_src1 = tt_metal::CreateCircularBuffer(program, core, cb_scaler_config);
 
     uint32_t output_cb_index = 16;  // output operands start at index 16

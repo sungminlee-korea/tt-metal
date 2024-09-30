@@ -87,7 +87,7 @@ operation::ProgramWithCallbacks untilize_multi_core_parallelize_column(
 
     uint32_t num_input_tiles = ntiles_per_block * 2;
     auto [src0_cb_index, cb_src0] = create_cb(
-        tt::CB::c_in0,
+        tt::CB::cb_0,
         program,
         all_cores,
         input_single_tile_size,
@@ -97,7 +97,7 @@ operation::ProgramWithCallbacks untilize_multi_core_parallelize_column(
 
     uint32_t num_output_tiles =  ntiles_per_block * 2;
     auto [output_cb_index, cb_output] = create_cb(
-        tt::CB::c_out0,
+        tt::CB::cb_16,
         program,
         all_cores,
         output_single_tile_size,
@@ -352,7 +352,7 @@ operation::ProgramWithCallbacks untilize_multi_core(
 
     uint32_t num_input_tiles = src_sharded ? ntiles_per_block * nblocks_per_core : ntiles_per_block * 2;
     auto [src0_cb_index, cb_src0] = create_cb(
-        tt::CB::c_in0,
+        tt::CB::cb_0,
         program,
         all_cores,
         input_single_tile_size,
@@ -362,7 +362,7 @@ operation::ProgramWithCallbacks untilize_multi_core(
 
     uint32_t num_output_tiles = out_sharded ? ntiles_per_block * nblocks_per_core : ntiles_per_block * 2;
     auto [output_cb_index, cb_output] = create_cb(
-        tt::CB::c_out0,
+        tt::CB::cb_16,
         program,
         all_cores,
         output_single_tile_size,

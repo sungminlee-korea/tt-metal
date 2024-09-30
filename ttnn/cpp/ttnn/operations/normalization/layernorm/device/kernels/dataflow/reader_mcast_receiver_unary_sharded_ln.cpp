@@ -36,14 +36,14 @@ void kernel_main() {
 
     const uint32_t num_tiles_to_read = is_last_all_to_all_worker ? num_tiles_per_worker_last : num_tiles_per_worker;
 
-    constexpr uint32_t cb_ex_partial = tt::CB::dataflow0; // E[x] partial reduce
-    constexpr uint32_t cb_ex = tt::CB::dataflow1; // E[x] global reduce
-    constexpr uint32_t cb_ex_external = tt::CB::dataflow2;
-    constexpr uint32_t cb_ex_partial2 = tt::CB::dataflow3; // E[(x-E[x])^2] partial reduce
-    constexpr uint32_t cb_ex2 = tt::CB::dataflow4; // E[(x-E[x])^2] global reduce
-    constexpr uint32_t cb_ex_external2 = tt::CB::dataflow5;
-    constexpr uint32_t cb_ex2pe = tt::CB::c_intermed3;
-    constexpr uint32_t cb_ex_global = tt::CB::dataflow7; // E[x] global reduce
+    constexpr uint32_t cb_ex_partial = tt::CB::cb_8; // E[x] partial reduce
+    constexpr uint32_t cb_ex = tt::CB::cb_9; // E[x] global reduce
+    constexpr uint32_t cb_ex_external = tt::CB::cb_10;
+    constexpr uint32_t cb_ex_partial2 = tt::CB::cb_11; // E[(x-E[x])^2] partial reduce
+    constexpr uint32_t cb_ex2 = tt::CB::cb_12; // E[(x-E[x])^2] global reduce
+    constexpr uint32_t cb_ex_external2 = tt::CB::cb_13;
+    constexpr uint32_t cb_ex2pe = tt::CB::cb_27;
+    constexpr uint32_t cb_ex_global = tt::CB::cb_15; // E[x] global reduce
 
     const uint32_t single_tile_size_bytes = get_tile_size(cb_ex_partial2); // tile size
     const DataFormat data_format = get_dataformat(cb_ex_partial2); // data format

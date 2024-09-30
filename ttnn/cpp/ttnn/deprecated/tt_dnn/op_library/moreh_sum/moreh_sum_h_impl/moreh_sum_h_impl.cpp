@@ -75,9 +75,9 @@ operation::ProgramWithCallbacks moreh_sum_h_impl(const Tensor &a, const Tensor &
 
     string compute_kernel_name = "ttnn/cpp/ttnn/deprecated/tt_dnn/op_library/moreh_sum/moreh_sum_h_impl/kernels/moreh_sum_h.cpp";
 
-    uint32_t src0_cb_index = CB::c_in0;
+    uint32_t src0_cb_index = CB::cb_0;
     CBHandle cb_src0;
-    uint32_t src1_cb_index = CB::c_in1;
+    uint32_t src1_cb_index = CB::cb_1;
     CBHandle cb_src1 = 0;
     uint32_t num_input_tiles = 2;
     tt_metal::CircularBufferConfig cb_src0_config =
@@ -85,28 +85,28 @@ operation::ProgramWithCallbacks moreh_sum_h_impl(const Tensor &a, const Tensor &
             .set_page_size(src0_cb_index, src0_single_tile_size);
     cb_src0 = tt_metal::CreateCircularBuffer(program, all_cores, cb_src0_config);
 
-    uint32_t scaler_cb_index = CB::c_in2;
+    uint32_t scaler_cb_index = CB::cb_2;
     tt_metal::CircularBufferConfig cb_scaler_config =
         tt_metal::CircularBufferConfig(1 * scaler_single_tile_size, {{scaler_cb_index, scaler_cb_data_format}})
             .set_page_size(scaler_cb_index, scaler_single_tile_size);
     auto cb_scaler = tt_metal::CreateCircularBuffer(program, all_cores, cb_scaler_config);
 
     tt_metal::CircularBufferConfig cb_mask_h_config =
-        tt_metal::CircularBufferConfig(mask_h_single_tile_size, {{CB::c_in3, mask_h_cb_data_format}})
-            .set_page_size(CB::c_in3, mask_h_single_tile_size);
+        tt_metal::CircularBufferConfig(mask_h_single_tile_size, {{CB::cb_3, mask_h_cb_data_format}})
+            .set_page_size(CB::cb_3, mask_h_single_tile_size);
     auto cb_mask_h = tt_metal::CreateCircularBuffer(program, all_cores, cb_mask_h_config);
 
     tt_metal::CircularBufferConfig cb_intermed0_config =
-        tt_metal::CircularBufferConfig(intermed_single_tile_size, {{CB::c_intermed0, intermed_cb_data_format}})
-            .set_page_size(CB::c_intermed0, intermed_single_tile_size);
+        tt_metal::CircularBufferConfig(intermed_single_tile_size, {{CB::cb_24, intermed_cb_data_format}})
+            .set_page_size(CB::cb_24, intermed_single_tile_size);
     auto cb_intermed0 = tt_metal::CreateCircularBuffer(program, all_cores, cb_intermed0_config);
 
     tt_metal::CircularBufferConfig cb_intermed1_config =
-        tt_metal::CircularBufferConfig(intermed_single_tile_size, {{CB::c_intermed1, intermed1_cb_data_format}})
-            .set_page_size(CB::c_intermed1, intermed_single_tile_size);
+        tt_metal::CircularBufferConfig(intermed_single_tile_size, {{CB::cb_25, intermed1_cb_data_format}})
+            .set_page_size(CB::cb_25, intermed_single_tile_size);
     auto cb_intermed1 = tt_metal::CreateCircularBuffer(program, all_cores, cb_intermed1_config);
 
-    uint32_t output_cb_index = CB::c_out0;  // output operands start at index 16
+    uint32_t output_cb_index = CB::cb_16;  // output operands start at index 16
     CBHandle cb_output;
     uint32_t num_output_tiles = 2;
     tt_metal::CircularBufferConfig cb_output_config =

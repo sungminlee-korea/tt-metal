@@ -14,7 +14,9 @@ constexpr int DPRINT_NRISCVS = 5;
 constexpr int DPRINT_NRISCVS_ETH = 1;
 
 namespace tt_metal {
-    class Device;
+    inline namespace v0{
+        class Device;
+    }
 }
 
 /*

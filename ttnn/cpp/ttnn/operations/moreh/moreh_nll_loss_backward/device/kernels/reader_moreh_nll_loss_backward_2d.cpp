@@ -17,12 +17,12 @@ void kernel_main() {
     auto weight_num_tile = get_arg_val<uint32_t>(i++);
     auto element_size = get_arg_val<uint32_t>(i++);
 
-    constexpr uint32_t cb_output_grad = tt::CB::c_in0;
-    constexpr uint32_t cb_target = tt::CB::c_in1;
-    constexpr uint32_t cb_weight = tt::CB::c_in2;
-    constexpr uint32_t cb_divisor = tt::CB::c_in3;
+    constexpr uint32_t cb_output_grad = tt::CB::cb_0;
+    constexpr uint32_t cb_target = tt::CB::cb_1;
+    constexpr uint32_t cb_weight = tt::CB::cb_2;
+    constexpr uint32_t cb_divisor = tt::CB::cb_3;
 
-    constexpr uint32_t cb_tmp_weight = tt::CB::c_intermed0;
+    constexpr uint32_t cb_tmp_weight = tt::CB::cb_24;
 
     // ublocks size defined in tiles
     const uint32_t weight_tile_bytes = get_tile_size(cb_weight);

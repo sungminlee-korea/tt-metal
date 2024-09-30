@@ -453,31 +453,31 @@ void MAIN {
     constexpr uint32_t qk_chunk_tiles = Sq_chunk_t * Sk_chunk_t;
     constexpr uint32_t out_chunk_tiles = Sq_chunk_t * DHt;
 
-    constexpr uint32_t cb_q_in = tt::CB::c_in0;  // reuse it also for reduce input o
-    constexpr uint32_t cb_k_in = tt::CB::c_in1;
-    constexpr uint32_t cb_v_in = tt::CB::c_in2;
-    constexpr uint32_t cb_mask_in = tt::CB::c_in3;
-    constexpr uint32_t cb_scale_in = tt::CB::c_in4;
-    constexpr uint32_t cb_identity_scale_in = tt::CB::c_in5;
-    constexpr uint32_t cb_m_in = tt::CB::c_in6;
-    constexpr uint32_t cb_l_in = tt::CB::c_in7;
+    constexpr uint32_t cb_q_in = tt::CB::cb_0;  // reuse it also for reduce input o
+    constexpr uint32_t cb_k_in = tt::CB::cb_1;
+    constexpr uint32_t cb_v_in = tt::CB::cb_2;
+    constexpr uint32_t cb_mask_in = tt::CB::cb_3;
+    constexpr uint32_t cb_scale_in = tt::CB::cb_4;
+    constexpr uint32_t cb_identity_scale_in = tt::CB::cb_5;
+    constexpr uint32_t cb_m_in = tt::CB::cb_6;
+    constexpr uint32_t cb_l_in = tt::CB::cb_7;
 
-    constexpr uint32_t cb_qk_im = tt::CB::c_intermed0;
-    constexpr uint32_t cb_out_im = tt::CB::c_intermed1;
-    constexpr uint32_t cb_out_accumulate_im = tt::CB::c_intermed2;
-    constexpr uint32_t cb_cur_max = tt::CB::c_intermed3;
-    constexpr uint32_t cb_prev_max = tt::CB::c_intermed4;
-    constexpr uint32_t cb_cur_sum = tt::CB::c_intermed5;
-    constexpr uint32_t cb_prev_sum = tt::CB::c_intermed6;
-    constexpr uint32_t cb_exp_max_diff = tt::CB::c_intermed7;
-    constexpr uint32_t cb_prev_sum_2 = tt::CB::c_out5;
-    constexpr uint32_t cb_exp_max_diff_2 = tt::CB::c_out6;
-    constexpr uint32_t cb_out_accumulate_im_2 = tt::CB::c_out7;
+    constexpr uint32_t cb_qk_im = tt::CB::cb_24;
+    constexpr uint32_t cb_out_im = tt::CB::cb_25;
+    constexpr uint32_t cb_out_accumulate_im = tt::CB::cb_26;
+    constexpr uint32_t cb_cur_max = tt::CB::cb_27;
+    constexpr uint32_t cb_prev_max = tt::CB::cb_28;
+    constexpr uint32_t cb_cur_sum = tt::CB::cb_29;
+    constexpr uint32_t cb_prev_sum = tt::CB::cb_30;
+    constexpr uint32_t cb_exp_max_diff = tt::CB::cb_31;
+    constexpr uint32_t cb_prev_sum_2 = tt::CB::cb_21;
+    constexpr uint32_t cb_exp_max_diff_2 = tt::CB::cb_22;
+    constexpr uint32_t cb_out_accumulate_im_2 = tt::CB::cb_23;
 
-    constexpr uint32_t cb_out_o = tt::CB::c_out0;
-    constexpr uint32_t cb_out_m = tt::CB::c_out1;
-    constexpr uint32_t cb_out_l = tt::CB::c_out2;
-    constexpr uint32_t cb_out_final = tt::CB::c_out4;
+    constexpr uint32_t cb_out_o = tt::CB::cb_16;
+    constexpr uint32_t cb_out_m = tt::CB::cb_17;
+    constexpr uint32_t cb_out_l = tt::CB::cb_18;
+    constexpr uint32_t cb_out_final = tt::CB::cb_20;
 
     const bool do_reduce = get_arg_val<uint32_t>(0) == 1;
     const uint32_t core_num = get_arg_val<uint32_t>(1);
@@ -499,7 +499,7 @@ void MAIN {
         cur_pos = cur_pos_arg;
     }
     else {
-        constexpr uint32_t cb_index_id = tt::CB::dataflow0;
+        constexpr uint32_t cb_index_id = tt::CB::cb_8;
         cb_wait_front(cb_index_id, 1);
         volatile uint32_t *index_addr_ptr;
         cb_get_tile(cb_index_id, 0, &index_addr_ptr);

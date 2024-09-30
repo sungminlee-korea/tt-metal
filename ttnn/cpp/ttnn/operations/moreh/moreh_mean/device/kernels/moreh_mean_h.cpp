@@ -17,12 +17,12 @@ void MAIN {
     uint32_t NC = get_compile_time_arg_val(2);
     constexpr uint32_t origin_H = get_compile_time_arg_val(3);
 
-    auto cb_input = tt::CB::c_in0;
-    constexpr auto cb_scaler = tt::CB::c_in2;
-    constexpr auto cb_mask_h = tt::CB::c_in3;
-    constexpr auto cb_accum_dst = tt::CB::c_intermed0;
-    constexpr auto cb_masked_input = tt::CB::c_intermed1;
-    constexpr auto cb_out = tt::CB::c_out0;
+    auto cb_input = tt::CB::cb_0;
+    constexpr auto cb_scaler = tt::CB::cb_2;
+    constexpr auto cb_mask_h = tt::CB::cb_3;
+    constexpr auto cb_accum_dst = tt::CB::cb_24;
+    constexpr auto cb_masked_input = tt::CB::cb_25;
+    constexpr auto cb_out = tt::CB::cb_16;
     constexpr bool do_mask_h = (origin_H % TILE_HEIGHT) != 0;
 
     binary_op_init_common(cb_input, cb_input);
@@ -43,7 +43,7 @@ void MAIN {
             // tiles are expected to be coming in in NCWH order (H-contiguous)
             // reducing in W means out[0][w] = sum(h=0..H-1, in[h][w])
             // in this case we just sequentially add to accumulator all the H-tiles in a column
-            cb_input = tt::CB::c_in0;
+            cb_input = tt::CB::cb_0;
             bool is_h_single_tile = (Ht == 1);
 
             if (!is_h_single_tile) {

@@ -87,10 +87,10 @@ operation::ProgramWithCallbacks moreh_sum_int_w_impl(const Tensor &input, const 
         all_cores,
         cb_data_format,
         {
-            {CB::c_in0, in0_t},              // input
-            {CB::c_in1, in1_t},              // mask
-            {CB::c_intermed0, intermed0_t},  // accumalated sum
-            {CB::c_out0, out0_t},            // output
+            {CB::cb_0, in0_t},              // input
+            {CB::cb_1, in1_t},              // mask
+            {CB::cb_24, intermed0_t},  // accumalated sum
+            {CB::cb_16, out0_t},            // output
         });
     ////////////////////////////////////////////////////////////////////////////
     //                      DataMovementKernel SetUp

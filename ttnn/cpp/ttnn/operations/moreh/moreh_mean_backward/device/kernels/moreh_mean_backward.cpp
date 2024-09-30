@@ -16,15 +16,15 @@ void MAIN {
     constexpr bool wt_need_bcast = (get_compile_time_arg_val(1) == 1);
     constexpr bool ht_need_bcast = (get_compile_time_arg_val(2) == 1);
 
-    constexpr auto cb_in0 = tt::CB::c_in0;  // input
-    constexpr auto cb_in1 = tt::CB::c_in1;  // zero tile
-    constexpr auto cb_scalar = tt::CB::c_in2;
-    constexpr auto cb_out0 = tt::CB::c_out0;
-    constexpr auto cb_intermed0 = tt::CB::c_intermed0;
+    constexpr auto cb_in0 = tt::CB::cb_0;  // input
+    constexpr auto cb_in1 = tt::CB::cb_1;  // zero tile
+    constexpr auto cb_scalar = tt::CB::cb_2;
+    constexpr auto cb_out0 = tt::CB::cb_16;
+    constexpr auto cb_intermed0 = tt::CB::cb_24;
     constexpr uint32_t onetile = 1;
     constexpr uint32_t dst0 = 0;
 
-    binary_op_init_common(tt::CB::c_in0, tt::CB::c_in1);
+    binary_op_init_common(tt::CB::cb_0, tt::CB::cb_1);
     cb_wait_front(cb_in1, onetile);
     for (uint32_t i = 0; i < num_output_tiles; i++) {
         tile_regs_acquire();

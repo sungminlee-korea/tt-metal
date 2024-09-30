@@ -180,19 +180,19 @@ operation::ProgramWithCallbacks moreh_norm_backward_(
         all_cores,
         cb_data_format,
         {
-            {CB::c_in0, in0_t},    // input
-            {CB::c_in1, in1_t},    // output
-            {CB::c_in2, in2_t},    // output_grad
-            {CB::c_in3, in3_t},    // decimal
-            {CB::c_out0, out0_t},  // input_grad
-            {CB::c_intermed0, im0_t, intermed_data_format},
-            {CB::c_intermed1, im1_t, intermed_data_format},
-            {CB::c_intermed2, im2_t, intermed_data_format},
-            {CB::c_intermed3, im3_t, intermed_data_format},
-            {CB::c_intermed4, im4_t, intermed_data_format},
-            {CB::c_intermed5, im5_t, intermed_data_format},
-            {CB::c_intermed6, im6_t, intermed_data_format},
-            {CB::c_intermed7, im7_t, intermed_data_format},
+            {CB::cb_0, in0_t},    // input
+            {CB::cb_1, in1_t},    // output
+            {CB::cb_2, in2_t},    // output_grad
+            {CB::cb_3, in3_t},    // decimal
+            {CB::cb_16, out0_t},  // input_grad
+            {CB::cb_24, im0_t, intermed_data_format},
+            {CB::cb_25, im1_t, intermed_data_format},
+            {CB::cb_26, im2_t, intermed_data_format},
+            {CB::cb_27, im3_t, intermed_data_format},
+            {CB::cb_28, im4_t, intermed_data_format},
+            {CB::cb_29, im5_t, intermed_data_format},
+            {CB::cb_30, im6_t, intermed_data_format},
+            {CB::cb_31, im7_t, intermed_data_format},
         });
 
 

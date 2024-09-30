@@ -13,15 +13,15 @@ namespace NAMESPACE {
 void MAIN {
     constexpr uint32_t onetile = 1;
 
-    constexpr auto cb_y = tt::CB::c_in0;
-    constexpr auto cb_dy = tt::CB::c_in1;
-    constexpr auto cb_bcast_scaler = tt::CB::c_in2;
-    constexpr auto cb_mask = tt::CB::c_in3;
-    constexpr auto cb_dx = tt::CB::c_out0;
+    constexpr auto cb_y = tt::CB::cb_0;
+    constexpr auto cb_dy = tt::CB::cb_1;
+    constexpr auto cb_bcast_scaler = tt::CB::cb_2;
+    constexpr auto cb_mask = tt::CB::cb_3;
+    constexpr auto cb_dx = tt::CB::cb_16;
 
-    constexpr auto cb_ydy = tt::CB::c_intermed0;  // y * dy
-    constexpr auto cb_sum = tt::CB::c_intermed1;
-    constexpr auto cb_inter2 = tt::CB::c_intermed2;
+    constexpr auto cb_ydy = tt::CB::cb_24;  // y * dy
+    constexpr auto cb_sum = tt::CB::cb_25;
+    constexpr auto cb_inter2 = tt::CB::cb_26;
 
     binary_op_init_common(cb_y, cb_bcast_scaler);
 
@@ -38,20 +38,20 @@ void MAIN {
 
                 reduce_tile_to_cb<false, REDUCE_OP, REDUCE_DIM>(cb_inter2, cb_bcast_scaler, cb_sum, 1, /*pop0=*/1, /*pop=1*/0);
             } else {
-                constexpr auto cb_inter0 = tt::CB::c_intermed0;
+                constexpr auto cb_inter0 = tt::CB::cb_24;
                 reduce_tile_to_cb<false, REDUCE_OP, REDUCE_DIM>(cb_dy, cb_bcast_scaler, cb_inter0, Wt - 1, /*pop0=*/0, /*pop=1*/0);
 
-                constexpr auto cb_inter1 = tt::CB::c_intermed1;
+                constexpr auto cb_inter1 = tt::CB::cb_25;
                 mask_tile_to_cb(cb_dy, cb_mask, cb_inter1, /*itile=*/Wt - 1, /*mtile=*/0, /*pop=*/0, /*popm=*/0);
 
-                constexpr auto cb_inter2 = tt::CB::c_intermed2;
+                constexpr auto cb_inter2 = tt::CB::cb_26;
                 reduce_tile_to_cb<false, REDUCE_OP, REDUCE_DIM>(cb_inter1, cb_bcast_scaler, cb_inter2, 1, /*pop0=*/1, /*pop=1*/0);
 
                 add_tiles_to_cb(cb_inter0, cb_inter2, cb_sum);
             }
 
             // dy - sum * exp(y)
-            constexpr auto cb_exp = tt::CB::c_intermed0;  // y * dy
+            constexpr auto cb_exp = tt::CB::cb_24;  // y * dy
 
             for (uint32_t w = 0; w < Wt; w += onetile) {
                 // exp(y)

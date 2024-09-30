@@ -77,27 +77,27 @@ operation::ProgramWithCallbacks moreh_adamw_(
         all_cores,
         data_format,
         {
-            {CB::c_in0, 1},  // param_in
-            {CB::c_in1, 1},  // grad
-            {CB::c_in2, 1},  // exp_avg_in
-            {CB::c_in3, 1},  // exp_avg_sq_in
-            {CB::c_in4, 1},  // max_exp_avg_sq_in (optional)
-            {CB::c_in5, 5, intermed_cb_format},  // lr, beta1, beta2, eps, weight_decay
-            {CB::c_in6, 1, intermed_cb_format},  // 1.0f
+            {CB::cb_0, 1},  // param_in
+            {CB::cb_1, 1},  // grad
+            {CB::cb_2, 1},  // exp_avg_in
+            {CB::cb_3, 1},  // exp_avg_sq_in
+            {CB::cb_4, 1},  // max_exp_avg_sq_in (optional)
+            {CB::cb_5, 5, intermed_cb_format},  // lr, beta1, beta2, eps, weight_decay
+            {CB::cb_6, 1, intermed_cb_format},  // 1.0f
 
-            {CB::c_intermed0, 1, intermed_cb_format},  // tmp_grad
-            {CB::c_intermed1, 1, intermed_cb_format},  // tmp_exp_avg
-            {CB::c_intermed2, 1, intermed_cb_format},  // tmp_exp_avg_sq
-            {CB::c_intermed3, 1, intermed_cb_format},  // tmp_max_exp_avg_sq
-            {CB::c_intermed4, 1, intermed_cb_format},  //
-            {CB::c_intermed5, 1, intermed_cb_format},  //
-            {CB::c_intermed6, 1, intermed_cb_format},  // tmp1
-            {CB::c_intermed7, 1, intermed_cb_format},  // tmp2
+            {CB::cb_24, 1, intermed_cb_format},  // tmp_grad
+            {CB::cb_25, 1, intermed_cb_format},  // tmp_exp_avg
+            {CB::cb_26, 1, intermed_cb_format},  // tmp_exp_avg_sq
+            {CB::cb_27, 1, intermed_cb_format},  // tmp_max_exp_avg_sq
+            {CB::cb_28, 1, intermed_cb_format},  //
+            {CB::cb_29, 1, intermed_cb_format},  //
+            {CB::cb_30, 1, intermed_cb_format},  // tmp1
+            {CB::cb_31, 1, intermed_cb_format},  // tmp2
 
-            {CB::c_out0, 1},  // param_out
-            {CB::c_out1, 1},  // exp_avg_out
-            {CB::c_out2, 1},  // exp_avg_sq_out
-            {CB::c_out3, 1},  // max_exp_avg_sq_out (optional)
+            {CB::cb_16, 1},  // param_out
+            {CB::cb_17, 1},  // exp_avg_out
+            {CB::cb_18, 1},  // exp_avg_sq_out
+            {CB::cb_19, 1},  // max_exp_avg_sq_out (optional)
         });
 
     ////////////////////////////////////////////////////////////////////////////

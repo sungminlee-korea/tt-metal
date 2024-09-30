@@ -200,29 +200,29 @@ operation::ProgramWithCallbacks scale_mask_softmax_multi_core(
     // Create circular buffers
     // see softmax.cpp for which buffers are needed
 
-    auto c_in0_config = CircularBufferConfig(in0_t * in0_tile_size, {{tt::CB::c_in0, in0_cb_data_format}}).set_page_size(tt::CB::c_in0, in0_tile_size);
+    auto c_in0_config = CircularBufferConfig(in0_t * in0_tile_size, {{tt::CB::cb_0, in0_cb_data_format}}).set_page_size(tt::CB::cb_0, in0_tile_size);
     auto cb_in0_id = CreateCircularBuffer( program, all_device_cores, c_in0_config);
-    auto c_out0_config = CircularBufferConfig(out0_t * out0_tile_size, {{tt::CB::c_out0, out0_cb_data_format}}).set_page_size(tt::CB::c_out0, out0_tile_size);
+    auto c_out0_config = CircularBufferConfig(out0_t * out0_tile_size, {{tt::CB::cb_16, out0_cb_data_format}}).set_page_size(tt::CB::cb_16, out0_tile_size);
     auto cb_out0_id = CreateCircularBuffer( program, all_device_cores, c_out0_config );
-    auto c_intermed1_config = CircularBufferConfig(im1_t * im_tile_size, {{tt::CB::c_intermed1, im_cb_data_format}}).set_page_size(tt::CB::c_intermed1, im_tile_size);
+    auto c_intermed1_config = CircularBufferConfig(im1_t * im_tile_size, {{tt::CB::cb_25, im_cb_data_format}}).set_page_size(tt::CB::cb_25, im_tile_size);
     auto cb_intermed1_id = CreateCircularBuffer( program, all_device_cores, c_intermed1_config );
-    auto c_in2_config = CircularBufferConfig(in2_t * scalar_tile_size, {{tt::CB::c_in2, scalar_cb_data_format}}).set_page_size(tt::CB::c_in2, scalar_tile_size);
+    auto c_in2_config = CircularBufferConfig(in2_t * scalar_tile_size, {{tt::CB::cb_2, scalar_cb_data_format}}).set_page_size(tt::CB::cb_2, scalar_tile_size);
     auto cb_in2_id = CreateCircularBuffer( program, all_device_cores, c_in2_config );
-    auto c_intermed0_config = CircularBufferConfig(im0_t * im_tile_size, {{tt::CB::c_intermed0, im_cb_data_format}}).set_page_size(tt::CB::c_intermed0, im_tile_size);
+    auto c_intermed0_config = CircularBufferConfig(im0_t * im_tile_size, {{tt::CB::cb_24, im_cb_data_format}}).set_page_size(tt::CB::cb_24, im_tile_size);
     auto cb_intermed0_id = CreateCircularBuffer( program, all_device_cores, c_intermed0_config );
     std::optional<CBHandle> cb_intermed3_id;
     std::optional<CBHandle> cb_in3_id;
     std::optional<CBHandle> cb_in4_id;
     std::optional<CBHandle> cb_in5_id;
     if (mask.has_value()) {
-        CircularBufferConfig c_intermed3_config = CircularBufferConfig(im3_t * im_tile_size, {{tt::CB::c_intermed3, im_cb_data_format}}).set_page_size(tt::CB::c_intermed3, im_tile_size);
+        CircularBufferConfig c_intermed3_config = CircularBufferConfig(im3_t * im_tile_size, {{tt::CB::cb_27, im_cb_data_format}}).set_page_size(tt::CB::cb_27, im_tile_size);
         cb_intermed3_id = CreateCircularBuffer( program, all_device_cores, c_intermed3_config );
-        CircularBufferConfig c_in3_config = CircularBufferConfig(in3_t * scalar_tile_size, {{tt::CB::c_in3, scalar_cb_data_format}}).set_page_size(tt::CB::c_in3, scalar_tile_size);
+        CircularBufferConfig c_in3_config = CircularBufferConfig(in3_t * scalar_tile_size, {{tt::CB::cb_3, scalar_cb_data_format}}).set_page_size(tt::CB::cb_3, scalar_tile_size);
         cb_in3_id = CreateCircularBuffer( program, all_device_cores, c_in3_config );
-        CircularBufferConfig c_in4_config = CircularBufferConfig(in4_t * mask_tile_size, {{tt::CB::c_in4, mask_cb_data_format}}).set_page_size(tt::CB::c_in4, mask_tile_size);
+        CircularBufferConfig c_in4_config = CircularBufferConfig(in4_t * mask_tile_size, {{tt::CB::cb_4, mask_cb_data_format}}).set_page_size(tt::CB::cb_4, mask_tile_size);
         cb_in4_id = CreateCircularBuffer( program, all_device_cores, c_in4_config);
     }
-    CircularBufferConfig c_in5_config = CircularBufferConfig(in5_t * mask_tile_size, {{tt::CB::c_in5, mask_cb_data_format}}).set_page_size(tt::CB::c_in5, mask_tile_size);
+    CircularBufferConfig c_in5_config = CircularBufferConfig(in5_t * mask_tile_size, {{tt::CB::cb_5, mask_cb_data_format}}).set_page_size(tt::CB::cb_5, mask_tile_size);
     cb_in5_id = CreateCircularBuffer( program, all_device_cores, c_in5_config);
 
     uint32_t src_addr = src0_buffer->address();
@@ -660,12 +660,12 @@ operation::ProgramWithCallbacks scale_mask_softmax_sharded_multi_core(
 
     // Create circular buffers
     // in0 sharded
-    auto c_in0_config = CircularBufferConfig(in0_CB_size, {{tt::CB::c_in0, in0_cb_data_format}})
-        .set_page_size(tt::CB::c_in0, in0_tile_size).set_globally_allocated_address(*src0_buffer);
+    auto c_in0_config = CircularBufferConfig(in0_CB_size, {{tt::CB::cb_0, in0_cb_data_format}})
+        .set_page_size(tt::CB::cb_0, in0_tile_size).set_globally_allocated_address(*src0_buffer);
     auto cb_in0_id = CreateCircularBuffer(program, all_device_cores, c_in0_config);
     // in1 scalar
-    auto c_in1_config = CircularBufferConfig(in1_CB_size, {{tt::CB::c_in1, scalar_cb_data_format}})
-        .set_page_size(tt::CB::c_in1, scalar_tile_size);
+    auto c_in1_config = CircularBufferConfig(in1_CB_size, {{tt::CB::cb_1, scalar_cb_data_format}})
+        .set_page_size(tt::CB::cb_1, scalar_tile_size);
     auto cb_in1_id = CreateCircularBuffer(program, all_device_cores, c_in1_config);
     // in2 in3 attn scale mask
     std::optional<CBHandle> cb_intermed2_id;
@@ -673,36 +673,36 @@ operation::ProgramWithCallbacks scale_mask_softmax_sharded_multi_core(
     std::optional<CBHandle> cb_in3_id;
     if (mask.has_value()) {
         // im2
-        auto c_intermed2_config = CircularBufferConfig(im2_CB_size, {{tt::CB::c_intermed2, im_cb_data_format}})
-            .set_page_size(tt::CB::c_intermed2, im_tile_size);
+        auto c_intermed2_config = CircularBufferConfig(im2_CB_size, {{tt::CB::cb_26, im_cb_data_format}})
+            .set_page_size(tt::CB::cb_26, im_tile_size);
         cb_intermed2_id = CreateCircularBuffer( program, all_device_cores, c_intermed2_config );
         // in2 scale
-        auto c_in2_config = CircularBufferConfig(in2_CB_size, {{tt::CB::c_in2, scale_cb_data_format}})
-            .set_page_size(tt::CB::c_in2, scale_tile_size);
+        auto c_in2_config = CircularBufferConfig(in2_CB_size, {{tt::CB::cb_2, scale_cb_data_format}})
+            .set_page_size(tt::CB::cb_2, scale_tile_size);
         cb_in2_id = CreateCircularBuffer(program, all_device_cores, c_in2_config);
         // in3 attn mask
         if (mask->is_sharded()) {
             auto mask_buffer = mask->buffer();
-            auto c_in3_config = CircularBufferConfig(in3_CB_size, {{tt::CB::c_in3, mask_cb_data_format}})
-                .set_page_size(tt::CB::c_in3, mask_tile_size).set_globally_allocated_address(*mask_buffer);
+            auto c_in3_config = CircularBufferConfig(in3_CB_size, {{tt::CB::cb_3, mask_cb_data_format}})
+                .set_page_size(tt::CB::cb_3, mask_tile_size).set_globally_allocated_address(*mask_buffer);
             cb_in3_id = CreateCircularBuffer( program, all_device_cores, c_in3_config);
         } else {
-            auto c_in3_config = CircularBufferConfig(in3_CB_size, {{tt::CB::c_in3, mask_cb_data_format}})
-                .set_page_size(tt::CB::c_in3, mask_tile_size);
+            auto c_in3_config = CircularBufferConfig(in3_CB_size, {{tt::CB::cb_3, mask_cb_data_format}})
+                .set_page_size(tt::CB::cb_3, mask_tile_size);
             cb_in3_id = CreateCircularBuffer( program, all_device_cores, c_in3_config);
         }
     }
     // out
-    auto c_out0_config = CircularBufferConfig(out_CB_size, {{tt::CB::c_out0, out0_cb_data_format}})
-        .set_page_size(tt::CB::c_out0, out0_tile_size).set_globally_allocated_address(*out0_buffer);
+    auto c_out0_config = CircularBufferConfig(out_CB_size, {{tt::CB::cb_16, out0_cb_data_format}})
+        .set_page_size(tt::CB::cb_16, out0_tile_size).set_globally_allocated_address(*out0_buffer);
     auto cb_out0_id = CreateCircularBuffer( program, all_device_cores, c_out0_config );
     // im0 for exp(x)
-    auto c_intermed0_config = CircularBufferConfig(im0_CB_size, {{tt::CB::c_intermed0, im_cb_data_format}})
-        .set_page_size(tt::CB::c_intermed0, im_tile_size);
+    auto c_intermed0_config = CircularBufferConfig(im0_CB_size, {{tt::CB::cb_24, im_cb_data_format}})
+        .set_page_size(tt::CB::cb_24, im_tile_size);
     auto cb_intermed0_id = CreateCircularBuffer( program, all_device_cores, c_intermed0_config );
     // im1 for 1/sum(exp(x))
-    auto c_intermed1_config = CircularBufferConfig(im1_CB_size, {{tt::CB::c_intermed1, im_cb_data_format}})
-        .set_page_size(tt::CB::c_intermed1, im_tile_size);
+    auto c_intermed1_config = CircularBufferConfig(im1_CB_size, {{tt::CB::cb_25, im_cb_data_format}})
+        .set_page_size(tt::CB::cb_25, im_tile_size);
     auto cb_intermed1_id = CreateCircularBuffer( program, all_device_cores, c_intermed1_config );
 
     // Runtime Args

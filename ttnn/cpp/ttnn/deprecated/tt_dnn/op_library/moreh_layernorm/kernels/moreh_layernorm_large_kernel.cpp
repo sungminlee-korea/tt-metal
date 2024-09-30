@@ -23,28 +23,28 @@ void MAIN {
     constexpr bool is_lastdim_layernorm = get_compile_time_arg_val(9) == 1;
     constexpr bool is_groupnorm = get_compile_time_arg_val(10) == 1;
 
-    binary_op_init_common(tt::CB::c_in0, tt::CB::c_in0);
+    binary_op_init_common(tt::CB::cb_0, tt::CB::cb_0);
 
-    constexpr auto cb_x = tt::CB::c_in0;       // input
-    constexpr auto cb_scaler = tt::CB::c_in1;  // scaler
-    constexpr auto cb_eps = tt::CB::c_in2;     // epsilon
-    constexpr auto cb_gamma = tt::CB::c_in3;   // gamma
-    constexpr auto cb_beta = tt::CB::c_in4;    // beta
-    constexpr auto cb_mask_h = tt::CB::c_in5;  // mask_h
-    constexpr auto cb_mask_w = tt::CB::c_in6;  // mask_w
+    constexpr auto cb_x = tt::CB::cb_0;       // input
+    constexpr auto cb_scaler = tt::CB::cb_1;  // scaler
+    constexpr auto cb_eps = tt::CB::cb_2;     // epsilon
+    constexpr auto cb_gamma = tt::CB::cb_3;   // gamma
+    constexpr auto cb_beta = tt::CB::cb_4;    // beta
+    constexpr auto cb_mask_h = tt::CB::cb_5;  // mask_h
+    constexpr auto cb_mask_w = tt::CB::cb_6;  // mask_w
 
-    constexpr auto cb_out = tt::CB::c_out0;   // output
-    constexpr auto cb_mean = tt::CB::c_out1;  // mean
-    constexpr auto cb_rstd = tt::CB::c_out2;  // rstd
+    constexpr auto cb_out = tt::CB::cb_16;   // output
+    constexpr auto cb_mean = tt::CB::cb_17;  // mean
+    constexpr auto cb_rstd = tt::CB::cb_18;  // rstd
 
-    constexpr auto cb_ex = tt::CB::c_intermed0;          // E[x]
-    constexpr auto cb_xmm = tt::CB::c_intermed1;         // x - E[x]
-    constexpr auto cb_xmm2 = tt::CB::c_intermed2;        // (x - E[x])^2
-    constexpr auto cb_xmm2sum = tt::CB::c_intermed3;     // Sum[(x - E[x])^2]
-    constexpr auto cb_var = tt::CB::c_intermed4;         // E[(x - E[x])^2] = Var[x]
-    constexpr auto cb_recip_std = tt::CB::c_intermed5;   // 1.0/(sqrt(Var[x] + eps))
-    constexpr auto cb_gamma_beta = tt::CB::c_intermed6;  // p * gamm + beta
-    constexpr auto cb_xsum = tt::CB::c_intermed7;        // Sum[x]
+    constexpr auto cb_ex = tt::CB::cb_24;          // E[x]
+    constexpr auto cb_xmm = tt::CB::cb_25;         // x - E[x]
+    constexpr auto cb_xmm2 = tt::CB::cb_26;        // (x - E[x])^2
+    constexpr auto cb_xmm2sum = tt::CB::cb_27;     // Sum[(x - E[x])^2]
+    constexpr auto cb_var = tt::CB::cb_28;         // E[(x - E[x])^2] = Var[x]
+    constexpr auto cb_recip_std = tt::CB::cb_29;   // 1.0/(sqrt(Var[x] + eps))
+    constexpr auto cb_gamma_beta = tt::CB::cb_30;  // p * gamm + beta
+    constexpr auto cb_xsum = tt::CB::cb_31;        // Sum[x]
 
     constexpr uint32_t onetile = 1;
 

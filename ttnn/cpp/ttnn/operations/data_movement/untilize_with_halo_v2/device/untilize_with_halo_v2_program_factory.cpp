@@ -68,10 +68,10 @@ operation::ProgramWithCallbacks untilize_with_halo_multi_core_v2(
     // Construct CBs
     // //
 
-    uint32_t src_cb_id = tt::CB::c_in0;
-    uint32_t pad_cb_id = tt::CB::c_in1;
-    uint32_t untilize_out_cb_id = tt::CB::c_out0;
-    uint32_t out_cb_id = tt::CB::c_out1;
+    uint32_t src_cb_id = tt::CB::cb_0;
+    uint32_t pad_cb_id = tt::CB::cb_1;
+    uint32_t untilize_out_cb_id = tt::CB::cb_16;
+    uint32_t out_cb_id = tt::CB::cb_17;
 
     // input CB (sharded)
     auto src_cb_config = CircularBufferConfig(input_npages * in_page_size, {{src_cb_id, in_df}})
@@ -111,9 +111,9 @@ operation::ProgramWithCallbacks untilize_with_halo_multi_core_v2(
     log_debug(tt::LogOp, "CB {} :: npages = {}, pagesize = {}", pad_cb_id, pad_cb_npages, pad_cb_pagesize);
 
     // Additional CBs for sharded data kernel configs
-    uint32_t padding_config_cb_id = tt::CB::c_in2;
-    uint32_t local_config_cb_id = tt::CB::c_in3;
-    uint32_t remote_config_cb_id = tt::CB::c_in4;
+    uint32_t padding_config_cb_id = tt::CB::cb_2;
+    uint32_t local_config_cb_id = tt::CB::cb_3;
+    uint32_t remote_config_cb_id = tt::CB::cb_4;
 
     tt::DataFormat kernel_config_df = tt::DataFormat::RawUInt16;  // NOTE: UInt16 is not supported for CB types
     uint32_t config_nbytes =

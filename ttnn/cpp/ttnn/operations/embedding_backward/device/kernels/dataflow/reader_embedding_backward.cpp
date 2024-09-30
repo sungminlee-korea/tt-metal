@@ -116,12 +116,12 @@ void kernel_main() {
     constexpr uint32_t seq_len_tiles = get_compile_time_arg_val(10);
     constexpr uint32_t num_embeddings = get_compile_time_arg_val(11);
 
-    constexpr uint32_t cb_grad = tt::CB::c_in0;
-    constexpr uint32_t cb_index = tt::CB::c_in1;
-    constexpr uint32_t cb_out_intermed = tt::CB::c_in2;
-    constexpr uint32_t cb_mask = tt::CB::c_intermed0;
-    constexpr uint32_t cb_chunk_count_scratch = tt::CB::c_intermed1;
-    constexpr uint32_t cb_id_out0 = tt::CB::c_out0;
+    constexpr uint32_t cb_grad = tt::CB::cb_0;
+    constexpr uint32_t cb_index = tt::CB::cb_1;
+    constexpr uint32_t cb_out_intermed = tt::CB::cb_2;
+    constexpr uint32_t cb_mask = tt::CB::cb_24;
+    constexpr uint32_t cb_chunk_count_scratch = tt::CB::cb_25;
+    constexpr uint32_t cb_id_out0 = tt::CB::cb_16;
 
     constexpr uint32_t grad_page_size = get_tile_size(cb_grad);
     constexpr uint32_t out_page_size = get_tile_size(cb_id_out0);

@@ -219,10 +219,10 @@ operation::ProgramWithCallbacks tilize_with_val_padding_multi_core_interleaved(
     uint32_t padded_row_size_bytes = output.get_legacy_shape()[-1] * a.element_size();  // Assuming bfloat16 dataformat
 
     auto [src0_cb_index, cb_src0] =
-        create_cb(tt::CB::c_in0, program, all_cores, input_single_tile_size, num_tiles_per_row, input_cb_data_format);
+        create_cb(tt::CB::cb_0, program, all_cores, input_single_tile_size, num_tiles_per_row, input_cb_data_format);
 
     auto [output_cb_index, cb_output] = create_cb(
-        tt::CB::c_out0, program, all_cores, output_single_tile_size, num_tiles_per_row, output_cb_data_format);
+        tt::CB::cb_16, program, all_cores, output_single_tile_size, num_tiles_per_row, output_cb_data_format);
 
     Buffer* src0_buffer = a.buffer();
     Buffer* dst_buffer = output.buffer();
@@ -379,7 +379,7 @@ operation::ProgramWithCallbacks tilize_with_val_padding_multi_core_sharded(
     uint32_t num_padded_rows = output.get_legacy_shape()[-2] - a.get_legacy_shape()[-2];
 
     auto [src0_cb_index, cb_src0] = create_cb(
-        tt::CB::c_in1,
+        tt::CB::cb_1,
         program,
         all_cores,
         input_shard_width_bytes,
@@ -388,13 +388,13 @@ operation::ProgramWithCallbacks tilize_with_val_padding_multi_core_sharded(
         src_sharded ? a.buffer() : nullptr);
 
     auto [src1_cb_index, cb_src1] = create_cb(
-        tt::CB::c_in0, program, all_cores, input_single_tile_size, ntiles_per_batch * 2, input_cb_data_format);
+        tt::CB::cb_0, program, all_cores, input_single_tile_size, ntiles_per_batch * 2, input_cb_data_format);
 
     auto [src2_cb_index, cb_src2] =
-        create_cb(tt::CB::c_in2, program, all_cores, input_shard_width_bytes, 1, input_cb_data_format);
+        create_cb(tt::CB::cb_2, program, all_cores, input_shard_width_bytes, 1, input_cb_data_format);
 
     auto [output_cb_index, cb_output] = create_cb(
-        tt::CB::c_out0,
+        tt::CB::cb_16,
         program,
         all_cores,
         output_single_tile_size,

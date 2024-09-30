@@ -981,12 +981,12 @@ operation::ProgramWithCallbacks transpose_hc_multi_core_sharded(const Tensor &a,
 
     tt::tt_metal::Buffer *dst_buffer = output.buffer();
 
-    uint32_t src0_cb_index = tt::CB::c_in0;
+    uint32_t src0_cb_index = tt::CB::cb_0;
     tt::tt_metal::CircularBufferConfig cb_src0_config = tt::tt_metal::CircularBufferConfig(shard_height * stick_size_bytes, {{src0_cb_index, src0_cb_data_format}})
         .set_page_size(src0_cb_index, stick_size_bytes).set_globally_allocated_address(*a.buffer());
     auto cb_src0 = tt::tt_metal::CreateCircularBuffer(program, all_cores, cb_src0_config);
 
-    uint32_t output_cb_index = tt::CB::c_out0; // output operands start at index 16
+    uint32_t output_cb_index = tt::CB::cb_16; // output operands start at index 16
     tt::tt_metal::CircularBufferConfig cb_output_config = tt::tt_metal::CircularBufferConfig(shard_height * stick_size_bytes, {{output_cb_index, dst_cb_data_format}})
         .set_page_size(output_cb_index, stick_size_bytes).set_globally_allocated_address(*output.buffer());
     auto cb_output = tt::tt_metal::CreateCircularBuffer(program, all_cores, cb_output_config);
@@ -1584,13 +1584,13 @@ operation::ProgramWithCallbacks transpose_wh_multi_core_sharded(const Tensor &a,
 
     tt::tt_metal::Buffer *dst_buffer = output.buffer();
 
-    uint32_t src0_cb_index = tt::CB::c_in0;
+    uint32_t src0_cb_index = tt::CB::cb_0;
     uint32_t num_input_tiles = num_tiles_per_shard;
     tt::tt_metal::CircularBufferConfig cb_src0_config = tt::tt_metal::CircularBufferConfig(num_input_tiles * src0_single_tile_size, {{src0_cb_index, src0_cb_data_format}})
 		.set_page_size(src0_cb_index, src0_single_tile_size).set_globally_allocated_address(*a.buffer());
     auto cb_src0 = tt::tt_metal::CreateCircularBuffer(program, all_cores, cb_src0_config);
 
-    uint32_t output_cb_index = tt::CB::c_out0; // output operands start at index 16
+    uint32_t output_cb_index = tt::CB::cb_16; // output operands start at index 16
     uint32_t num_output_tiles = num_tiles_per_shard;
     tt::tt_metal::CircularBufferConfig cb_output_config = tt::tt_metal::CircularBufferConfig(num_output_tiles * dst_single_tile_size, {{output_cb_index, dst_cb_data_format}})
 		.set_page_size(output_cb_index, dst_single_tile_size).set_globally_allocated_address(*output.buffer());
@@ -1798,26 +1798,26 @@ operation::ProgramWithCallbacks transpose_wh_multi_core_sharded_rm(const Tensor 
     tt::tt_metal::LegacyShape output_shape = output.get_legacy_shape();
 
     // sharded cb
-    uint32_t src0_cb_index = tt::CB::c_in0;
+    uint32_t src0_cb_index = tt::CB::cb_0;
     tt::tt_metal::CircularBufferConfig cb_src0_config = tt::tt_metal::CircularBufferConfig(shard_height * stick_size_bytes, {{src0_cb_index, src0_cb_data_format}})
         .set_page_size(src0_cb_index, stick_size_bytes).set_globally_allocated_address(*a.buffer());
     auto cb_src0 = tt::tt_metal::CreateCircularBuffer(program, all_cores, cb_src0_config);
 
     // sharded cb
-    uint32_t output_cb_index = tt::CB::c_out0; // output operands start at index 16
+    uint32_t output_cb_index = tt::CB::cb_16; // output operands start at index 16
     tt::tt_metal::CircularBufferConfig cb_output_config = tt::tt_metal::CircularBufferConfig(stick_size_bytes * shard_height, {{output_cb_index, dst_cb_data_format}})
         .set_page_size(output_cb_index, output_page_size).set_globally_allocated_address(*output.buffer());
     auto cb_output = tt::tt_metal::CreateCircularBuffer(program, all_cores, cb_output_config);
 
     // cb_in
-    uint32_t in_cb_index = tt::CB::c_intermed0;
+    uint32_t in_cb_index = tt::CB::cb_24;
     uint32_t num_in_tiles = wt * 2; // double buffer
     tt::tt_metal::CircularBufferConfig cb_in_config = tt::tt_metal::CircularBufferConfig(num_in_tiles * src0_single_tile_size, {{in_cb_index, src0_cb_data_format}})
         .set_page_size(in_cb_index, src0_single_tile_size);
     auto cb_in = tt::tt_metal::CreateCircularBuffer(program, all_cores, cb_in_config);
 
     // tilize cb
-    uint32_t im_cb_index = tt::CB::c_intermed1;
+    uint32_t im_cb_index = tt::CB::cb_25;
     uint32_t num_im_tiles = ht * wt;
     tt::tt_metal::CircularBufferConfig cb_im_config = tt::tt_metal::CircularBufferConfig(num_im_tiles * src0_single_tile_size, {{im_cb_index, src0_cb_data_format}})
         .set_page_size(im_cb_index, src0_single_tile_size);
@@ -1825,14 +1825,14 @@ operation::ProgramWithCallbacks transpose_wh_multi_core_sharded_rm(const Tensor 
 
     // untilize cb
     if (ht > 8) {
-        uint32_t im2_cb_index = tt::CB::c_intermed2;
+        uint32_t im2_cb_index = tt::CB::cb_26;
         uint32_t num_im2_tiles = ht;
         tt::tt_metal::CircularBufferConfig cb_im2_config = tt::tt_metal::CircularBufferConfig(num_im2_tiles * dst_single_tile_size, {{im2_cb_index, dst_cb_data_format}})
             .set_page_size(im2_cb_index, dst_single_tile_size);
         auto cb_im2 = tt::tt_metal::CreateCircularBuffer(program, all_cores, cb_im2_config);
 
         // compute_output_cb
-        uint32_t out_cb_index = tt::CB::c_intermed3;
+        uint32_t out_cb_index = tt::CB::cb_27;
         uint32_t num_out_tiles = ht * 2; // double buffer
         tt::tt_metal::CircularBufferConfig cb_out_config = tt::tt_metal::CircularBufferConfig(num_out_tiles * dst_single_tile_size, {{out_cb_index, dst_cb_data_format}})
             .set_page_size(out_cb_index, dst_single_tile_size);

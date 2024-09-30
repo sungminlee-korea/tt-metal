@@ -13,10 +13,10 @@ void MAIN {
     uint32_t n_tiles = get_arg_val<uint32_t>(0);
 
     // We are going to read from these two circular buffers
-    constexpr auto cb_in0 = tt::CB::c_in0;
-    constexpr auto cb_in1 = tt::CB::c_in1;
+    constexpr auto cb_in0 = tt::CB::cb_0;
+    constexpr auto cb_in1 = tt::CB::cb_1;
     // and write to the output circular buffer
-    constexpr auto cb_out0 =  tt::CB::c_out0;
+    constexpr auto cb_out0 =  tt::CB::cb_16;
     // The destination register.
     // Quote the doc: "This register is an array of 16 tiles of 32x32 elements each."
     // If you are fimilar with the concept of rotating register file from computer
@@ -25,7 +25,7 @@ void MAIN {
     // see: https://tenstorrent-metal.github.io/tt-metal/latest/tt-metalium/tt_metal/apis/kernel_apis/compute/acquire_dst.html
     constexpr uint32_t dst_reg = 0;
 
-    // Tell the SFPU that we will be using circular buffers c_in0, c_in1 and c_out0
+    // Tell the SFPU that we will be using circular buffers cb_0, cb_1 and cb_16
     // to perform the computation.
     binary_op_init_common(cb_in0, cb_in1, cb_out0);
     // And we are going to add tiles. This function is only called if we ever need to

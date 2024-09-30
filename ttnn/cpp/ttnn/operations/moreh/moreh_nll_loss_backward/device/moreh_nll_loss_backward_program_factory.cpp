@@ -61,14 +61,14 @@ MorehNllLossBackwardDeviceOperation::Factory::cached_program_t moreh_nll_loss_ba
         all_cores,
         data_format,
         {
-            {tt::CB::c_in0, 1},                                                              // output_grad
-            {tt::CB::c_in1, 1, tt::DataFormat::Int32},                                       // target
-            {tt::CB::c_in2, static_cast<uint32_t>(weight_has_value ? weight_num_tile : 0)},  // weight
-            {tt::CB::c_in3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},               // divisor
-            {tt::CB::c_intermed0, 1, fp32_dest_acc_en_data_format},                          // tmp_weight
-            {tt::CB::c_intermed1, 1, fp32_dest_acc_en_data_format},                          // tmp1
-            {tt::CB::c_intermed2, 1, fp32_dest_acc_en_data_format},                          // tmp2
-            {tt::CB::c_out0, 1},                                                             // input_grad
+            {tt::CB::cb_0, 1},                                                              // output_grad
+            {tt::CB::cb_1, 1, tt::DataFormat::Int32},                                       // target
+            {tt::CB::cb_2, static_cast<uint32_t>(weight_has_value ? weight_num_tile : 0)},  // weight
+            {tt::CB::cb_3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},               // divisor
+            {tt::CB::cb_24, 1, fp32_dest_acc_en_data_format},                          // tmp_weight
+            {tt::CB::cb_25, 1, fp32_dest_acc_en_data_format},                          // tmp1
+            {tt::CB::cb_26, 1, fp32_dest_acc_en_data_format},                          // tmp2
+            {tt::CB::cb_16, 1},                                                             // input_grad
         });
 
     // create read/wrtie kernel
@@ -239,14 +239,14 @@ MorehNllLossBackwardDeviceOperation::Factory::cached_program_t moreh_nll_loss_ba
         all_cores,
         data_format,
         {
-            {tt::CB::c_in0, 1},                                                              // output_grad
-            {tt::CB::c_in1, 1, tt::DataFormat::Int32},                                       // target
-            {tt::CB::c_in2, static_cast<uint32_t>(weight_has_value ? weight_num_tile : 0)},  // weight
-            {tt::CB::c_in3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},               // divisor
-            {tt::CB::c_intermed0, 1, fp32_dest_acc_en_data_format},                          // tmp_weight
-            {tt::CB::c_intermed1, 1, fp32_dest_acc_en_data_format},                          // tmp1
-            {tt::CB::c_intermed2, 1, fp32_dest_acc_en_data_format},                          // tmp2
-            {tt::CB::c_out0, 1},                                                             // input_grad
+            {tt::CB::cb_0, 1},                                                              // output_grad
+            {tt::CB::cb_1, 1, tt::DataFormat::Int32},                                       // target
+            {tt::CB::cb_2, static_cast<uint32_t>(weight_has_value ? weight_num_tile : 0)},  // weight
+            {tt::CB::cb_3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},               // divisor
+            {tt::CB::cb_24, 1, fp32_dest_acc_en_data_format},                          // tmp_weight
+            {tt::CB::cb_25, 1, fp32_dest_acc_en_data_format},                          // tmp1
+            {tt::CB::cb_26, 1, fp32_dest_acc_en_data_format},                          // tmp2
+            {tt::CB::cb_16, 1},                                                             // input_grad
         });
 
     // create read/wrtie kernel
@@ -415,14 +415,14 @@ MorehNllLossBackwardDeviceOperation::Factory::cached_program_t moreh_nll_loss_ba
         all_cores,
         data_format,
         {
-            {tt::CB::c_in0, 1},                                                              // output_grad
-            {tt::CB::c_in1, 1, tt::DataFormat::Int32},                                       // target
-            {tt::CB::c_in2, static_cast<uint32_t>(weight_has_value ? weight_num_tile : 0)},  // weight
-            {tt::CB::c_in3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},               // divisor
-            {tt::CB::c_intermed0, 1, fp32_dest_acc_en_data_format},                          // tmp_weight
-            {tt::CB::c_intermed1, 1, fp32_dest_acc_en_data_format},                          // tmp1
-            {tt::CB::c_intermed2, 1, fp32_dest_acc_en_data_format},                          // tmp2
-            {tt::CB::c_out0, 1},                                                             // input_grad
+            {tt::CB::cb_0, 1},                                                              // output_grad
+            {tt::CB::cb_1, 1, tt::DataFormat::Int32},                                       // target
+            {tt::CB::cb_2, static_cast<uint32_t>(weight_has_value ? weight_num_tile : 0)},  // weight
+            {tt::CB::cb_3, static_cast<uint32_t>(divisor_has_value ? 1 : 0)},               // divisor
+            {tt::CB::cb_24, 1, fp32_dest_acc_en_data_format},                          // tmp_weight
+            {tt::CB::cb_25, 1, fp32_dest_acc_en_data_format},                          // tmp1
+            {tt::CB::cb_26, 1, fp32_dest_acc_en_data_format},                          // tmp2
+            {tt::CB::cb_16, 1},                                                             // input_grad
         });
 
     // create read/wrtie kernel

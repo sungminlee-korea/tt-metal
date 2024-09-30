@@ -13,12 +13,12 @@ void MAIN {
 
     const uint32_t tile_offset = get_arg_val<uint32_t>(1);
 
-    constexpr uint32_t cb_divisor = tt::CB::c_in3;
-    constexpr uint32_t cb_output_grad = tt::CB::c_in0;
-    constexpr uint32_t cb_tmp_weight = tt::CB::c_intermed0;
-    constexpr uint32_t cb_tmp1 = tt::CB::c_intermed1;
-    constexpr uint32_t cb_tmp2 = tt::CB::c_intermed2;
-    constexpr uint32_t cb_input_grad = tt::CB::c_out0;
+    constexpr uint32_t cb_divisor = tt::CB::cb_3;
+    constexpr uint32_t cb_output_grad = tt::CB::cb_0;
+    constexpr uint32_t cb_tmp_weight = tt::CB::cb_24;
+    constexpr uint32_t cb_tmp1 = tt::CB::cb_25;
+    constexpr uint32_t cb_tmp2 = tt::CB::cb_26;
+    constexpr uint32_t cb_input_grad = tt::CB::cb_16;
 
     constexpr uint32_t dst0 = 0;
     constexpr uint32_t onetile = 1;

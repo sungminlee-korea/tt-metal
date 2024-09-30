@@ -214,9 +214,9 @@ void kernel_main() {
 
     uint32_t arg_idx = 0;
 
-    constexpr uint32_t to_dm_sender_short_circuit_cb = tt::CB::c_out1;
-    constexpr uint32_t cb_id_in0 = tt::CB::c_in0;
-    constexpr uint32_t cb_id_in1 = tt::CB::c_in1;
+    constexpr uint32_t to_dm_sender_short_circuit_cb = tt::CB::cb_17;
+    constexpr uint32_t cb_id_in0 = tt::CB::cb_0;
+    constexpr uint32_t cb_id_in1 = tt::CB::cb_1;
     auto args = reduce_scatter_reader_common_args_t(arg_idx, get_dataformat(cb_id_in0));
 
     auto s = build_source_address_generator<input_tensor_memory_layout, src_is_dram>(arg_idx, args);

@@ -368,7 +368,7 @@ operation::ProgramWithCallbacks all_gather_multi_core_with_workers_helper(
     log_trace(tt::LogOp, "input_page_size: {}", input_page_size);
     uint32_t cb_num_pages = 2 * max_pages_per_chunk;
     log_trace(tt::LogOp, "cb_num_pages: {}", cb_num_pages);
-    uint32_t src0_cb_index = tt::CB::c_in0;
+    uint32_t src0_cb_index = tt::CB::cb_0;
     CircularBufferConfig cb_src0_config = CircularBufferConfig(cb_num_pages * cb_page_size, {{src0_cb_index, df}})
     .set_page_size(src0_cb_index, cb_page_size);
     CBHandle cb_src0_sender_workers = CreateCircularBuffer(program, all_sender_workers, cb_src0_config);

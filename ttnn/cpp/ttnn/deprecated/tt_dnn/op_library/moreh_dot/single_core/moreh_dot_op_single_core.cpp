@@ -55,12 +55,12 @@ operation::ProgramWithCallbacks moreh_dot_single_core(const Tensor &a, const Ten
         std::set<CoreRange>{CoreRange(core, core)},
         cb_data_format,
         {
-            {CB::c_in0, in0_t},
-            {CB::c_in1, in1_t},
-            {CB::c_in2, in2_t},
-            {CB::c_out0, out0_t},
-            {CB::c_intermed0, im0_t},
-            {CB::c_intermed1, im1_t},
+            {CB::cb_0, in0_t},
+            {CB::cb_1, in1_t},
+            {CB::cb_2, in2_t},
+            {CB::cb_16, out0_t},
+            {CB::cb_24, im0_t},
+            {CB::cb_25, im1_t},
         });
 
     ////////////////////////////////////////////////////////////////////////////
@@ -71,7 +71,7 @@ operation::ProgramWithCallbacks moreh_dot_single_core(const Tensor &a, const Ten
         (std::uint32_t)is_dram(src1_buffer),
         *reinterpret_cast<uint32_t *>(&scaler)};
 
-    std::vector<uint32_t> writer_compile_time_args = {(std::uint32_t)CB::c_out0, (std::uint32_t)is_dram(dst_buffer)};
+    std::vector<uint32_t> writer_compile_time_args = {(std::uint32_t)CB::cb_16, (std::uint32_t)is_dram(dst_buffer)};
 
     const auto reader_kernel_file = "ttnn/cpp/ttnn/deprecated/tt_dnn/op_library/moreh_dot/single_core/kernels/reader_moreh_dot.cpp";
     const auto writer_kernel_file = "ttnn/cpp/ttnn/deprecated/tt_dnn/op_library/moreh_dot/single_core/kernels/writer_moreh_dot.cpp";

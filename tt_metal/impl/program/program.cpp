@@ -194,6 +194,9 @@ KernelGroup::KernelGroup(
     }
 
     this->launch_msg.kernel_config.exit_erisc_kernel = false;
+    // #7493 (in the future, once everyone has upgraded to the new version we do this...)
+    // this->launch_msg.kernel_config.max_cb_index = program.num_circular_buffers();
+    // instead of...
     this->launch_msg.kernel_config.max_cb_index = last_cb_index + 1;
     this->launch_msg.go.run = RUN_MSG_GO;
 }
@@ -352,6 +355,8 @@ void Program::CircularBufferAllocator::mark_address(uint64_t address, uint64_t s
 CBHandle Program::add_circular_buffer(const CoreRangeSet &core_range_set, const CircularBufferConfig &config) {
     this->invalidate_compile();
     std::shared_ptr<CircularBuffer> circular_buffer = std::make_shared<CircularBuffer>(core_range_set, config);
+    // #7493
+    circular_buffer->set_cb_enum(static_cast<CB>(this->circular_buffers_.size()));
     // Globally allocated circular buffer do not invalidate allocation because their addresses are tracked by memory
     // allocator
     if (not circular_buffer->globally_allocated()) {

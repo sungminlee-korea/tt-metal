@@ -57,10 +57,10 @@ MorehNllLossUnreducedBackwardDeviceOperation::Factory::cached_program_t moreh_nl
         all_cores,
         data_format,
         {
-            {tt::CB::c_in0, 1, tt::DataFormat::Int32},                          // target
-            {tt::CB::c_in1, Nt},                                                // output_grad
-            {tt::CB::c_in2, static_cast<uint32_t>(weight_has_value ? Ct : 0)},  // weight
-            {tt::CB::c_out0, 1},                                                // input_grad
+            {tt::CB::cb_0, 1, tt::DataFormat::Int32},                          // target
+            {tt::CB::cb_1, Nt},                                                // output_grad
+            {tt::CB::cb_2, static_cast<uint32_t>(weight_has_value ? Ct : 0)},  // weight
+            {tt::CB::cb_16, 1},                                                // input_grad
         });
 
     // create read/wrtie kernel
@@ -187,10 +187,10 @@ MorehNllLossUnreducedBackwardDeviceOperation::Factory::cached_program_t moreh_nl
         all_cores,
         data_format,
         {
-            {tt::CB::c_in0, 1, tt::DataFormat::Int32},                          // target
-            {tt::CB::c_in1, 1},                                                 // output_grad
-            {tt::CB::c_in2, static_cast<uint32_t>(weight_has_value ? Ct : 0)},  // weight
-            {tt::CB::c_out0, 1},                                                // input_grad
+            {tt::CB::cb_0, 1, tt::DataFormat::Int32},                          // target
+            {tt::CB::cb_1, 1},                                                 // output_grad
+            {tt::CB::cb_2, static_cast<uint32_t>(weight_has_value ? Ct : 0)},  // weight
+            {tt::CB::cb_16, 1},                                                // input_grad
         });
 
     // create read/wrtie kernel
@@ -316,10 +316,10 @@ MorehNllLossUnreducedBackwardDeviceOperation::Factory::cached_program_t moreh_nl
         all_cores,
         data_format,
         {
-            {tt::CB::c_in0, 1, tt::DataFormat::Int32},                          // target
-            {tt::CB::c_in1, 1},                                                 // output_grad
-            {tt::CB::c_in2, static_cast<uint32_t>(weight_has_value ? Ct : 0)},  // weight
-            {tt::CB::c_out0, 1},                                                // input_grad
+            {tt::CB::cb_0, 1, tt::DataFormat::Int32},                          // target
+            {tt::CB::cb_1, 1},                                                 // output_grad
+            {tt::CB::cb_2, static_cast<uint32_t>(weight_has_value ? Ct : 0)},  // weight
+            {tt::CB::cb_16, 1},                                                // input_grad
         });
 
     // create read/wrtie kernel

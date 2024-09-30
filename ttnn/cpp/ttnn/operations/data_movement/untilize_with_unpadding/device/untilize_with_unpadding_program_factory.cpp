@@ -229,8 +229,8 @@ operation::ProgramWithCallbacks untilize_with_unpadding_multi_core_interleaved(
     uint32_t padded_row_size_bytes = input_shape[-1] * a.element_size();     // Assuming bfloat16 dataformat
     uint32_t unpadded_row_size_bytes = output_shape[-1] * a.element_size();  // Assuming bfloat16 dataformat
 
-    create_cb(tt::CB::c_in0, program, all_cores, input_single_tile_size, num_tiles_per_row, input_cb_data_format);
-    create_cb(tt::CB::c_out0, program, all_cores, output_single_tile_size, num_tiles_per_row, output_cb_data_format);
+    create_cb(tt::CB::cb_0, program, all_cores, input_single_tile_size, num_tiles_per_row, input_cb_data_format);
+    create_cb(tt::CB::cb_16, program, all_cores, output_single_tile_size, num_tiles_per_row, output_cb_data_format);
 
     Buffer* src0_buffer = a.buffer();
     Buffer* dst_buffer = output.buffer();
@@ -431,7 +431,7 @@ operation::ProgramWithCallbacks untilize_with_unpadding_multi_core_sharded(
 
     uint32_t num_input_tiles = ntiles_per_block * nblocks_per_core;
     auto [src0_cb_index, cb_src0] = create_cb(
-        tt::CB::c_in0,
+        tt::CB::cb_0,
         program,
         all_cores,
         input_single_tile_size,
@@ -441,17 +441,17 @@ operation::ProgramWithCallbacks untilize_with_unpadding_multi_core_sharded(
 
     uint32_t num_output_tiles = out_sharded ? ntiles_per_batch * 2 : ntiles_per_block * 2;
     auto [output_cb_index, cb_output] =
-        create_cb(tt::CB::c_out0, program, all_cores, output_single_tile_size, num_output_tiles, output_cb_data_format);
+        create_cb(tt::CB::cb_16, program, all_cores, output_single_tile_size, num_output_tiles, output_cb_data_format);
 
     auto [sharded_output_cb_index, cb_sharded_output] = out_sharded ? create_cb(
-                                                                          tt::CB::c_out1,
+                                                                          tt::CB::cb_17,
                                                                           program,
                                                                           all_cores,
                                                                           block_row_size,
                                                                           num_output_rows_unpadded,
                                                                           output_cb_data_format,
                                                                           output.buffer())
-                                                                    : std::make_tuple(tt::CB::c_out1, CBHandle{});
+                                                                    : std::make_tuple(tt::CB::cb_17, CBHandle{});
 
     Buffer* src0_buffer = a.buffer();
     Buffer* dst_buffer = output.buffer();

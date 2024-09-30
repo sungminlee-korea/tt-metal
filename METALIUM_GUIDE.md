@@ -128,26 +128,26 @@ void MAIN {
   mm_init();
   acquire_dst(tt::DstMode::Tile);
 
-  cb_wait_front(tt::CB::c_in0, /* number of tiles */ 1);
-  cb_wait_front(tt::CB::c_in1, /* number of tiles */ 1);
+  cb_wait_front(tt::CB::cb_0, /* number of tiles */ 1);
+  cb_wait_front(tt::CB::cb_1, /* number of tiles */ 1);
 
-  matmul_tiles(tt::CB::c_in0, tt::CB::c_in1, 0, 0, 0, false);
+  matmul_tiles(tt::CB::cb_0, tt::CB::cb_1, 0, 0, 0, false);
 
-  cb_pop_front(tt::CB::c_in1, /* number of tiles */ 1);
-  cb_pop_front(tt::CB::c_in0, /* number of tiles */ 1);
+  cb_pop_front(tt::CB::cb_1, /* number of tiles */ 1);
+  cb_pop_front(tt::CB::cb_0, /* number of tiles */ 1);
 
-  cb_reserve_back(tt::CB::c_out0, /* number of tiles */ 1);
-  pack_tile(0, tt::CB::c_out0);
-  cb_push_back(tt::CB::c_out0, /* number of tiles */ 1);
+  cb_reserve_back(tt::CB::cb_16, /* number of tiles */ 1);
+  pack_tile(0, tt::CB::cb_16);
+  cb_push_back(tt::CB::cb_16, /* number of tiles */ 1);
 
   release_dst(tt::DstMode::Tile);
 }
 }  // namespace NAMESPACE
 ```
 
-It takes two matrix tiles from `tt::CB::c_in0` and `tt::CB::c_in0` L1 and
+It takes two matrix tiles from `tt::CB::cb_0` and `tt::CB::cb_0` L1 and
 conducts a single-tile matrix multiplication. Finally, it packs the result to
-`tt::CB::c_out0`.
+`tt::CB::cb_16`.
 
 Note that tile registers are acquired by `acquire_dst(..)`, but actually we can
 use `tile_regs_..()` functions for the more fine-grained tile register lock
@@ -299,23 +299,23 @@ namespace NAMESPACE {
 void MAIN {
   mm_init();
 
-  cb_wait_front(tt::CB::c_in0, /* number of tiles */ 1);
-  cb_wait_front(tt::CB::c_in1, /* number of tiles */ 1);
+  cb_wait_front(tt::CB::cb_0, /* number of tiles */ 1);
+  cb_wait_front(tt::CB::cb_1, /* number of tiles */ 1);
 
   tile_regs_acquire();
 
-  matmul_tiles(tt::CB::c_in0, tt::CB::c_in1, 0, 0, 0, false);
+  matmul_tiles(tt::CB::cb_0, tt::CB::cb_1, 0, 0, 0, false);
 
   tile_regs_commit();
 
-  cb_pop_front(tt::CB::c_in1, /* number of tiles */ 1);
-  cb_pop_front(tt::CB::c_in0, /* number of tiles */ 1);
+  cb_pop_front(tt::CB::cb_1, /* number of tiles */ 1);
+  cb_pop_front(tt::CB::cb_0, /* number of tiles */ 1);
 
   tile_regs_wait();
 
-  cb_reserve_back(tt::CB::c_out0, /* number of tiles */ 1);
-  pack_tile(0, tt::CB::c_out0);
-  cb_push_back(tt::CB::c_out0, /* number of tiles */ 1);
+  cb_reserve_back(tt::CB::cb_16, /* number of tiles */ 1);
+  pack_tile(0, tt::CB::cb_16);
+  cb_push_back(tt::CB::cb_16, /* number of tiles */ 1);
 
   tile_regs_release();
 }
@@ -367,9 +367,9 @@ void MAIN {
     uint32_t per_core_block_cnt = get_arg_val<uint32_t>(0);
     uint32_t per_core_block_size = get_arg_val<uint32_t>(1); // should be <= 8 in this kernel
 
-    constexpr auto cb_in0 = tt::CB::c_in0;
-    constexpr auto cb_in1 = tt::CB::c_in1;
-    constexpr auto cb_out0 =  tt::CB::c_out0;
+    constexpr auto cb_in0 = tt::CB::cb_0;
+    constexpr auto cb_in1 = tt::CB::cb_1;
+    constexpr auto cb_out0 =  tt::CB::cb_16;
 
     binary_op_init_common(cb_in0, cb_in1, cb_out0);
     add_tiles_init();

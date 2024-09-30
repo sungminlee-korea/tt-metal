@@ -74,11 +74,11 @@ void kernel_main() {
     constexpr uint32_t MAX_ROWS_FOR_REDUCTION = 16;
     constexpr uint32_t MAX_ELE_PER_REDUCTION = 512;
 
-    constexpr uint32_t in_cb_id = (reader_id == 1) ? tt::CB::c_in1 : tt::CB::c_in0;
-    constexpr uint32_t in_shard_cb_id = tt::CB::c_in2;  // local input shard
-    constexpr uint32_t in_reader_indices_cb_id = tt::CB::c_in3;
-    constexpr uint32_t in_scalar_cb_id = tt::CB::c_in4;
-    constexpr uint32_t interm_reduction_cb_id = tt::CB::c_intermed1;
+    constexpr uint32_t in_cb_id = (reader_id == 1) ? tt::CB::cb_1 : tt::CB::cb_0;
+    constexpr uint32_t in_shard_cb_id = tt::CB::cb_2;  // local input shard
+    constexpr uint32_t in_reader_indices_cb_id = tt::CB::cb_3;
+    constexpr uint32_t in_scalar_cb_id = tt::CB::cb_4;
+    constexpr uint32_t interm_reduction_cb_id = tt::CB::cb_25;
 
     constexpr uint32_t ROW_HW = 64;
 

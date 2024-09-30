@@ -73,14 +73,14 @@ operation::ProgramWithCallbacks moreh_softmax_backward_h_small(const Tensor &out
         all_cores,
         data_format,
         {
-            {CB::c_in0, Ht},        // output
-            {CB::c_in1, Ht},        // output_grad
-            {CB::c_in2, 1},         // scaler
-            {CB::c_in3, 1},         // mask
-            {CB::c_out0, 2},        // input_grad
-            {CB::c_intermed0, Ht, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // output * output_grad
-            {CB::c_intermed1, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},   // reduce
-            {CB::c_intermed2, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},   // dy - sum
+            {CB::cb_0, Ht},        // output
+            {CB::cb_1, Ht},        // output_grad
+            {CB::cb_2, 1},         // scaler
+            {CB::cb_3, 1},         // mask
+            {CB::cb_16, 2},        // input_grad
+            {CB::cb_24, Ht, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // output * output_grad
+            {CB::cb_25, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},   // reduce
+            {CB::cb_26, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},   // dy - sum
         });
 
     // create read/wrtie kernel

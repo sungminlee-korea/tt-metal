@@ -55,30 +55,30 @@ void MAIN {
     constexpr uint32_t dst0 = 0;
     constexpr uint32_t scaler0 = 0;
 
-    constexpr uint32_t cb_in0 = tt::CB::c_in0;
-    constexpr uint32_t cb_in1 = tt::CB::c_in1;
-    constexpr uint32_t cb_scaler = tt::CB::c_in2;
-    constexpr uint32_t cb_eps = tt::CB::c_in3;
-    constexpr uint32_t cb_scaler_global = tt::CB::c_in4;
-    constexpr uint32_t cb_gamma = tt::CB::c_in5;
-    constexpr uint32_t cb_beta = tt::CB::c_in6;
-    constexpr uint32_t cb_x = tt::CB::c_intermed0; // x minus mean
+    constexpr uint32_t cb_in0 = tt::CB::cb_0;
+    constexpr uint32_t cb_in1 = tt::CB::cb_1;
+    constexpr uint32_t cb_scaler = tt::CB::cb_2;
+    constexpr uint32_t cb_eps = tt::CB::cb_3;
+    constexpr uint32_t cb_scaler_global = tt::CB::cb_4;
+    constexpr uint32_t cb_gamma = tt::CB::cb_5;
+    constexpr uint32_t cb_beta = tt::CB::cb_6;
+    constexpr uint32_t cb_x = tt::CB::cb_24; // x minus mean
     #if defined RMSNORM and not defined FUSE_PRE_ADD
     constexpr uint32_t cb_xmm = cb_in0; // x minus mean
     #else
-    constexpr uint32_t cb_xmm = tt::CB::c_intermed1; // x minus mean
+    constexpr uint32_t cb_xmm = tt::CB::cb_25; // x minus mean
     #endif
-    constexpr uint32_t cb_ex_partial = tt::CB::dataflow0; // E[x] partial reduce
-    constexpr uint32_t cb_ex = tt::CB::dataflow1; // E[x] global reduce
-    constexpr uint32_t cb_ex_external = tt::CB::dataflow2;
-    constexpr uint32_t cb_ex_partial2 = tt::CB::dataflow3; // E[(x-E[x])^2] partial reduce
-    constexpr uint32_t cb_ex2 = tt::CB::dataflow4; // E[(x-E[x])^2] global reduce
-    constexpr uint32_t cb_ex_external2 = tt::CB::dataflow5;
-    constexpr uint32_t cb_ex_global = tt::CB::dataflow7; // E[x] global reduce
+    constexpr uint32_t cb_ex_partial = tt::CB::cb_8; // E[x] partial reduce
+    constexpr uint32_t cb_ex = tt::CB::cb_9; // E[x] global reduce
+    constexpr uint32_t cb_ex_external = tt::CB::cb_10;
+    constexpr uint32_t cb_ex_partial2 = tt::CB::cb_11; // E[(x-E[x])^2] partial reduce
+    constexpr uint32_t cb_ex2 = tt::CB::cb_12; // E[(x-E[x])^2] global reduce
+    constexpr uint32_t cb_ex_external2 = tt::CB::cb_13;
+    constexpr uint32_t cb_ex_global = tt::CB::cb_15; // E[x] global reduce
     constexpr uint32_t cb_xmm2 = cb_x; // xmm^2
-    constexpr uint32_t cb_ex2pe = tt::CB::c_intermed3; // E[(x-E[x])^2]+eps
-    constexpr uint32_t cb_fusion = tt::CB::c_intermed1; // stream gamma/beta
-    constexpr uint32_t cb_out = tt::CB::c_out0;
+    constexpr uint32_t cb_ex2pe = tt::CB::cb_27; // E[(x-E[x])^2]+eps
+    constexpr uint32_t cb_fusion = tt::CB::cb_25; // stream gamma/beta
+    constexpr uint32_t cb_out = tt::CB::cb_16;
 
     binary_op_init_common(cb_in0, cb_in0, cb_x);
 

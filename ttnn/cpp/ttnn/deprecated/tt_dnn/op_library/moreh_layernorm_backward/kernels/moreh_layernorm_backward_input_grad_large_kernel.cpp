@@ -18,29 +18,29 @@ void MAIN {
     constexpr bool is_lastdim_layernorm = get_compile_time_arg_val(5) == 1;
     constexpr bool is_groupnorm = get_compile_time_arg_val(6) == 1;
 
-    binary_op_init_common(tt::CB::c_in1, tt::CB::c_in2);
+    binary_op_init_common(tt::CB::cb_1, tt::CB::cb_2);
 
-    constexpr auto cb_dy = tt::CB::c_in0;         // output_grad(==dy)
-    constexpr auto cb_x = tt::CB::c_in1;          // input(==x)
-    constexpr auto cb_mean = tt::CB::c_in2;       // mean
-    constexpr auto cb_rstd = tt::CB::c_in3;       // rstd
-    constexpr auto cb_scaler = tt::CB::c_in4;     // scaler
-    constexpr auto cb_n_recip_n = tt::CB::c_in5;  // n_recip_n
-    constexpr auto cb_gamma = tt::CB::c_in6;      // gamma
-    constexpr auto cb_mask_h_w = tt::CB::c_in7;   // mask_h_w
+    constexpr auto cb_dy = tt::CB::cb_0;         // output_grad(==dy)
+    constexpr auto cb_x = tt::CB::cb_1;          // input(==x)
+    constexpr auto cb_mean = tt::CB::cb_2;       // mean
+    constexpr auto cb_rstd = tt::CB::cb_3;       // rstd
+    constexpr auto cb_scaler = tt::CB::cb_4;     // scaler
+    constexpr auto cb_n_recip_n = tt::CB::cb_5;  // n_recip_n
+    constexpr auto cb_gamma = tt::CB::cb_6;      // gamma
+    constexpr auto cb_mask_h_w = tt::CB::cb_7;   // mask_h_w
 
     // ((n * dy - Sum[dy]) - (y * Sum[y * dy])) * ((1.0 / n) * rstd)
-    constexpr auto cb_dx = tt::CB::c_out0;  // input_grad(==dx)
+    constexpr auto cb_dx = tt::CB::cb_16;  // input_grad(==dx)
 
     // y = (x - mean) / rstd
-    constexpr auto cb_dycopy = tt::CB::c_intermed0;  // copy output_grad(==dycopy)
-    constexpr auto cb_y = tt::CB::c_intermed1;       // output(==y)
-    constexpr auto cb_dysum = tt::CB::c_intermed2;   // Sum[dy]
-    constexpr auto cb_ydysum = tt::CB::c_intermed3;  // Sum[y * dy]
+    constexpr auto cb_dycopy = tt::CB::cb_24;  // copy output_grad(==dycopy)
+    constexpr auto cb_y = tt::CB::cb_25;       // output(==y)
+    constexpr auto cb_dysum = tt::CB::cb_26;   // Sum[dy]
+    constexpr auto cb_ydysum = tt::CB::cb_27;  // Sum[y * dy]
 
-    constexpr auto cb_tmp1 = tt::CB::c_intermed4;  // tmp1
-    constexpr auto cb_tmp2 = tt::CB::c_intermed5;  // tmp2
-    constexpr auto cb_tmp3 = tt::CB::c_intermed6;  // tmp3
+    constexpr auto cb_tmp1 = tt::CB::cb_28;  // tmp1
+    constexpr auto cb_tmp2 = tt::CB::cb_29;  // tmp2
+    constexpr auto cb_tmp3 = tt::CB::cb_30;  // tmp3
 
     constexpr uint32_t onetile = 1;
 

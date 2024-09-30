@@ -62,16 +62,16 @@ operation::ProgramWithCallbacks moreh_sgd_(
         all_cores,
         data_format,
         {
-            {CB::c_in0, 2},        // param_in
-            {CB::c_in1, 2},        // grad
-            {CB::c_in2, 2},        // momentum_in
-            {CB::c_out0, 2},       // param_out
-            {CB::c_out1, 2},       // momentum_out
-            {CB::c_intermed0, 5, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // cb_scalar_args (lr, momentum, dampening, weight_decay, one)
-            {CB::c_intermed1, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
-            {CB::c_intermed2, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
-            {CB::c_intermed3, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
-            {CB::c_intermed4, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
+            {CB::cb_0, 2},        // param_in
+            {CB::cb_1, 2},        // grad
+            {CB::cb_2, 2},        // momentum_in
+            {CB::cb_16, 2},       // param_out
+            {CB::cb_17, 2},       // momentum_out
+            {CB::cb_24, 5, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // cb_scalar_args (lr, momentum, dampening, weight_decay, one)
+            {CB::cb_25, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
+            {CB::cb_26, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
+            {CB::cb_27, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
+            {CB::cb_28, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  //
         });
 
     std::map<string, string> reader_defines;

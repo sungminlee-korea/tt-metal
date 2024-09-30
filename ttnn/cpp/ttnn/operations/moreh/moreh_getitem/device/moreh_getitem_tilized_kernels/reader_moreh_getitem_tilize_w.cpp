@@ -64,12 +64,12 @@ void kernel_main() {
     uint32_t num_elements_per_alignment = get_arg_val<uint32_t>(i++);
     uint32_t num_alignment_width = get_arg_val<uint32_t>(i++);
 
-    constexpr auto cb_in0 = tt::CB::c_in0;
-    constexpr auto cb_in1 = tt::CB::c_in1;
-    constexpr auto cb_in2 = tt::CB::c_in2;
-    constexpr auto cb_in3 = tt::CB::c_in3;
-    constexpr auto cb_in4 = tt::CB::c_in4;
-    constexpr auto cb_in5 = tt::CB::c_in5;
+    constexpr auto cb_in0 = tt::CB::cb_0;
+    constexpr auto cb_in1 = tt::CB::cb_1;
+    constexpr auto cb_in2 = tt::CB::cb_2;
+    constexpr auto cb_in3 = tt::CB::cb_3;
+    constexpr auto cb_in4 = tt::CB::cb_4;
+    constexpr auto cb_in5 = tt::CB::cb_5;
 
     constexpr bool in_is_dram = get_compile_time_arg_val(0) == 1;
     constexpr bool index0_is_dram = get_compile_time_arg_val(1) == 1;

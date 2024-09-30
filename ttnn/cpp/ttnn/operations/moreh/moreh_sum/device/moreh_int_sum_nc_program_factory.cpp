@@ -78,9 +78,9 @@ MorehSumOperation::MorehSumNCIntFactory::cached_program_t MorehSumOperation::Mor
         all_cores,
         cb_data_format,
         {
-            {tt::CB::c_in0, in0_t},              // input
-            {tt::CB::c_intermed0, intermed0_t},  // accumulated sum
-            {tt::CB::c_out0, out0_t},            // output
+            {tt::CB::cb_0, in0_t},              // input
+            {tt::CB::cb_24, intermed0_t},  // accumulated sum
+            {tt::CB::cb_16, out0_t},            // output
         });
 
     std::vector<uint32_t> reader_compile_time_args = {static_cast<uint32_t>(tt::operations::primary::is_dram(input))};

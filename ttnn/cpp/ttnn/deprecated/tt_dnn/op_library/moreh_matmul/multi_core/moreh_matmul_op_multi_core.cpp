@@ -215,15 +215,15 @@ operation::ProgramWithCallbacks moreh_matmul_multi_core(
         all_cores,
         cb_data_format,
         {
-            {CB::c_in0, in0_t},
-            {CB::c_in1, in1_t},
-            {CB::c_in2, in2_t},
-            {CB::c_in3, in3_t},
-            {CB::c_in4, in4_t},
-            {CB::c_intermed0, im0_t, (fp32_dest_acc_en) ? tt::DataFormat::Float32: cb_data_format},
-            {CB::c_intermed1, im1_t},
-            {CB::c_intermed2, im2_t},
-            {CB::c_out0, out0_t},
+            {CB::cb_0, in0_t},
+            {CB::cb_1, in1_t},
+            {CB::cb_2, in2_t},
+            {CB::cb_3, in3_t},
+            {CB::cb_4, in4_t},
+            {CB::cb_24, im0_t, (fp32_dest_acc_en) ? tt::DataFormat::Float32: cb_data_format},
+            {CB::cb_25, im1_t},
+            {CB::cb_26, im2_t},
+            {CB::cb_16, out0_t},
         });
 
     ////////////////////////////////////////////////////////////////////////////

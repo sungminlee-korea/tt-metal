@@ -121,14 +121,14 @@ operation::ProgramWithCallbacks paged_update_cache_multi_core(const Tensor& cach
     uint32_t num_interm_tiles = 2 * Wt; // double buffered
     uint32_t num_output_tiles = B * Wt;
 
-    const tt::CB src0_cb_index = CB::c_in0;
-    const tt::CB src1_cb_index = CB::c_in1;
-    const tt::CB cb_index_id = CB::c_in2;
-    const tt::CB cb_pagetable_id = CB::c_in3;
-    const tt::CB intermed0_cb_index = CB::c_intermed0;
-    const tt::CB intermed1_cb_index = CB::c_intermed1;
-    const tt::CB intermed2_cb_index = CB::c_intermed2;
-    const tt::CB output_cb_index = CB::c_out0;
+    const tt::CB src0_cb_index = CB::cb_0;
+    const tt::CB src1_cb_index = CB::cb_1;
+    const tt::CB cb_index_id = CB::cb_2;
+    const tt::CB cb_pagetable_id = CB::cb_3;
+    const tt::CB intermed0_cb_index = CB::cb_24;
+    const tt::CB intermed1_cb_index = CB::cb_25;
+    const tt::CB intermed2_cb_index = CB::cb_26;
+    const tt::CB output_cb_index = CB::cb_16;
 
     create_cb(src0_cb_index, program, all_cores, cache_single_tile_size, num_cache_tiles, cache_cb_data_format);
     auto [_, cb_src1] = create_cb(src1_cb_index, program, all_cores, input_single_tile_size, num_input_tiles, input_cb_data_format, in1_buffer_address);

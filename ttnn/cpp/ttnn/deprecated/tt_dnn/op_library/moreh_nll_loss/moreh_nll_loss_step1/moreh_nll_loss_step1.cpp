@@ -81,10 +81,10 @@ operation::ProgramWithCallbacks moreh_nll_loss_step1_impl(
             all_cores,
             data_format,
             {
-                {CB::c_in0, 1, tt::DataFormat::Int32},     // traget
-                {CB::c_in1, 1},                            // weight
-                {CB::c_intermed0, 1, intermed_data_format},  // tmp_weight
-                {CB::c_out0, 1},                           // output
+                {CB::cb_0, 1, tt::DataFormat::Int32},     // traget
+                {CB::cb_1, 1},                            // weight
+                {CB::cb_24, 1, intermed_data_format},  // tmp_weight
+                {CB::cb_16, 1},                           // output
             });
     } else {
         CreateCircularBuffer(
@@ -92,10 +92,10 @@ operation::ProgramWithCallbacks moreh_nll_loss_step1_impl(
             all_cores,
             data_format,
             {
-                {CB::c_in0, 1, tt::DataFormat::Int32},     // traget
-                {CB::c_in1, weight_num_tile},              // weight
-                {CB::c_intermed0, 1, intermed_data_format},  // tmp_weight
-                {CB::c_out0, 1},                           // output
+                {CB::cb_0, 1, tt::DataFormat::Int32},     // traget
+                {CB::cb_1, weight_num_tile},              // weight
+                {CB::cb_24, 1, intermed_data_format},  // tmp_weight
+                {CB::cb_16, 1},                           // output
             });
     }
 

@@ -49,12 +49,12 @@ operation::ProgramWithCallbacks moreh_softmax_backward_c_large(const Tensor &out
         all_cores,
         data_format,
         {
-            {CB::c_in0, 2},        // y
-            {CB::c_in1, 2},        // dy
-            {CB::c_out0, 2},       // dx
-            {CB::c_intermed0, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // y * dy
-            {CB::c_intermed1, 2, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // sum(y * dy)
-            {CB::c_intermed2, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // dy - sum
+            {CB::cb_0, 2},        // y
+            {CB::cb_1, 2},        // dy
+            {CB::cb_16, 2},       // dx
+            {CB::cb_24, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // y * dy
+            {CB::cb_25, 2, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // sum(y * dy)
+            {CB::cb_26, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // dy - sum
         });
 
     // create read/wrtie kernel

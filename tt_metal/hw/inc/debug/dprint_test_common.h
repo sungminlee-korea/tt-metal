@@ -30,8 +30,8 @@ inline void print_test_data() {
 #if !defined(COMPILE_FOR_ERISC) && !defined(COMPILE_FOR_IDLE_ERISC)
     // Eth cores don't have CBs, so don't try TSLICE printing.
     DPRINT << "SLICE:\n";
-    cb_wait_front(tt::CB::c_in0, 1);
-    DPRINT << TSLICE(tt::CB::c_in0, 0, SliceRange::hw0_32_8());
-    DPRINT << TSLICE(tt::CB::c_in0, 0, SliceRange::hw0_32_4());
+    cb_wait_front(tt::CB::cb_0, 1);
+    DPRINT << TSLICE(tt::CB::cb_0, 0, SliceRange::hw0_32_8());
+    DPRINT << TSLICE(tt::CB::cb_0, 0, SliceRange::hw0_32_4());
 #endif
 }

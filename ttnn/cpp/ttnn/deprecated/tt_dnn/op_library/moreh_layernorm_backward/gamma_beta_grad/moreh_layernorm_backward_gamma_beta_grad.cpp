@@ -113,20 +113,20 @@ operation::ProgramWithCallbacks moreh_layernorm_backward_gamma_beta_grad_impl(
         all_cores,
         cb_data_format,
         {
-            {CB::c_in0, in0_t},        // output_grad(==dy)
-            {CB::c_in1, in1_t},        // input(==x)
-            {CB::c_in2, in2_t},        // mean
-            {CB::c_in3, in3_t},        // rstd
-            {CB::c_in4, in4_t},        // scaler
-            {CB::c_in5, in5_t},        // mask_h
-            {CB::c_out0, out0_t},      // gamma_grad(==dgamma)
-            {CB::c_out1, out1_t},      // beta_grad(==dbeta)
-            {CB::c_intermed0, im0_t, intermed_cb_format},  // output(==y)
-            {CB::c_intermed1, im1_t, intermed_cb_format},  // y * dy
-            {CB::c_intermed2, im2_t, intermed_cb_format},  // Add[dy]
-            {CB::c_intermed3, im3_t, intermed_cb_format},  // Add[y * dy]
-            {CB::c_intermed4, im4_t, intermed_cb_format},  // x - mean
-            {CB::c_intermed5, im5_t, intermed_cb_format},  // dycopy
+            {CB::cb_0, in0_t},        // output_grad(==dy)
+            {CB::cb_1, in1_t},        // input(==x)
+            {CB::cb_2, in2_t},        // mean
+            {CB::cb_3, in3_t},        // rstd
+            {CB::cb_4, in4_t},        // scaler
+            {CB::cb_5, in5_t},        // mask_h
+            {CB::cb_16, out0_t},      // gamma_grad(==dgamma)
+            {CB::cb_17, out1_t},      // beta_grad(==dbeta)
+            {CB::cb_24, im0_t, intermed_cb_format},  // output(==y)
+            {CB::cb_25, im1_t, intermed_cb_format},  // y * dy
+            {CB::cb_26, im2_t, intermed_cb_format},  // Add[dy]
+            {CB::cb_27, im3_t, intermed_cb_format},  // Add[y * dy]
+            {CB::cb_28, im4_t, intermed_cb_format},  // x - mean
+            {CB::cb_29, im5_t, intermed_cb_format},  // dycopy
         });
 
     ////////////////////////////////////////////////////////////////////////////

@@ -42,7 +42,7 @@ operation::ProgramWithCallbacks pad_rm_reader_writer(const Tensor &a,
     auto pad_value_const_tensor_addr = pad_value_const_tensor.buffer()->address();
 
     CoreRange cores({0, 0}, {0, 0});
-    uint32_t cb_id = tt::CB::c_in0;
+    uint32_t cb_id = tt::CB::cb_0;
     uint32_t cb_npages = 16; // multibuffering
     uint32_t cb_pagesize = tt::round_up(padded_row_size_nbytes, tt::constants::TILE_WIDTH);
     tt::DataFormat in_df = tt::tt_metal::datatype_to_dataformat_converter(a.get_dtype());
@@ -678,7 +678,7 @@ operation::ProgramWithCallbacks pad_rm_reader_writer_multi_core(const Tensor &a,
     int32_t src_nbytes_per_core_w = ntiles_per_core_w * TILE_WIDTH * a.element_size();
     int32_t dst_nbytes_per_core_w = ntiles_per_core_w * TILE_WIDTH * output.element_size();
 
-    uint32_t cb_id = tt::CB::c_in0;
+    uint32_t cb_id = tt::CB::cb_0;
     uint32_t cb_npages = 16; // multibuffering for perf
     // uint32_t cb_npages = 1; // multibuffering for perf
     uint32_t cb_pagesize = (uint32_t) ceil((float) dst_nbytes_per_core_w / tt::constants::TILE_WIDTH) * tt::constants::TILE_WIDTH;
@@ -1403,7 +1403,7 @@ operation::ProgramWithCallbacks pad_rm_sharded(const Tensor &a,
         .set_page_size(src0_cb_index, stick_size_unpadded).set_globally_allocated_address(*a.buffer());
     auto cb_src0 = tt::tt_metal::CreateCircularBuffer(program, total_cores, cb_src0_config);
 
-    uint32_t output_cb_index = tt::CB::c_out0; // output operands start at index 16
+    uint32_t output_cb_index = tt::CB::cb_16; // output operands start at index 16
     tt::tt_metal::CircularBufferConfig cb_output_config = tt::tt_metal::CircularBufferConfig(shard_height_padded * stick_size_padded, {{output_cb_index, dst_cb_data_format}})
         .set_page_size(output_cb_index, stick_size_padded).set_globally_allocated_address(*output.buffer());
     auto cb_output = tt::tt_metal::CreateCircularBuffer(program, total_cores, cb_output_config);

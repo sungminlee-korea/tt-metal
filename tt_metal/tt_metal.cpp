@@ -929,6 +929,10 @@ const CircularBufferConfig &GetCircularBufferConfig(Program &program, CBHandle c
     return detail::GetCircularBuffer(program, cb_handle)->config();
 }
 
+const CB GetCircularBufferEnum(Program &program, CBHandle cb_handle) {
+    return detail::GetCircularBuffer(program, cb_handle)->cb_enum();
+}
+
 void UpdateCircularBufferTotalSize(Program &program, CBHandle cb_handle, uint32_t total_size) {
     std::shared_ptr<CircularBuffer> circular_buffer = detail::GetCircularBuffer(program, cb_handle);
     if (not circular_buffer->globally_allocated()) {

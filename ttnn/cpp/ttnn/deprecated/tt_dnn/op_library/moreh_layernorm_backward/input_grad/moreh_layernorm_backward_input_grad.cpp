@@ -144,23 +144,23 @@ operation::ProgramWithCallbacks moreh_layernorm_backward_input_grad_impl(
         all_cores,
         cb_data_format,
         {
-            {CB::c_in0, in0_t},        // output_grad(==dy)
-            {CB::c_in1, in1_t},        // input(==x)
-            {CB::c_in2, in2_t},        // mean
-            {CB::c_in3, in3_t},        // rstd
-            {CB::c_in4, in4_t},        // scaler
-            {CB::c_in5, in5_t},        // n_recip_n
-            {CB::c_in6, in6_t},        // gamma
-            {CB::c_in7, in7_t},        // mask_h_w
-            {CB::c_out0, out0_t},      // input_grad(==dx)
-            {CB::c_intermed0, im0_t, intermed_cb_format},  // copy output_grad(==dy or dy * gamma)
-            {CB::c_intermed1, im1_t, intermed_cb_format},  // output(==y)
-            {CB::c_intermed2, im2_t, intermed_cb_format},  // Sum[dy]
-            {CB::c_intermed3, im3_t, intermed_cb_format},  // Sum[y * dy]
-            {CB::c_intermed4, im4_t, intermed_cb_format},  // (1.0 / n) * rstd
-            {CB::c_intermed5, im5_t, intermed_cb_format},
-            {CB::c_intermed6, im6_t, intermed_cb_format},
-            {CB::c_intermed7, im7_t, intermed_cb_format},
+            {CB::cb_0, in0_t},        // output_grad(==dy)
+            {CB::cb_1, in1_t},        // input(==x)
+            {CB::cb_2, in2_t},        // mean
+            {CB::cb_3, in3_t},        // rstd
+            {CB::cb_4, in4_t},        // scaler
+            {CB::cb_5, in5_t},        // n_recip_n
+            {CB::cb_6, in6_t},        // gamma
+            {CB::cb_7, in7_t},        // mask_h_w
+            {CB::cb_16, out0_t},      // input_grad(==dx)
+            {CB::cb_24, im0_t, intermed_cb_format},  // copy output_grad(==dy or dy * gamma)
+            {CB::cb_25, im1_t, intermed_cb_format},  // output(==y)
+            {CB::cb_26, im2_t, intermed_cb_format},  // Sum[dy]
+            {CB::cb_27, im3_t, intermed_cb_format},  // Sum[y * dy]
+            {CB::cb_28, im4_t, intermed_cb_format},  // (1.0 / n) * rstd
+            {CB::cb_29, im5_t, intermed_cb_format},
+            {CB::cb_30, im6_t, intermed_cb_format},
+            {CB::cb_31, im7_t, intermed_cb_format},
         });
 
     ////////////////////////////////////////////////////////////////////////////

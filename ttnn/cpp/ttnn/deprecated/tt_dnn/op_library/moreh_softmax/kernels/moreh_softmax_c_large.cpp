@@ -11,13 +11,13 @@
 
 namespace NAMESPACE {
 void MAIN {
-    constexpr auto cb_in0 = tt::CB::c_in0;
-    constexpr auto cb_out0 = tt::CB::c_out0;
-    constexpr auto cb_exps = tt::CB::c_intermed0;
-    constexpr auto cb_recipsumexps = tt::CB::c_intermed1;
-    constexpr auto cb_add = tt::CB::c_intermed2;
-    constexpr auto cb_max = tt::CB::c_intermed3;
-    constexpr auto cb_tmp = tt::CB::c_intermed4;
+    constexpr auto cb_in0 = tt::CB::cb_0;
+    constexpr auto cb_out0 = tt::CB::cb_16;
+    constexpr auto cb_exps = tt::CB::cb_24;
+    constexpr auto cb_recipsumexps = tt::CB::cb_25;
+    constexpr auto cb_add = tt::CB::cb_26;
+    constexpr auto cb_max = tt::CB::cb_27;
+    constexpr auto cb_tmp = tt::CB::cb_28;
 
     constexpr uint32_t onetile = 1;
     constexpr int dst0 = 0;

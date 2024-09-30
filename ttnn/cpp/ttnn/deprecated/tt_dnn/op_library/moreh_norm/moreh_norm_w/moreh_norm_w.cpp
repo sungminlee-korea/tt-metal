@@ -94,19 +94,19 @@ operation::ProgramWithCallbacks moreh_norm_w_impl(const Tensor &input, float p, 
         all_cores,
         cb_data_format,
         {
-            {CB::c_in0, in0_t},    // input
-            {CB::c_in1, in1_t},    // one
-            {CB::c_in2, in2_t},    // decimal
-            {CB::c_in3, in3_t},    // recip_p_decimal
-            {CB::c_in4, in4_t},    // mask_w
-            {CB::c_out0, out0_t},  // output
-            {CB::c_intermed0, im0_t, intermed_data_format},
-            {CB::c_intermed1, im1_t, intermed_data_format},
-            {CB::c_intermed2, im2_t, intermed_data_format},
-            {CB::c_intermed3, im3_t, intermed_data_format},
-            {CB::c_intermed4, im4_t, intermed_data_format},
-            {CB::c_intermed5, im5_t, intermed_data_format},
-            {CB::c_intermed6, im6_t, intermed_data_format},
+            {CB::cb_0, in0_t},    // input
+            {CB::cb_1, in1_t},    // one
+            {CB::cb_2, in2_t},    // decimal
+            {CB::cb_3, in3_t},    // recip_p_decimal
+            {CB::cb_4, in4_t},    // mask_w
+            {CB::cb_16, out0_t},  // output
+            {CB::cb_24, im0_t, intermed_data_format},
+            {CB::cb_25, im1_t, intermed_data_format},
+            {CB::cb_26, im2_t, intermed_data_format},
+            {CB::cb_27, im3_t, intermed_data_format},
+            {CB::cb_28, im4_t, intermed_data_format},
+            {CB::cb_29, im5_t, intermed_data_format},
+            {CB::cb_30, im6_t, intermed_data_format},
         });
 
     ////////////////////////////////////////////////////////////////////////////

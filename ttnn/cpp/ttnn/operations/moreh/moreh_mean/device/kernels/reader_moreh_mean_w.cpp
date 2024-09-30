@@ -12,7 +12,7 @@ void kernel_main() {
     constexpr bool src_is_dram = get_compile_time_arg_val(0) == 1;
     constexpr uint32_t scaler = get_compile_time_arg_val(1);
 
-    constexpr uint32_t cb_id_in2 = tt::CB::c_in2;
+    constexpr uint32_t cb_id_in2 = tt::CB::cb_2;
     cb_reserve_back(cb_id_in2, 1);
     constexpr uint32_t num_zeros_reads = 2048 / MEM_ZEROS_SIZE;
     uint64_t zeros_noc_addr = get_noc_addr(MEM_ZEROS_BASE);
@@ -37,12 +37,12 @@ void kernel_main() {
     }
     cb_push_back(cb_id_in2, 1);
 
-    constexpr uint32_t cb_id_mask_w = tt::CB::c_in3;
+    constexpr uint32_t cb_id_mask_w = tt::CB::cb_3;
 #ifdef DO_MASK_W
     generate_mask_w(cb_id_mask_w, mask_w);
 #endif
 
-    constexpr uint32_t cb_id_in0 = tt::CB::c_in0;
+    constexpr uint32_t cb_id_in0 = tt::CB::cb_0;
 
     // ublocks size defined in tiles
     constexpr uint32_t onetile = 1;

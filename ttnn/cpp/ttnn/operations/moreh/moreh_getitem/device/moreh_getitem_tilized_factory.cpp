@@ -120,7 +120,7 @@ MorehGetItemOperation::MorehGetItemTilizedFactory::create(
         auto index_cb_data_format = datatype_to_dataformat_converter(index_tensors[0].get_dtype());
         auto output_cb_data_format = datatype_to_dataformat_converter(output.get_dtype());
 
-        auto src_cb_index = CB::c_in0;
+        auto src_cb_index = CB::cb_0;
         auto rounded_input_page_size = round_up_to_mul32(input_unit_size);
         auto cb_src0_config =
             CircularBufferConfig(rounded_input_page_size, {{src_cb_index, src_cb_data_format}})
@@ -131,7 +131,7 @@ MorehGetItemOperation::MorehGetItemTilizedFactory::create(
             if (!index_info[dim].is_defined)
                 continue;
 
-            auto src1_cb_index = CB::c_in1 + dim;
+            auto src1_cb_index = CB::cb_1 + dim;
             auto index_page_size = 1024 * 4;
             auto cb_index_config =
                 CircularBufferConfig(index_page_size, {{src1_cb_index, index_cb_data_format}})
@@ -139,14 +139,14 @@ MorehGetItemOperation::MorehGetItemTilizedFactory::create(
             auto cb_src1 = CreateCircularBuffer(program, all_cores, cb_index_config);
         }
 
-        auto out_cb0_index = CB::c_out0;
+        auto out_cb0_index = CB::cb_16;
         auto rounded_output_page_size = round_up_to_mul32(output_unit_size);
         auto cb_out0_config =
             CircularBufferConfig(rounded_output_page_size, {{out_cb0_index, output_cb_data_format}})
                 .set_page_size(out_cb0_index, rounded_output_page_size);
         auto cb_out0 = CreateCircularBuffer(program, all_cores, cb_out0_config);
 
-        auto out_cb1_index = CB::c_out1;
+        auto out_cb1_index = CB::cb_17;
         auto cb_out1_config =
             CircularBufferConfig(rounded_output_page_size, {{out_cb1_index, output_cb_data_format}})
                 .set_page_size(out_cb1_index, rounded_output_page_size);
@@ -357,7 +357,7 @@ MorehGetItemOperation::MorehGetItemTilizedFactory::create(
         auto index_cb_data_format = datatype_to_dataformat_converter(index_tensors[0].get_dtype());
         auto output_cb_data_format = datatype_to_dataformat_converter(output.get_dtype());
 
-        auto src_cb_index = CB::c_in0;
+        auto src_cb_index = CB::cb_0;
         auto rounded_input_page_size = round_up_to_mul32(input_unit_size);
         auto cb_src0_config =
             CircularBufferConfig(rounded_input_page_size, {{src_cb_index, src_cb_data_format}})
@@ -368,7 +368,7 @@ MorehGetItemOperation::MorehGetItemTilizedFactory::create(
             if (!index_info[dim].is_defined)
                 continue;
 
-            auto src1_cb_index = CB::c_in1 + dim;
+            auto src1_cb_index = CB::cb_1 + dim;
             // auto index_page_size = round_up_to_mul32(index_info[dim].unit_size);
             auto index_page_size = 1024 * 4;
             auto cb_index_config =
@@ -377,7 +377,7 @@ MorehGetItemOperation::MorehGetItemTilizedFactory::create(
             auto cb_src1 = CreateCircularBuffer(program, all_cores, cb_index_config);
         }
 
-        auto out_cb_index = CB::c_out0;
+        auto out_cb_index = CB::cb_16;
         auto rounded_output_page_size = round_up_to_mul32(input_unit_size);
         auto cb_out0_config =
             CircularBufferConfig(rounded_input_page_size, {{out_cb_index, output_cb_data_format}})

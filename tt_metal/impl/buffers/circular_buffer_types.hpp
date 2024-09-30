@@ -19,6 +19,8 @@ namespace tt::tt_metal {
 
 using CBHandle = uintptr_t;
 
+inline namespace v0{
+
 class CircularBufferConfig {
    public:
     // Static circular buffer spec
@@ -139,5 +141,16 @@ class CircularBufferConfig {
     // `max_size_` is used to ensure that total size does not grow beyond associated buffer size
     std::optional<uint32_t> max_size_ = std::nullopt;
 };
+
+} // namespace v0
+
+// #7493
+namespace v1{
+
+class CircularBufferConfig {
+
+};
+
+}
 
 }  // namespace tt::tt_metal

@@ -142,9 +142,9 @@ operation::ProgramWithCallbacks moreh_sum_backward_impl(
         all_cores,
         cb_data_format,
         {
-            {CB::c_in0, 2},   // input
-            {CB::c_in1, 1},   // zero
-            {CB::c_out0, 2},  // output
+            {CB::cb_0, 2},   // input
+            {CB::cb_1, 1},   // zero
+            {CB::cb_16, 2},  // output
         });
 
     ////////////////////////////////////////////////////////////////////////////

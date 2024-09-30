@@ -50,15 +50,15 @@ operation::ProgramWithCallbacks moreh_softmax_backward_h_large(const Tensor &out
         all_cores,
         data_format,
         {
-            {CB::c_in0, 2},        // output
-            {CB::c_in1, 2},        // output_grad
-            {CB::c_in2, 1},        // scaler
-            {CB::c_in3, 1},        // mask
-            {CB::c_out0, 2},       // input_grad
-            {CB::c_intermed0, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // output * output_grad
-            {CB::c_intermed1, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // reduce
-            {CB::c_intermed2, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // dy - sum
-            {CB::c_intermed3, 2, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // add(output * output_grad)
+            {CB::cb_0, 2},        // output
+            {CB::cb_1, 2},        // output_grad
+            {CB::cb_2, 1},        // scaler
+            {CB::cb_3, 1},        // mask
+            {CB::cb_16, 2},       // input_grad
+            {CB::cb_24, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // output * output_grad
+            {CB::cb_25, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // reduce
+            {CB::cb_26, 1, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // dy - sum
+            {CB::cb_27, 2, fp32_dest_acc_en ? tt::DataFormat::Float32 : data_format},  // add(output * output_grad)
         });
 
     // create read/wrtie kernel

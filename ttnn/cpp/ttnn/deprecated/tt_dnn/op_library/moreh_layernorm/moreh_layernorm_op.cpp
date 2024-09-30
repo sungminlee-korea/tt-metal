@@ -179,24 +179,24 @@ operation::ProgramWithCallbacks moreh_layernorm_impl(
         all_cores,
         cb_data_format,
         {
-            {CB::c_in0, in0_t},                            // input
-            {CB::c_in1, in1_t},                            // scaler
-            {CB::c_in2, in2_t},                            // epsilon
-            {CB::c_in3, in3_t},                            // gamma
-            {CB::c_in4, in4_t},                            // beta
-            {CB::c_in5, in5_t},                            // mask_h
-            {CB::c_in6, in6_t},                            // mask_w
-            {CB::c_out0, out0_t},                          // output
-            {CB::c_out1, out1_t},                          // mean
-            {CB::c_out2, out2_t},                          // rstd
-            {CB::c_intermed0, im0_t, intermed_cb_format},  // E[x]
-            {CB::c_intermed1, im1_t, intermed_cb_format},  // x - E[x]
-            {CB::c_intermed2, im2_t, intermed_cb_format},  // (x - E[x])^2
-            {CB::c_intermed3, im3_t, intermed_cb_format},  // Sum[(x - E[x])^2]
-            {CB::c_intermed4, im4_t, intermed_cb_format},  // E[(x - E[x])^2] = Var[x]
-            {CB::c_intermed5, im5_t, intermed_cb_format},  // 1.0/(sqrt(Var[x] + eps))
-            {CB::c_intermed6, im6_t, intermed_cb_format},  // y * gamm + beta
-            {CB::c_intermed7, im7_t, intermed_cb_format},  // Sum[x]
+            {CB::cb_0, in0_t},                            // input
+            {CB::cb_1, in1_t},                            // scaler
+            {CB::cb_2, in2_t},                            // epsilon
+            {CB::cb_3, in3_t},                            // gamma
+            {CB::cb_4, in4_t},                            // beta
+            {CB::cb_5, in5_t},                            // mask_h
+            {CB::cb_6, in6_t},                            // mask_w
+            {CB::cb_16, out0_t},                          // output
+            {CB::cb_17, out1_t},                          // mean
+            {CB::cb_18, out2_t},                          // rstd
+            {CB::cb_24, im0_t, intermed_cb_format},  // E[x]
+            {CB::cb_25, im1_t, intermed_cb_format},  // x - E[x]
+            {CB::cb_26, im2_t, intermed_cb_format},  // (x - E[x])^2
+            {CB::cb_27, im3_t, intermed_cb_format},  // Sum[(x - E[x])^2]
+            {CB::cb_28, im4_t, intermed_cb_format},  // E[(x - E[x])^2] = Var[x]
+            {CB::cb_29, im5_t, intermed_cb_format},  // 1.0/(sqrt(Var[x] + eps))
+            {CB::cb_30, im6_t, intermed_cb_format},  // y * gamm + beta
+            {CB::cb_31, im7_t, intermed_cb_format},  // Sum[x]
         });
 
     ////////////////////////////////////////////////////////////////////////////
