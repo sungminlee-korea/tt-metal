@@ -48,7 +48,7 @@ void create_test_stimuli(MatmulTileStimuli &stimuli, uint32_t M, uint32_t K, uin
         std::chrono::system_clock::now().time_since_epoch().count()
     );
     stimuli.t = tensor.get_values();
-    
+
     auto activations_tilized = test_utils::tilize(tensor.get_values(), M * 32, K * 32);
     auto activations_tile_layout = convert_to_tile_layout(activations_tilized);
     auto activations = pack_bfloat16_vec_into_uint32_vec(activations_tile_layout);
@@ -339,6 +339,7 @@ TEST_F(CommonFixture, MatmulSingleTile){
     for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
         if (i == 1) continue;
         for (bool fp32_dest_acc_en : {true, false}) {
+            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::GRAYSKULL)) continue;
             MatmulTileConfig matmul_config = {
                 .M = 1, .K = 1, .N = 1,
                 .fp32_dest_acc_en = fp32_dest_acc_en,
@@ -359,9 +360,10 @@ TEST_F(CommonFixture, MatmulSingleTile){
 }
 
 TEST_F(CommonFixture, MatmulMultiTile){
-    for (uint8_t i = uint8_t(MathFidelity::HiFi4); i <= uint8_t(MathFidelity::HiFi4); i++) {
+    for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
         if (i == 1) continue;
         for (bool fp32_dest_acc_en : {true, false}) {
+            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::GRAYSKULL)) continue;
             uint32_t M = fp32_dest_acc_en ? 2 : 4;
             uint32_t N = fp32_dest_acc_en ? 2 : 4;
             uint32_t K = fp32_dest_acc_en ? 2 : 4;
@@ -392,6 +394,7 @@ TEST_F(CommonFixture, MatmulBlock){
     for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
         if (i == 1) continue;
         for (bool fp32_dest_acc_en : {true, false}) {
+            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::GRAYSKULL)) continue;
             uint32_t M = fp32_dest_acc_en ? 2 : 4;
             uint32_t N = fp32_dest_acc_en ? 2 : 4;
             uint32_t K = fp32_dest_acc_en ? 2 : 4;
@@ -420,6 +423,7 @@ TEST_F(CommonFixture, MatmulBlockInitShort){
     for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
         if (i == 1) continue;
         for (bool fp32_dest_acc_en : {true, false}) {
+            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::GRAYSKULL)) continue;
             uint32_t M = fp32_dest_acc_en ? 2 : 4;
             uint32_t N = fp32_dest_acc_en ? 2 : 4;
             uint32_t K = fp32_dest_acc_en ? 2 : 4;
@@ -448,6 +452,7 @@ TEST_F(CommonFixture, MatmulBlockInitShortWithDt){
     for (uint8_t i = uint8_t(MathFidelity::LoFi); i <= uint8_t(MathFidelity::HiFi4); i++) {
         if (i == 1) continue;
         for (bool fp32_dest_acc_en : {true, false}) {
+            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::GRAYSKULL)) continue;
             uint32_t M = fp32_dest_acc_en ? 2 : 4;
             uint32_t N = fp32_dest_acc_en ? 2 : 4;
             uint32_t K = fp32_dest_acc_en ? 2 : 4;

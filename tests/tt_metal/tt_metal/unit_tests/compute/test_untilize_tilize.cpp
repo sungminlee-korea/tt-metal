@@ -293,8 +293,8 @@ TEST_F(DeviceFixture, ComputeUnpackTilize) {
     vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
-            // Tilize/untilize hangs for FP32
-            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::BLACKHOLE)) continue;
+            // FP32 dest acc not possible for GS and tilize/untilize hangs on BH
+            if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {
                 .fp32_dest_acc_en = fp32_dest_acc_en,
                 .input_single_tile_size = 2 * 1024,
@@ -329,8 +329,8 @@ TEST_F(DeviceFixture, ComputeUnpackTilizeShortInit) {
     vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
-            // Tilize/untilize hangs for FP32
-            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::BLACKHOLE)) continue;
+            // FP32 dest acc not possible for GS and tilize/untilize hangs on BH
+            if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {
                 .short_init = true,
                 .fp32_dest_acc_en = fp32_dest_acc_en,
@@ -354,8 +354,8 @@ TEST_F(DeviceFixture, ComputeUnpackUntilize) {
     vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
-            // Tilize/untilize hangs for FP32
-            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::BLACKHOLE)) continue;
+            // FP32 dest acc not possible for GS and tilize/untilize hangs on BH
+            if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {
                 .fp32_dest_acc_en = fp32_dest_acc_en,
                 .input_single_tile_size = 2 * 1024,
@@ -374,8 +374,8 @@ TEST_F(DeviceFixture, ComputeUnpackUntilizeShortInit) {
     vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
-            // Tilize/untilize hangs for FP32
-            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::BLACKHOLE)) continue;
+            // FP32 dest acc not possible for GS and tilize/untilize hangs on BH
+            if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {
                 .short_init = true,
                 .fp32_dest_acc_en = fp32_dest_acc_en,
@@ -398,8 +398,8 @@ TEST_F(DeviceFixture, ComputePackUntilize) {
     vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
-            // Tilize/untilize hangs for FP32
-            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::BLACKHOLE)) continue;
+            // FP32 dest acc not possible for GS and tilize/untilize hangs on BH
+            if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {
                 .fp32_dest_acc_en = fp32_dest_acc_en,
                 .input_single_tile_size = 2 * 1024,
@@ -418,8 +418,8 @@ TEST_F(DeviceFixture, ComputePackUntilizeShortInit) {
     vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
-            // Tilize/untilize hangs for FP32
-            if ((fp32_dest_acc_en == true) && (this->arch_ == tt::ARCH::BLACKHOLE)) continue;
+            // FP32 dest acc not possible for GS and tilize/untilize hangs on BH
+            if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {
                 .short_init = true,
                 .fp32_dest_acc_en = fp32_dest_acc_en,
