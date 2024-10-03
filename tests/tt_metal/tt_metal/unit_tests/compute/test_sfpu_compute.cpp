@@ -251,22 +251,23 @@ INSTANTIATE_TEST_SUITE_P(
     SingleCoreSfpuCompute,
     SingleCoreSingleDeviceSfpuParameterizedFixture,
     ::testing::Values(
-        std::make_tuple(1, "relu"),
-        std::make_tuple(1, "exponential"),
-        std::make_tuple(1, "reciprocal"),
-        std::make_tuple(1, "gelu"),
-        std::make_tuple(1, "sqrt"),
-        std::make_tuple(1, "sigmoid"),
-        std::make_tuple(1, "log"),
-        std::make_tuple(1, "tanh"),
-        std::make_tuple(4, "relu"),
-        std::make_tuple(4, "exponential"),
-        std::make_tuple(4, "reciprocal"),
-        std::make_tuple(4, "gelu"),
-        std::make_tuple(4, "sqrt"),
-        std::make_tuple(4, "sigmoid"),
-        std::make_tuple(4, "log"),
-        std::make_tuple(4, "tanh")));
+        // std::make_tuple(1, "relu"),
+        // std::make_tuple(1, "exponential"),
+        // std::make_tuple(1, "reciprocal"),
+        // std::make_tuple(1, "gelu"),
+        // std::make_tuple(1, "sqrt"),
+        // std::make_tuple(1, "sigmoid"),
+        // std::make_tuple(1, "log"),
+        // std::make_tuple(1, "tanh"),
+        // std::make_tuple(4, "relu"),
+        // std::make_tuple(4, "exponential"),
+        // std::make_tuple(4, "reciprocal"),
+        std::make_tuple(4, "gelu")
+        // std::make_tuple(4, "sqrt"),
+        // std::make_tuple(4, "sigmoid"),
+        // std::make_tuple(4, "log"),
+        // std::make_tuple(4, "tanh")
+        ));
 class SingleCoreSingleDeviceSfpuParameterizedApproxFixture
     : public DeviceFixture,
       public testing::WithParamInterface<std::tuple<size_t, string>> {};

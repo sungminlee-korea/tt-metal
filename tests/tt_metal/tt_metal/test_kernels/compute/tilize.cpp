@@ -10,6 +10,23 @@
 #include "debug/dprint.h"
 
 namespace NAMESPACE {
+
+inline void print_full_tile(uint32_t cb_id, uint32_t tile_id = 0, bool untilize = false) {
+    PACK(( DPRINT << "======" << ENDL() ));
+    for (uint16_t r = 0; r < 32; ++ r) {
+        SliceRange sr = SliceRange{
+            .h0 = r,
+            .h1 = (uint16_t)(r+1),
+            .hs = 1,
+            .w0 = 0,
+            .w1 = 32,
+            .ws = 1
+        };
+        PACK(( DPRINT << (uint)r << TileSlice(cb_id, tile_id, sr, true, untilize) << ENDL() ));
+    }
+    PACK(( DPRINT << "++++++" << ENDL() ));
+}
+
 void MAIN {
 
     uint32_t per_core_block_cnt = get_compile_time_arg_val(0);
@@ -32,10 +49,11 @@ void MAIN {
         // tilize_block(tt::CB::c_in0, per_core_block_tile_cnt, tt::CB::c_out0);
         unpack_tilize_block(tt::CB::c_in0, per_core_block_tile_cnt);
         for (uint32_t tile = 0; tile < per_core_block_tile_cnt; tile++) {
-            acquire_dst(tt::DstMode::Half);
+            acquire_dst(tt::DstMode::Full);
             copy_tile(tt::CB::c_in0, 0, 0);
             pack_tile(0, tt::CB::c_out0, 0);
-            release_dst(tt::DstMode::Half);
+            release_dst(tt::DstMode::Full);
+            print_full_tile(tt::CB::c_out0, 0);
         }
 
         cb_push_back(tt::CB::c_out0, per_core_block_tile_cnt);

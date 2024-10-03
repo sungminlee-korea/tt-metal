@@ -295,7 +295,7 @@ TEST_F(DeviceFixture, ComputeUnpackTilize) {
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true}) {
             // FP32 dest acc not possible for GS and unpack_tilize hangs on BH
-            if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
+            // if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {
                 .fp32_dest_acc_en = fp32_dest_acc_en,
                 .input_single_tile_size = 2 * 1024,
