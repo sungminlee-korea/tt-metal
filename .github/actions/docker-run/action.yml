@@ -38,7 +38,7 @@ runs:
       uses: ./.github/actions/generate-docker-tag
       with:
         image: ${{ inputs.docker_os_arch }}
-    - name: Set 
+    - name: Set
       shell: bash
       run: |
         echo "RUNNER_UID=$(id -u)" >> $GITHUB_ENV
@@ -49,6 +49,15 @@ runs:
         registry: https://ghcr.io
         username: ${{ inputs.docker_username }}
         password: ${{ inputs.docker_password }}
+    - name: Remove stale docker images/containers
+      uses: snok/container-retention-policy@v3.0.0
+      with:
+        account: ${{ inputs.docker_username }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        image-names: "tt-metal/tt-metalium/*"
+        image-tags: "test* dev*"  # target any image that has a tag starting with the word test or dev
+        cut-off: 1w
+        dry-run: true
     - name: Pull docker image
       shell: bash
       run: |
@@ -63,7 +72,7 @@ runs:
         # The most important option below is `--rm`. Otherwise, the machines will fill up with undeleted containers.
         # The mounting of /etc/passwd, /etc/shadow, and /etc/bashrc is required in order for the correct file permissions
         # for newly created files.
-        # Passing HOME variable is necessary to avoid Python lib installation into /home/ubuntu/.local folder which 
+        # Passing HOME variable is necessary to avoid Python lib installation into /home/ubuntu/.local folder which
         # may not be writable by the RUNNER_UID user.
         options: |
           -u ${{ env.RUNNER_UID }}:${{ env.RUNNER_GID }}
