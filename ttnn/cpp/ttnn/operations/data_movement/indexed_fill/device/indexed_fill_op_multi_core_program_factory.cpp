@@ -33,11 +33,14 @@ operation::ProgramWithCallbacks indexed_fill_multi_core(const Tensor &batch_ids,
     uint32_t num_units = B;
     uint32_t cb_index = 0;
     uint32_t batch_cb_index = 1;
-
+    batch_ids.print();
     tt::DataFormat cb_data_format = tt::tt_metal::datatype_to_dataformat_converter(input_a.get_dtype());
 
     uint32_t page_size = input_a.get_legacy_shape()[-1] * input_a.element_size();
+    std::cout << input_a.get_legacy_shape()[-1] << std::endl;
     uint32_t rounded_page_size = round_up_to_mul32(page_size);
+    std::cout << "Page size: " << page_size << std::endl;
+    std::cout << "Rounded page size: " << rounded_page_size << std::endl;
     tt::tt_metal::CircularBufferConfig cb_src0_config =
         tt::tt_metal::CircularBufferConfig(2* rounded_page_size, {{cb_index, cb_data_format}})
             .set_page_size(cb_index, rounded_page_size);
