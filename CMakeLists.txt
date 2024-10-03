@@ -266,16 +266,16 @@ endif(TT_METAL_BUILD_TESTS OR TTNN_BUILD_TESTS)
 ############################################################################################################################
 # Install for build artifacts that will upload build/lib
 install(TARGETS tt_metal
+    EXPORT ${PROJECT_NAME}Targets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT tt_build_artifacts
-    EXPORT ${PROJECT_NAME}Targets
 )
 install(TARGETS ttnn
+    EXPORT ${PROJECT_NAME}Targets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT tt_build_artifacts
-    EXPORT ${PROJECT_NAME}Targets
 )
 if(WITH_PYTHON_BINDINGS)
     # Install .so into src files for pybinds implementation
@@ -291,5 +291,5 @@ add_custom_target(clean-built
    COMMENT "Cleaning `built` directory"
 )
 
-include(cmake/find_package)
+include(cmake/find_package.cmake)
 
