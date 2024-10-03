@@ -24,7 +24,7 @@ if(${PROJECT_SOURCE_DIR} STREQUAL ${PROJECT_BINARY_DIR})
     message(FATAL_ERROR "CMake generation is not allowed within source directory!! Please set a build folder with '-B'!!")
 endif()
 
-project(tt-metal
+project(Metallium
         VERSION 1.0
         DESCRIPTION "Tenstorrent Metallium"
         HOMEPAGE_URL "https://github.com/tenstorrent/tt-metal"
@@ -269,11 +269,13 @@ install(TARGETS tt_metal
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT tt_build_artifacts
+    EXPORT ${PROJECT_NAME}Targets
 )
 install(TARGETS ttnn
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     COMPONENT tt_build_artifacts
+    EXPORT ${PROJECT_NAME}Targets
 )
 if(WITH_PYTHON_BINDINGS)
     # Install .so into src files for pybinds implementation
@@ -288,3 +290,6 @@ add_custom_target(clean-built
    COMMAND ${CMAKE_COMMAND} -E remove_directory ${PROJECT_SOURCE_DIR}/built
    COMMENT "Cleaning `built` directory"
 )
+
+include(cmake/find_package)
+
