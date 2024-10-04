@@ -36,14 +36,14 @@ def run_vgg11_inference(device, batch_size, num_classes, vgg_model_config):
     parameters = torch_model.state_dict()
     input_shape = (batch_size, 3, 224, 224)
     torch_input_tensor = torch.rand(input_shape, dtype=torch.float32)
-
     # torch_model.to(torch.bfloat16)
-    breakpoint()
     # golden
     torch_output_tensor = torch_model(torch_input_tensor)
 
     ttnn_model = VGG_TTNN(
         device=device,
+        torch_model=torch_model,
+        torch_input=torch_input_tensor,
         parameters=parameters,
         batch_size=batch_size,
         model_config=vgg_model_config,
@@ -62,7 +62,7 @@ def run_vgg11_inference(device, batch_size, num_classes, vgg_model_config):
 
 
 @pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
-@pytest.mark.parametrize("batch_size", [8])
+@pytest.mark.parametrize("batch_size", [2])
 @pytest.mark.parametrize("num_classes", [1000])
 def test_demo_sample(device, batch_size, num_classes):
     run_vgg11_inference(device, batch_size, num_classes, vgg_model_config)
