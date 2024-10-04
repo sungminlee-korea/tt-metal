@@ -134,7 +134,7 @@ void run_single_core_tilize_program(tt_metal::Device* device, const TestConfig& 
     } else if(test_config.tilize_type.has_value() && test_config.tilize_type == TilizeType::UNPACK_A_B) {
         reader_kernel_path = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_binary.cpp";
     } else {
-        reader_kernel_path = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_unary_push_4.cpp";
+        reader_kernel_path = "tests/tt_metal/tt_metal/test_kernels/dataflow/reader_unary_push_n.cpp";
     }
 
     auto reader_kernel = tt_metal::CreateKernel(
@@ -221,7 +221,10 @@ void run_single_core_tilize_program(tt_metal::Device* device, const TestConfig& 
             {dram_buffer_src0_addr,
             (std::uint32_t)dram_src0_noc_xy.x,
             (std::uint32_t)dram_src0_noc_xy.y,
-            num_tiles
+            num_tiles,
+            src0_cb_index,
+            test_config.num_tiles_c,
+            false
             });
     }
 
@@ -301,10 +304,10 @@ Following tests are for Unpack Tilize
 ***************************************/
 
 TEST_F(DeviceFixture, ComputeUnpackTilize) {
-    // vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
-    vector<vector<uint32_t> > num_tiles = {{1, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
+    // vector<vector<uint32_t> > num_tiles = {{1, 1}};
     for(auto num_tile : num_tiles) {
-        for (bool fp32_dest_acc_en : {false}) {
+        for (bool fp32_dest_acc_en : {true, false}) {
             // FP32 dest acc not possible for GS and unpack_tilize hangs on BH
             // if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {
@@ -338,7 +341,7 @@ TEST_F(DeviceFixture, ComputeUnpackTilizeA_B) {
 }
 
 TEST_F(DeviceFixture, ComputeUnpackTilizeShortInit) {
-    vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
             // FP32 dest acc not possible for GS and unpack_tilize hangs on BH
@@ -363,8 +366,8 @@ Following tests are for Unpack Untilize
 ***************************************/
 
 TEST_F(DeviceFixture, ComputeUnpackUntilize) {
-    // vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
-    vector<vector<uint32_t> > num_tiles = {{1, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
+    // vector<vector<uint32_t> > num_tiles = {{1, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
             // FP32 dest acc not possible for GS

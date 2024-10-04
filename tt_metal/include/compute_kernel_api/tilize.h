@@ -144,19 +144,19 @@ ALWI void tilize_block(uint32_t icb, uint32_t block, uint32_t ocb)
         // Acquire dst
         MATH(( llk_math_wait_for_dest_available() ));
         PACK(( llk_packer_wait_for_math_done() ));
-        PACK(( DPRINT << "INPUT:" << ENDL() ));
-        print_full_tile(icb, t, false);
+        // PACK(( DPRINT << "INPUT:" << ENDL() ));
+        // print_full_tile(icb, t, false);
 
         // Datacopy
         MATH(( llk_math_eltwise_unary_datacopy<A2D, BroadcastType::NONE>(0 /*dst index*/) ));
         PACK(( llk_pack<false, false >(0 /*tile index*/, ocb)  ));
-        PACK(( DPRINT << "OUTPUT:" << ENDL() ));
-        if (DST_ACCUM_MODE) {
-            print_full_tile(ocb, t*2, false);
-            print_full_tile(ocb, t*2 + 1, false);
-        } else {
-            print_full_tile(ocb, t, false);
-        }
+        // PACK(( DPRINT << "OUTPUT:" << ENDL() ));
+        // if (DST_ACCUM_MODE) {
+        //     print_full_tile(ocb, t*2, false);
+        //     print_full_tile(ocb, t*2 + 1, false);
+        // } else {
+        //     print_full_tile(ocb, t, false);
+        // }
         // Release dest
         MATH(( llk_math_dest_section_done<DST_ACCUM_MODE>() ));
         PACK(( llk_pack_dest_section_done<DST_ACCUM_MODE>() ));
