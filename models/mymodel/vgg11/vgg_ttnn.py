@@ -1,4 +1,9 @@
 import ttnn
+import math
+
+
+def _nearest_32(x):
+    return math.ceil(x / 32) * 32
 
 
 class VGG_TTNN:
@@ -382,8 +387,45 @@ class VGG_TTNN:
         x = ttnn.to_memory_config(x, config_to_use)
         x = self._maxpool2d(x, self.batch_size, out_height, out_width, 512, 2, 2, 0, 1)
         # enf of conv blocks
-        breakpoint()
+        """
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(512 * 7 * 7, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, num_classes),
+        )
+        """
+        # x fallback to host (channel changing not supported)
+        x = ttnn.to_memory_config(x, ttnn.L1_MEMORY_CONFIG)
+        x = ttnn.from_device(x)
+        x = ttnn.reshape(x, (2, 1, 1, 512 * 49))
+        x = ttnn.to_device(x, self.device, memory_config=ttnn.L1_MEMORY_CONFIG)
+        x = ttnn.to_layout(x, ttnn.TILE_LAYOUT)
+        # 1 linear
+        weights = ttnn.from_torch(
+            self.parameters["classifier.1.weight"].permute(1, 0), layout=ttnn.TILE_LAYOUT, device=self.device
+        )
+        bias = self.parameters["classifier.1.bias"].repeat(2, 1, 1, 1)
+        bias = ttnn.from_torch(bias, layout=ttnn.TILE_LAYOUT, device=self.device)
+        x = ttnn.relu(ttnn.matmul(x, weights, memory_config=ttnn.L1_MEMORY_CONFIG) + bias)
+        # 2 linear
+        weights = ttnn.from_torch(
+            self.parameters["classifier.4.weight"].permute(1, 0), layout=ttnn.TILE_LAYOUT, device=self.device
+        )
+        bias = self.parameters["classifier.4.bias"].repeat(2, 1, 1, 1)
+        bias = ttnn.from_torch(bias, layout=ttnn.TILE_LAYOUT, device=self.device)
+        x = ttnn.relu(ttnn.matmul(x, weights, memory_config=ttnn.L1_MEMORY_CONFIG) + bias)
 
+        # 3 linear
+        weights = ttnn.from_torch(
+            self.parameters["classifier.7.weight"].permute(1, 0), layout=ttnn.TILE_LAYOUT, device=self.device
+        )
+        bias = self.parameters["classifier.7.bias"].repeat(2, 1, 1, 1)
+        bias = ttnn.from_torch(bias, layout=ttnn.TILE_LAYOUT, device=self.device)
         return x
 
     def _maxpool2d(self, x, batch_size, h, w, channels, kernel_size, stride, padding, dilation):
