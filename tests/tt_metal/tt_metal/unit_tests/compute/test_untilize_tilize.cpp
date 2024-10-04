@@ -290,10 +290,10 @@ Following tests are for Unpack Tilize
 ***************************************/
 
 TEST_F(DeviceFixture, ComputeUnpackTilize) {
-    // vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
-    vector<vector<uint32_t> > num_tiles = {{1, 4}};
+    vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
+    // vector<vector<uint32_t> > num_tiles = {{1, 4}}; 
     for(auto num_tile : num_tiles) {
-        for (bool fp32_dest_acc_en : {true}) {
+        for (bool fp32_dest_acc_en : {true, false}) {
             // FP32 dest acc not possible for GS and unpack_tilize hangs on BH
             // if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {
@@ -352,7 +352,7 @@ Following tests are for Unpack Untilize
 ***************************************/
 
 TEST_F(DeviceFixture, ComputeUnpackUntilize) {
-    vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
             // FP32 dest acc not possible for GS
@@ -372,7 +372,7 @@ TEST_F(DeviceFixture, ComputeUnpackUntilize) {
 }
 
 TEST_F(DeviceFixture, ComputeUnpackUntilizeShortInit) {
-    vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
             // FP32 dest acc not possible for GS
@@ -396,7 +396,7 @@ TEST_F(DeviceFixture, ComputeUnpackUntilizeShortInit) {
 Following tests are for pack untilize
 ***************************************/
 TEST_F(DeviceFixture, ComputePackUntilize) {
-    vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
             // FP32 dest acc not possible for GS
@@ -416,7 +416,7 @@ TEST_F(DeviceFixture, ComputePackUntilize) {
 }
 
 TEST_F(DeviceFixture, ComputePackUntilizeShortInit) {
-    vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
             // FP32 dest acc not possible for GS
@@ -437,7 +437,7 @@ TEST_F(DeviceFixture, ComputePackUntilizeShortInit) {
 }
 
 TEST_F(DeviceFixture, ComputePackUntilizeDst) {
-    vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
     for(auto num_tile : num_tiles) {
         unit_tests::compute::tilize::TestConfig test_config = {
             .input_single_tile_size = 2 * 1024,
