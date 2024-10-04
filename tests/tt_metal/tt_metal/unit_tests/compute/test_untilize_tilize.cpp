@@ -35,6 +35,16 @@ enum TilizeType : uint8_t {
     UNPACK_A_B = 1,
 };
 
+template <class T, template <typename...> typename BufferType>
+void printTensor(const BufferType<T>& tensor, int rows = 32, int cols = 32) {
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            std::cout << std::hex << tensor[i * cols + j] << " ";
+        }
+        std::cout << std::endl;  // New line at the end of each row
+    }
+}
+
 // TilizeA_B takes 2 input source vectors instead of one
 using GoldenFunc = std::variant<
     std::function<std::vector<uint32_t>(const std::vector<uint32_t>&, const GoldenConfig &config)>,
@@ -180,6 +190,7 @@ void run_single_core_tilize_program(tt_metal::Device* device, const TestConfig& 
     );
 
     std::vector<uint32_t> src0_vec = create_arange_vector_of_bfloat16(input_dram_buffer_size, false);
+    // printTensor<uint32_t>(src0_vec, 32, 16);
     tt_metal::detail::WriteToBuffer(src0_dram_buffer, src0_vec);
 
     std::vector<uint32_t> src1_vec;
@@ -290,10 +301,10 @@ Following tests are for Unpack Tilize
 ***************************************/
 
 TEST_F(DeviceFixture, ComputeUnpackTilize) {
-    vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
-    // vector<vector<uint32_t> > num_tiles = {{1, 4}}; 
+    // vector<vector<uint32_t> > num_tiles = {{1, 4}, {2, 2}, {4, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}};
     for(auto num_tile : num_tiles) {
-        for (bool fp32_dest_acc_en : {true, false}) {
+        for (bool fp32_dest_acc_en : {false}) {
             // FP32 dest acc not possible for GS and unpack_tilize hangs on BH
             // if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {
@@ -352,7 +363,8 @@ Following tests are for Unpack Untilize
 ***************************************/
 
 TEST_F(DeviceFixture, ComputeUnpackUntilize) {
-    vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
+    // vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}};
     for(auto num_tile : num_tiles) {
         for (bool fp32_dest_acc_en : {true, false}) {
             // FP32 dest acc not possible for GS

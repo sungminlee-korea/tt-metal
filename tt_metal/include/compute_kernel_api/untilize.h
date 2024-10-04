@@ -6,6 +6,7 @@
 
 
 #include "compute_kernel_api/common.h"
+#include "debug/dprint.h"
 #ifdef TRISC_MATH
 #include "llk_math_unary_datacopy_api.h"
 #endif
@@ -14,6 +15,22 @@
 #endif
 
 namespace ckernel {
+
+inline void print_full_tile(uint32_t cb_id, uint32_t tile_id = 0, bool untilize = false) {
+    PACK(( DPRINT << "======" << ENDL() ));
+    for (uint16_t r = 0; r < 32; ++ r) {
+        SliceRange sr = SliceRange{
+            .h0 = r,
+            .h1 = (uint16_t)(r+1),
+            .hs = 1,
+            .w0 = 0,
+            .w1 = 32,
+            .ws = 1
+        };
+        PACK(( DPRINT << (uint32_t)r << TileSlice(cb_id, tile_id, sr, true, untilize) << ENDL() ));
+    }
+    PACK(( DPRINT << "++++++" << ENDL() ));
+}
 
 /**
  * Init function for untilize operations, to be used at the beginning of the kernel.
@@ -56,6 +73,8 @@ ALWI void untilize_block(uint32_t icb, uint32_t block, uint32_t ocb)
         for (int reg_id = 0; reg_id < N; reg_id++) {
             MATH(( llk_math_eltwise_unary_datacopy<A2D, BroadcastType::NONE, DST_ACCUM_MODE>(reg_id) ));
         }
+        PACK(( DPRINT << "INPUT:" << ENDL() ));
+        print_full_tile(icb, t, false);
 
         MATH(( llk_math_dest_section_done<DST_ACCUM_MODE>() ));
 
@@ -65,7 +84,13 @@ ALWI void untilize_block(uint32_t icb, uint32_t block, uint32_t ocb)
         for (int reg_id = 0; reg_id < N; reg_id++) {
             PACK(( llk_pack<false, false, DST_ACCUM_MODE >(reg_id, ocb)  ));
         }
-
+        PACK(( DPRINT << "OUTPUT:" << ENDL() ));
+        if (DST_ACCUM_MODE) {
+            print_full_tile(ocb, t*2, false);
+            print_full_tile(ocb, t*2 + 1, false);
+        } else {
+            print_full_tile(ocb, t, true);
+        }
         // Release dest
         PACK(( llk_pack_dest_section_done<DST_ACCUM_MODE>() ));
     }
