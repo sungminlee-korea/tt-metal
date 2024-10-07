@@ -405,14 +405,14 @@ class VGG_TTNN:
         x = ttnn.reshape(x, (2, 1, 1, 512 * 49))
         x = ttnn.to_device(x, self.device, memory_config=ttnn.L1_MEMORY_CONFIG)
         x = ttnn.to_layout(x, ttnn.TILE_LAYOUT)
-        # 1 linear
+        # 1st linear
         weights = ttnn.from_torch(
             self.parameters["classifier.1.weight"].permute(1, 0), layout=ttnn.TILE_LAYOUT, device=self.device
         )
         bias = self.parameters["classifier.1.bias"].repeat(2, 1, 1, 1)
         bias = ttnn.from_torch(bias, layout=ttnn.TILE_LAYOUT, device=self.device)
         x = ttnn.relu(ttnn.matmul(x, weights, memory_config=ttnn.L1_MEMORY_CONFIG) + bias)
-        # 2 linear
+        # 2nd linear
         weights = ttnn.from_torch(
             self.parameters["classifier.4.weight"].permute(1, 0), layout=ttnn.TILE_LAYOUT, device=self.device
         )
@@ -420,12 +420,19 @@ class VGG_TTNN:
         bias = ttnn.from_torch(bias, layout=ttnn.TILE_LAYOUT, device=self.device)
         x = ttnn.relu(ttnn.matmul(x, weights, memory_config=ttnn.L1_MEMORY_CONFIG) + bias)
 
-        # 3 linear
+        # 3rd linear
         weights = ttnn.from_torch(
             self.parameters["classifier.7.weight"].permute(1, 0), layout=ttnn.TILE_LAYOUT, device=self.device
         )
         bias = self.parameters["classifier.7.bias"].repeat(2, 1, 1, 1)
         bias = ttnn.from_torch(bias, layout=ttnn.TILE_LAYOUT, device=self.device)
+        x = ttnn.matmul(x, weights, memory_config=ttnn.L1_MEMORY_CONFIG) + bias
+        desired_shape = x.shape_without_padding()
+        x = ttnn.untilize_with_unpadding(
+            x,
+            output_tensor_end=(desired_shape[0] - 1, desired_shape[1] - 1, desired_shape[2] - 1, desired_shape[3] - 1),
+            memory_config=ttnn.L1_MEMORY_CONFIG,
+        )
         return x
 
     def _maxpool2d(self, x, batch_size, h, w, channels, kernel_size, stride, padding, dilation):
