@@ -40,17 +40,8 @@ parameters = {
 # Returns False, None if the vector is valid, and True, str with a reason for invalidation if it is invalid.
 def invalidate_vector(test_vector) -> Tuple[bool, Optional[str]]:
     if test_vector["input_a_layout"] == ttnn.ROW_MAJOR_LAYOUT or test_vector["input_a_dtype"] == ttnn.bfloat8_b:
-        return True, "Skipped as ROW_MAJOR_LAYOUT and ttnn.bfloat8_b not supported"
+        return True, "ROW_MAJOR_LAYOUT and ttnn.bfloat8_b are not supported"
     return False, None
-
-
-def torch_multigammaln(x, *args, **kwargs):
-    result = torch.lgamma(x)
-    result += torch.lgamma(x - 0.5)
-    result += torch.lgamma(x - 1.0)
-    result += torch.lgamma(x - 1.5)
-    result += 3.434189657547
-    return result
 
 
 # This is the run instructions for the test, defined by the developer.
@@ -73,7 +64,8 @@ def run(
         partial(torch_random, low=1.6, high=100, dtype=torch.float32), input_a_dtype
     )(input_shape)
 
-    torch_output_tensor = torch_multigammaln(torch_input_tensor_a)
+    golden_function = ttnn.get_golden_function(ttnn.multigammaln)
+    torch_output_tensor = golden_function(torch_input_tensor_a)
 
     input_tensor_a = ttnn.from_torch(
         torch_input_tensor_a,
