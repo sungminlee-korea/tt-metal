@@ -16,6 +16,8 @@
 #include "llk_pack_common.h"
 #include "llk_pack_untilize.h"
 #include "llk_param_structs.h"
+#include "debug/waypoint.h"
+#include "debug/dprint.h"
 
 /*************************************************************************
 * LLK PACK
@@ -51,7 +53,6 @@ inline void llk_pack_hw_configure(const llk_pack_params_t *pack_params) {
     const bool narrow_tile = get_output_narrow_tile(output_id);
 
     const std::uint32_t tile_size = cb_interface[output_id].fifo_page_size;
-
     _llk_pack_hw_configure_<untilize, is_fp32_dest_acc_en, tilize>(
         pack_src_format[output_id],
         pack_dst_format[output_id],
@@ -175,10 +176,12 @@ inline void llk_pack(std::uint32_t tile_index, std::uint32_t output, std::uint32
 
     std::uint32_t pack_tile_addr = get_output_tile_address<out_of_order_output, untilize>(output_id, output_tile_index);
 
+    WAYPOINT("PPTW");
     _llk_pack_<DstSync::SyncHalf, untilize, is_fp32_dest_acc_en>(
         tile_index,
         pack_tile_addr
     );
+    WAYPOINT("PPTD");
 }
 
 /*************************************************************************
@@ -261,7 +264,9 @@ inline void llk_matmul_pack(
 
 
 inline void llk_packer_wait_for_math_done() {
+    WAYPOINT("PWMW");
     _llk_packer_wait_for_math_done_();
+    WAYPOINT("PWMD");
 }
 
 template <uint WaitRes = p_stall::NONE>

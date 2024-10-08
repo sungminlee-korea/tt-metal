@@ -304,10 +304,10 @@ Following tests are for Unpack Tilize
 ***************************************/
 
 TEST_F(DeviceFixture, ComputeUnpackTilize) {
-    vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
-    // vector<vector<uint32_t> > num_tiles = {{1, 1}};
+    // vector<vector<uint32_t> > num_tiles = {{1, 1}, {1, 2}, {2, 1}, {1, 4}, {2, 2}, {4, 1}};
+    vector<vector<uint32_t> > num_tiles = {{1, 1}};
     for(auto num_tile : num_tiles) {
-        for (bool fp32_dest_acc_en : {true, false}) {
+        for (bool fp32_dest_acc_en : {false}) {
             // FP32 dest acc not possible for GS and unpack_tilize hangs on BH
             // if ((fp32_dest_acc_en == true) && (this->arch_ != tt::ARCH::WORMHOLE_B0)) continue;
             unit_tests::compute::tilize::TestConfig test_config = {

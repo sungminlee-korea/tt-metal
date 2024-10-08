@@ -6,6 +6,7 @@
 
 #include "llk_math_common_api.h"
 #include "llk_math_eltwise_unary_datacopy.h"
+#include "debug/waypoint.h"
 
 /*************************************************************************
  * LLK ELTWISE UNARY DATACOPY
@@ -18,8 +19,10 @@ template <
     bool unpack_to_dest = false>
 inline void llk_math_eltwise_unary_datacopy(uint dst_index, uint operand = 0) {
     const std::uint32_t operand_id = get_operand_id(operand);
+    WAYPOINT("MCPW");
     _llk_math_eltwise_unary_datacopy_<type, src_b_bcast_type, DstSync::SyncHalf, is_fp32_dest_acc_en, unpack_to_dest>(
         dst_index, unpack_src_format[operand_id], unpack_dst_format[operand_id]);
+    WAYPOINT("MCPD");
 }
 
 template <
