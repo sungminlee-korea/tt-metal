@@ -295,6 +295,7 @@ def run_perf_resnet(
     device,
     model_version,
     model_location_generator,
+    image_size,
 ):
     profiler.clear()
     disable_persistent_kernel_cache()
@@ -307,6 +308,7 @@ def run_perf_resnet(
 
     image = hf_cat_image_sample_input
     image_processor = AutoImageProcessor.from_pretrained(model_name)
+    image_processor.size = {"shortest_edge": image_size}
     inputs = image_processor(image, return_tensors="pt")
 
     inputs = inputs["pixel_values"].bfloat16()

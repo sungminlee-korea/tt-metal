@@ -101,8 +101,8 @@ def test_perf_2cqs(
     "device_params", [{"l1_small_size": 32768, "num_command_queues": 2, "trace_region_size": 1332224}], indirect=True
 )
 @pytest.mark.parametrize(
-    "batch_size, expected_inference_time, expected_compile_time",
-    ((16, 0.004, 25),),
+    "batch_size, expected_inference_time, expected_compile_time, image_size",
+    ((16, 0.004, 25, 224),),
 )
 def test_perf_trace_2cqs(
     device,
@@ -112,6 +112,7 @@ def test_perf_trace_2cqs(
     expected_compile_time,
     hf_cat_image_sample_input,
     model_location_generator,
+    image_size,
 ):
     run_perf_resnet(
         batch_size,
@@ -121,4 +122,5 @@ def test_perf_trace_2cqs(
         device,
         "resnet50_trace_2cqs",
         model_location_generator,
+        image_size,
     )
