@@ -112,6 +112,10 @@ static uint32_t get_binary_code_size(const ll_api::memory& mem, int riscv_id) {
             range_min = MEM_IERISC_FIRMWARE_BASE;
             range_max = MEM_IERISC_FIRMWARE_BASE + MEM_IERISC_FIRMWARE_SIZE;
             break;
+        case 7:
+            range_min = MEM_SLAVE_IERISC_FIRMWARE_BASE;
+            range_max = MEM_SLAVE_IERISC_FIRMWARE_BASE + MEM_SLAVE_IERISC_FIRMWARE_SIZE;
+            break;
         default: TT_THROW("Bad riscv_id: {}", riscv_id);
     }
 
