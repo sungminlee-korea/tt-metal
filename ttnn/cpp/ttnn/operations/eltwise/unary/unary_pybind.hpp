@@ -440,6 +440,8 @@ void bind_unary_operation_with_dim_parameter(
         R"doc(
         Applies {0} to :attr:`input_tensor` element-wise.
 
+        {4}
+
         .. math::
             \mathrm{{output\_tensor}}_i = {0}(\mathrm{{input\_tensor}}_i)
 
