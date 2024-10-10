@@ -163,6 +163,7 @@ class ResNet50TestInfra:
         act_dtype,
         weight_dtype,
         math_fidelity,
+        image_size,
         use_pretrained_weight,
         dealloc_input,
         final_output_mem_config,
@@ -202,7 +203,7 @@ class ResNet50TestInfra:
         }
 
         num_devices = 1 if isinstance(device, ttnn.Device) else device.get_num_devices()
-        input_shape = (batch_size * num_devices, 3, 224, 224)
+        input_shape = (batch_size * num_devices, 3, image_size, image_size)
 
         self.torch_input_tensor = torch.rand(input_shape, dtype=torch.float32)
 
@@ -220,7 +221,7 @@ class ResNet50TestInfra:
         self.torch_output_tensor = torch_model(self.torch_input_tensor)
 
         ## ttnn
-
+        breakpoint()
         self.ttnn_resnet50_model = resnet50(
             device=device,
             parameters=parameters,
@@ -333,6 +334,7 @@ def create_test_infra(
     act_dtype,
     weight_dtype,
     math_fidelity,
+    image_size,
     use_pretrained_weight=True,
     dealloc_input=True,
     final_output_mem_config=ttnn.L1_MEMORY_CONFIG,
@@ -347,6 +349,7 @@ def create_test_infra(
         act_dtype,
         weight_dtype,
         math_fidelity,
+        image_size,
         use_pretrained_weight,
         dealloc_input,
         final_output_mem_config,

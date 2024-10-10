@@ -329,6 +329,7 @@ def run_perf_resnet(
         model_config["ACTIVATIONS_DTYPE"],
         model_config["WEIGHTS_DTYPE"],
         model_config["MATH_FIDELITY"],
+        image_size,
         dealloc_input=True,
         final_output_mem_config=ttnn.L1_MEMORY_CONFIG,
         model_location_generator=model_location_generator,
