@@ -12,7 +12,6 @@
 #include "tt_metal/impl/allocator/basic_allocator.hpp"
 #include "tt_metal/impl/allocator/l1_banking_allocator.hpp"
 #include "tt_metal/impl/kernels/data_types.hpp"
-#include "tt_metal/impl/trace/trace_buffer.hpp"
 #include "tt_metal/impl/program/program_device_map.hpp"
 #include "tt_metal/jit_build/build.hpp"
 #include "llrt/tt_cluster.hpp"
@@ -24,14 +23,20 @@
 namespace tt {
 
 namespace tt_metal {
-
 // Fwd declares
 enum class BufferType;
+
+inline namespace v0 {
+
 class Buffer;
 class Program;
+class CommandQueue;
+
+}  // namespace v0
+
 class JitBuildEnv;
 class HWCommandQueue;
-class CommandQueue;
+class TraceBuffer;
 
 namespace detail {
 
@@ -53,6 +58,8 @@ static constexpr float  NAN_BH = NAN_WHB0;
 static constexpr float  INF_GS = 1.6948e38;
 static constexpr float  INF_WHB0 = 1.7014e+38;
 static constexpr float  INF_BH = INF_WHB0;
+
+inline namespace v0 {
 
 // A physical PCIexpress Tenstorrent device
 class Device {
@@ -169,6 +176,8 @@ class Device {
 
     allocator::Statistics get_memory_allocation_statistics(const BufferType &buffer_type) const;
 
+    uint32_t get_allocator_alignment() const;
+
     size_t get_l1_small_size() const;
 
     void dump_memory_blocks(const BufferType &buffer_type, std::ofstream &out) const;
@@ -232,7 +241,7 @@ class Device {
     void init_command_queue_device();
     void initialize_synchronous_sw_cmd_queue();
     void configure_kernel_variant(Program& program, string path, std::vector<uint32_t> compile_args, CoreCoord kernel_core, CoreCoord Kernel_physical_core,
-                                  CoreType dispatch_core_type, CoreCoord upstream_physical_core, CoreCoord downstream_physical_core, CoreCoord downstream_slave_physical_core, std::map<string, string> defines_in, NOC my_noc_index, NOC upstream_noc_index, NOC downstream_noc_index, bool is_active_eth_core = false, bool send_to_brisc = false);
+                                  CoreType dispatch_core_type, CoreCoord upstream_physical_core, CoreCoord downstream_physical_core, CoreCoord downstream_slave_physical_core, std::map<string, string> defines_in, NOC my_noc_index, NOC upstream_noc_index, NOC downstream_noc_index, bool is_active_eth_core = false, bool send_to_brisc = false, bool force_watcher_no_inline = false);
     void compile_command_queue_programs();
     void configure_command_queue_programs();
     void clear_l1_state();
@@ -311,17 +320,15 @@ class Device {
         return program_cache.num_entries();
     }
 
-    inline bool in_main_thread() {
-        // Detect if an instruction is being called in the main thread or worker thread
-        return (std::hash<std::thread::id>{}(std::this_thread::get_id()) == this->work_executor.get_parent_thread_id())
-                or get_worker_mode() == WorkExecutorMode::SYNCHRONOUS;
-    }
    uint32_t trace_buffers_size = 0;
    void update_dispatch_cores_for_multi_cq_eth_dispatch();
 
     HalProgrammableCoreType get_programmable_core_type(CoreCoord phys_core) const;
     template <typename T = DeviceAddr>
-    T get_dev_addr(CoreCoord phys_core, HalMemAddrType addr_type) const;
+    T get_dev_addr(CoreCoord phys_core, HalL1MemAddrType addr_type) const;
+    // Returns address where allocator starts allocating buffer
+    template <typename T = DeviceAddr>
+    T get_base_allocator_addr(const HalMemType &mem_type) const;
 
     template <typename CoreRangeContainer>
     std::vector<pair<transfer_info_cores, uint32_t>> extract_dst_noc_multicast_info(const CoreRangeContainer& ranges, const CoreType core_type);
@@ -329,10 +336,12 @@ class Device {
     bool distributed_dispatcher() const;
 
    private:
-    void DisableAllocs();
-    void EnableAllocs();
+    void MarkAllocationsUnsafe();
+    void MarkAllocationsSafe();
     std::unordered_map<uint32_t, std::shared_ptr<TraceBuffer>> trace_buffer_pool_;
 };
+
+}  // namespace v0
 
 inline HalProgrammableCoreType Device::get_programmable_core_type(CoreCoord phys_core) const {
 
@@ -351,8 +360,13 @@ inline HalProgrammableCoreType Device::get_programmable_core_type(CoreCoord phys
 }
 
 template <typename T>
-inline T Device::get_dev_addr(CoreCoord phys_core, HalMemAddrType addr_type) const {
+inline T Device::get_dev_addr(CoreCoord phys_core, HalL1MemAddrType addr_type) const {
     return hal.get_dev_addr<T>(this->get_programmable_core_type(phys_core), addr_type);
+}
+
+template <typename T>
+inline T Device::get_base_allocator_addr(const HalMemType &mem_type) const {
+    return allocator::get_unreserved_base_address(*this->allocator_, mem_type);
 }
 
 // TODO: Find a better home for this function

@@ -6,7 +6,6 @@
 #include "ttnn_multi_command_queue_fixture.hpp"
 #include "tt_metal/detail/tt_metal.hpp"
 #include "ttnn/operations/eltwise/binary/binary.hpp"
-#include "ttnn/deprecated/tt_dnn/op_library/moreh_sum/moreh_sum_op.hpp"
 #include "common/bfloat16.hpp"
 #include "ttnn/async_runtime.hpp"
 #include "ttnn/operations/numpy/functions.hpp"
@@ -25,7 +24,7 @@ TEST_F(MultiCommandQueueSingleDeviceFixture, TestMultiProducerLockBasedQueue) {
     // Test thread safety.
     Device* device = this->device_;
     // Enable async engine and set queue setting to lock_based
-    device->set_worker_mode(WorkExecutorMode::ASYNCHRONOUS);
+    device->enable_async(true);
     device->set_worker_queue_mode(WorkerQueueMode::LOCKBASED);
 
     MemoryConfig mem_cfg = MemoryConfig{
@@ -39,7 +38,7 @@ TEST_F(MultiCommandQueueSingleDeviceFixture, TestMultiProducerLockBasedQueue) {
     uint32_t tensor_buf_size = 1024 * 1024;
     uint32_t datum_size_bytes = 2;
 
-    ttnn::Shape tensor_shape = ttnn::Shape(tt::tt_metal::LegacyShape({1, 1, 1024, 1024}));
+    ttnn::SimpleShape tensor_shape{1, 1, 1024, 1024};
     auto t0_host_data = std::shared_ptr<bfloat16 []>(new bfloat16[tensor_buf_size]);
     auto t0_readback_data = std::shared_ptr<bfloat16 []>(new bfloat16[tensor_buf_size]);
     auto t1_host_data = std::shared_ptr<bfloat16 []>(new bfloat16[tensor_buf_size]);
@@ -101,7 +100,7 @@ TEST_F(MultiCommandQueueSingleDeviceFixture, TestMultiAppThreadSync) {
     // Use write_event to stall reader and read_event to stall writer.
     Device* device = this->device_;
     // Enable async engine and set queue setting to lock_based
-    device->set_worker_mode(WorkExecutorMode::ASYNCHRONOUS);
+    device->enable_async(true);
     device->set_worker_queue_mode(WorkerQueueMode::LOCKBASED);
 
     MemoryConfig mem_cfg = MemoryConfig{
@@ -117,7 +116,7 @@ TEST_F(MultiCommandQueueSingleDeviceFixture, TestMultiAppThreadSync) {
     std::shared_ptr<Event> write_event = std::make_shared<Event>();
     std::shared_ptr<Event> read_event = std::make_shared<Event>();
 
-    ttnn::Shape tensor_shape = ttnn::Shape(tt::tt_metal::LegacyShape({1, 1, 1024, 1024}));
+    ttnn::SimpleShape tensor_shape{1, 1, 1024, 1024};
     auto host_data = std::shared_ptr<bfloat16 []>(new bfloat16[tensor_buf_size]);
     auto allocated_buffer = ttnn::allocate_buffer_on_device(tensor_buf_size * datum_size_bytes, device, tensor_shape, DataType::BFLOAT16, Layout::TILE, mem_cfg);
     auto allocated_storage = tt::tt_metal::DeviceStorage{allocated_buffer};

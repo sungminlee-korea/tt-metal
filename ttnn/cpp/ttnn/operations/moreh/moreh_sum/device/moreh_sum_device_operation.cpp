@@ -6,7 +6,8 @@
 
 #include <cstdint>
 
-#include "tt_dnn/op_library/moreh_helper_functions.hpp"
+#include "common/base_types.hpp"
+#include "ttnn/operations/moreh/moreh_helper_functions.hpp"
 #include "ttnn/tensor/tensor.hpp"
 #include "ttnn/tensor/types.hpp"
 
@@ -130,7 +131,7 @@ MorehSumOperation::tensor_return_value_t MorehSumOperation::create_output_tensor
         tensor_args.input.get_dtype(),
         tensor_args.input.get_layout(),
         tensor_args.input.device(),
-        operation_attributes.output_mem_config);
+        operation_attributes.memory_config);
 }
 
 std::tuple<MorehSumOperation::operation_attributes_t, MorehSumOperation::tensor_args_t> MorehSumOperation::invoke(
@@ -138,8 +139,15 @@ std::tuple<MorehSumOperation::operation_attributes_t, MorehSumOperation::tensor_
     const int64_t dim,
     const bool keepdim,
     const std::optional<Tensor>& output,
-    const std::optional<MemoryConfig>& output_mem_config,
+    const std::optional<MemoryConfig>& memory_config,
     const std::optional<DeviceComputeKernelConfig>& compute_kernel_config) {
-    return {{dim, keepdim, output_mem_config.value_or(input.memory_config()), compute_kernel_config}, {input, output}};
+    return {
+        {
+            dim,
+            keepdim,
+            memory_config.value_or(input.memory_config()),
+            init_device_compute_kernel_config(input.device()->arch(), compute_kernel_config, MathFidelity::HiFi4),
+        },
+        {input, output}};
 }
 }  // namespace ttnn::operations::moreh::moreh_sum

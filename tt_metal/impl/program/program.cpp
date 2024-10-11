@@ -122,7 +122,7 @@ Program::Program() :
 }
 
 KernelHandle Program::add_kernel(std::shared_ptr<Kernel> kernel, const HalProgrammableCoreType &programmable_core_type) {
-    this->invalidate_compile();
+    TT_FATAL(this->compiled_.empty(), "Cannot add kernel to an already compiled program {}", this->id);
     // Id is unique across all kernels on all core types
     KernelHandle id = this->num_kernels();
     uint32_t index = hal.get_programmable_core_type_index(programmable_core_type);
@@ -160,6 +160,7 @@ KernelGroup::KernelGroup(
     this->programmable_core_type_index = programmable_core_type_index;
     this->core_ranges = this->core_ranges.merge(new_ranges);
     this->kernel_ids = kernel_ids;
+    this->launch_msg.kernel_config.brisc_noc_mode = NOC_MODE::DM_DEDICATED_NOC;
 
     std::memset(&this->launch_msg, 0, sizeof(launch_msg_t));
 
@@ -167,7 +168,7 @@ KernelGroup::KernelGroup(
     // Fast dispatch kernel config mangement happens under the CQ and will re-program the base
     for (uint32_t index = 0; index < hal.get_programmable_core_type_count(); index++) {
         this->launch_msg.kernel_config.kernel_config_base[index] =
-            hal.get_dev_addr(index, HalMemAddrType::KERNEL_CONFIG);
+            hal.get_dev_addr(index, HalL1MemAddrType::KERNEL_CONFIG);
     }
 
     for (int class_id = 0; class_id < DISPATCH_CLASS_MAX; class_id++) {
@@ -183,15 +184,28 @@ KernelGroup::KernelGroup(
                 if (class_id == DISPATCH_CLASS_TENSIX_DM0) {
                     // Use brisc's noc if brisc specifies a noc
                     this->launch_msg.kernel_config.brisc_noc_id = std::get<DataMovementConfig>(kernel->config()).noc;
+                    // if noc mode is already set to DM_DYNAMIC_NOC then we can't change back to DM_DEDICATED_NOC
+                    if (std::get<DataMovementConfig>(kernel->config()).noc_mode == NOC_MODE::DM_DYNAMIC_NOC) {
+                        this->launch_msg.kernel_config.brisc_noc_mode = NOC_MODE::DM_DYNAMIC_NOC;
+                    }
                 } else if (class_id == DISPATCH_CLASS_TENSIX_DM1) {
                     // Use 1-ncrisc's noc (the other noc) if ncrisc specifies a noc
                     // If both brisc and ncrisc set the noc, then this is safe due to prior correctness validation
                     this->launch_msg.kernel_config.brisc_noc_id = 1 - std::get<DataMovementConfig>(kernel->config()).noc;
-                    this->launch_msg.kernel_config.ncrisc_kernel_size16 = kernel->get_binary_size16();
+                    // if noc mode is already set to DM_DYNAMIC_NOC then we can't change back to DM_DEDICATED_NOC
+                    if (this->launch_msg.kernel_config.brisc_noc_mode == NOC_MODE::DM_DYNAMIC_NOC) {
+                        this->launch_msg.kernel_config.brisc_noc_mode = NOC_MODE::DM_DYNAMIC_NOC;
+                    }
                 }
             }
         }
     }
+
+    for (uint32_t index = 0; index < MaxProcessorsPerCoreType; index ++) {
+        this->kernel_bin_sizes[index] = 0;
+        this->launch_msg.kernel_config.kernel_text_offset[index] = 0;
+    }
+    this->launch_msg.kernel_config.ncrisc_kernel_size16 = 0;
 
     this->launch_msg.kernel_config.exit_erisc_kernel = false;
     this->launch_msg.kernel_config.max_cb_index = last_cb_index + 1;
@@ -333,7 +347,10 @@ void Program::update_kernel_groups(uint32_t programmable_core_type_index) {
     }
 }
 
-void Program::CircularBufferAllocator::mark_address(uint64_t address, uint64_t size) {
+void Program::CircularBufferAllocator::mark_address(uint64_t address, uint64_t size, uint64_t base_address) {
+    if (this->l1_regions.empty()) {
+        this->l1_regions.emplace_back(base_address, base_address);
+    }
     auto &last_region = this->l1_regions.back();
     if (address < last_region.second) {
         TT_THROW(
@@ -350,7 +367,7 @@ void Program::CircularBufferAllocator::mark_address(uint64_t address, uint64_t s
 }
 
 CBHandle Program::add_circular_buffer(const CoreRangeSet &core_range_set, const CircularBufferConfig &config) {
-    this->invalidate_compile();
+    TT_FATAL(this->compiled_.empty(), "Cannot add circular buffer to an already compiled program {}", this->id);
     std::shared_ptr<CircularBuffer> circular_buffer = std::make_shared<CircularBuffer>(core_range_set, config);
     // Globally allocated circular buffer do not invalidate allocation because their addresses are tracked by memory
     // allocator
@@ -449,18 +466,19 @@ void Program::invalidate_circular_buffer_allocation() {
     this->local_circular_buffer_allocation_needed_ = true;
 }
 
-void Program::allocate_circular_buffers() {
+void Program::allocate_circular_buffers(const Device *device) {
     ZoneScoped;
     if (not this->local_circular_buffer_allocation_needed_) {
         return;
     }
 
+    uint64_t base_cb_address = device->get_base_allocator_addr(HalMemType::L1);
     for (std::shared_ptr<CircularBuffer> circular_buffer : this->circular_buffers_) {
         if (circular_buffer->globally_allocated()) {
             continue;
         }
 
-        uint64_t computed_addr = L1_UNRESERVED_BASE;
+        uint64_t computed_addr = base_cb_address;
         for (const CoreRange &core_range : circular_buffer->core_ranges().ranges()) {
             // Need the max available address across all cores circular buffer is placed on
             for (const CircularBufferAllocator &cb_allocator : this->cb_allocators_) {
@@ -480,7 +498,7 @@ void Program::allocate_circular_buffers() {
                         // `core_range` but also intersecting `cb_allocator.core_range`
                         continue;
                     }
-                    cb_allocator.mark_address(computed_addr, circular_buffer->size());
+                    cb_allocator.mark_address(computed_addr, circular_buffer->size(), base_cb_address);
                 }
             }
         }
@@ -501,7 +519,10 @@ void Program::validate_circular_buffer_region(const Device *device) const {
     uint32_t max_l1_size = device->l1_size_per_core();
 
     for (const CircularBufferAllocator &cb_allocator : this->cb_allocators_) {
-        uint64_t cb_region_end = cb_allocator.get_cb_region_end();
+        if (cb_allocator.l1_regions.empty()) {
+            continue;
+        }
+        uint64_t cb_region_end = cb_allocator.l1_regions.back().second; //cb_allocator.get_cb_region_end();
         if (cb_region_end > max_l1_size) {
             TT_THROW(
                 "Statically allocated circular buffers on core range {} grow to {} B which is beyond max L1 size of {} "
@@ -529,7 +550,7 @@ size_t Program::num_semaphores() const { return semaphores_.size(); }
 void Program::init_semaphores(const Device &device, const CoreCoord &logical_core, uint32_t programmable_core_type_index) const {
     auto semaphores_on_core = this->semaphores_on_core(logical_core);
 
-    uint64_t kernel_config_base = hal.get_dev_addr(programmable_core_type_index, HalMemAddrType::KERNEL_CONFIG);
+    uint64_t kernel_config_base = hal.get_dev_addr(programmable_core_type_index, HalL1MemAddrType::KERNEL_CONFIG);
     uint64_t addr = kernel_config_base + this->program_configs_[programmable_core_type_index].sem_offset;
     CoreType core_type = hal.get_core_type(programmable_core_type_index);
     for (auto semaphore : semaphores_on_core) {
@@ -542,7 +563,7 @@ void Program::init_semaphores(const Device &device, const CoreCoord &logical_cor
 }
 
 void Program::add_semaphore(const CoreRangeSet &crs, uint32_t semaphore_id, uint32_t init_value, CoreType core_type) {
-    this->invalidate_compile();
+    TT_FATAL(this->compiled_.empty(), "Cannot add semaphore to an already compiled program {}", this->id);
     semaphores_.emplace_back(Semaphore(crs, semaphore_id, init_value, core_type));
 }
 
@@ -622,12 +643,6 @@ void Program::set_cb_tile_dims(Device *device, const std::vector<CoreRange> &crs
     }
 }
 
-void Program::invalidate_compile() {
-    for (auto &[device_id, compile_needed] : compile_needed_) {
-        compile_needed = true;
-    }
-}
-
 void Program::populate_dispatch_data(Device *device) {
     static const uint32_t processor_to_firmware_base[] = {
         MEM_BRISC_FIRMWARE_BASE,
@@ -639,7 +654,7 @@ void Program::populate_dispatch_data(Device *device) {
     };
     static const uint32_t processor_to_firmware_size[] = {
         MEM_BRISC_FIRMWARE_SIZE,
-        MEM_NCRISC_FIRMWARE_SIZE,
+        MEM_NCRISC_INIT_IRAM_L1_SIZE,
         MEM_TRISC0_FIRMWARE_SIZE,
         MEM_TRISC1_FIRMWARE_SIZE,
         MEM_TRISC2_FIRMWARE_SIZE,
@@ -863,10 +878,10 @@ uint32_t Program::finalize_rt_args(uint32_t programmable_core_type_index, uint32
             if (optional_id) {
                 auto kernel = detail::GetKernel(*this, optional_id.value());
                 kernel->set_runtime_args_count(kg.core_ranges, max_rtas[dispatch_class]);
-                kg.launch_msg.kernel_config.mem_map[dispatch_class].rta_offset = base_offset + offset;
+                kg.launch_msg.kernel_config.rta_offset[dispatch_class].rta_offset = base_offset + offset;
                 offset += max_rtas[dispatch_class] * sizeof(uint32_t);
             } else {
-                kg.launch_msg.kernel_config.mem_map[dispatch_class].rta_offset = 0;
+                kg.launch_msg.kernel_config.rta_offset[dispatch_class].rta_offset = 0;
             }
         }
 
@@ -915,7 +930,7 @@ uint32_t Program::finalize_rt_args(uint32_t programmable_core_type_index, uint32
     // Set the kernel group common runtime arg offsets use in the launch message
     for (auto& kg : this->get_kernel_groups(programmable_core_type_index)) {
         for (int dispatch_class = 0; dispatch_class < DISPATCH_CLASS_MAX; dispatch_class++) {
-            kg.launch_msg.kernel_config.mem_map[dispatch_class].crta_offset = this->get_program_config(programmable_core_type_index).crta_offsets[dispatch_class];
+            kg.launch_msg.kernel_config.rta_offset[dispatch_class].crta_offset = this->get_program_config(programmable_core_type_index).crta_offsets[dispatch_class];
         }
     }
 
@@ -982,11 +997,70 @@ uint32_t Program::finalize_cbs(uint32_t programmable_core_type_index, uint32_t b
     return base_offset + cb_size;
 }
 
+uint32_t Program::finalize_kernel_bins(Device *device, uint32_t programmable_core_type_index, uint32_t base_offset) {
+
+    uint32_t l1_alignment = hal.get_alignment(HalMemType::L1);
+
+    uint32_t max_offset = 0;
+    for (auto& kg : this->get_kernel_groups(programmable_core_type_index)) {
+        uint32_t offset = base_offset;
+
+        for (int class_id = 0; class_id < DISPATCH_CLASS_MAX; class_id++) {
+            auto& optional_id = kg.kernel_ids[class_id];
+            if (optional_id) {
+                const auto kernel = this->get_kernel(optional_id.value());
+                // TODO: this is really ugly, save me future-HAL!
+                if (programmable_core_type_index == hal.get_programmable_core_type_index(HalProgrammableCoreType::TENSIX)) {
+                    uint32_t binary_packed_size = kernel->get_binary_packed_size(device, 0);
+
+                    if (class_id == DISPATCH_CLASS_TENSIX_DM0) {
+                        kg.kernel_bin_sizes[0] = binary_packed_size;
+                        kg.launch_msg.kernel_config.kernel_text_offset[0] = offset;
+                        offset += binary_packed_size;
+                        offset = align(offset, l1_alignment);
+                    } else if (class_id == DISPATCH_CLASS_TENSIX_DM1) {
+                        kg.kernel_bin_sizes[1] = binary_packed_size;
+                        kg.launch_msg.kernel_config.kernel_text_offset[1] = offset;
+                        offset += binary_packed_size;
+
+                        uint32_t binary_text_size = kernel->get_binary_text_size(device, 0);
+                        TT_ASSERT(binary_text_size >> 4 <= std::numeric_limits<uint16_t>::max());
+                        kg.launch_msg.kernel_config.ncrisc_kernel_size16 = (binary_text_size + 15) >> 4;
+                        offset = align(offset, l1_alignment);
+                    } else {
+                        constexpr uint32_t max_math_processors_count = 3;
+                        for (uint32_t proc_type_index = 0; proc_type_index < max_math_processors_count; proc_type_index++) {
+                            uint32_t binary_packed_size = kernel->get_binary_packed_size(device, proc_type_index);
+                            kg.kernel_bin_sizes[2 + proc_type_index] = binary_packed_size;
+                            kg.launch_msg.kernel_config.kernel_text_offset[2 + proc_type_index] = offset;
+                            offset += binary_packed_size;
+                            offset = align(offset, l1_alignment);
+                        }
+                    }
+                } else {
+                    uint32_t binary_packed_size = kernel->get_binary_packed_size(device, 0);
+                    kg.kernel_bin_sizes[0] = binary_packed_size;
+                    kg.launch_msg.kernel_config.kernel_text_offset[0] = offset;
+                    offset += binary_packed_size;
+                    offset = align(offset, l1_alignment);
+                }
+            }
+        }
+
+        max_offset = std::max(offset, max_offset);
+    }
+
+    this->program_configs_[programmable_core_type_index].kernel_text_offset = base_offset;
+    this->program_configs_[programmable_core_type_index].kernel_text_size = max_offset - base_offset;
+
+    return max_offset;
+}
+
 uint32_t& Program::get_program_config_size(uint32_t programmable_core_type_index) {
     return this->program_config_sizes_[programmable_core_type_index];
 }
 
-void Program::finalize() {
+void Program::finalize(Device *device) {
     // Store the number of tensix "go signals" for use by CQ
     // CQ iterates over these to update runtime addresses, needs to know when eth begins (after tensix)
     // TODO: should store all the counts
@@ -1002,12 +1076,20 @@ void Program::finalize() {
 
     for (uint32_t index = 0; index < hal.get_programmable_core_type_count(); index++) {
         uint32_t offset = 0;
+
         offset = finalize_rt_args(index, offset);
         TT_ASSERT(offset == align(offset, hal.get_alignment(HalMemType::L1)));
+
         offset = finalize_sems(index, offset);
         TT_ASSERT(offset == align(offset, hal.get_alignment(HalMemType::L1)));
+
         offset = finalize_cbs(index, offset);
         TT_ASSERT(offset == align(offset, hal.get_alignment(HalMemType::L1)));
+
+        // TODO: update the offset when kernel bins are moved into the kernel config buffer
+        (void)finalize_kernel_bins(device, index, offset);
+        TT_ASSERT(offset == align(offset, hal.get_alignment(HalMemType::L1)));
+
         this->get_program_config_size(index) = offset;
     }
 
@@ -1019,8 +1101,7 @@ void Program::finalize() {
 
 void Program::compile(Device *device, bool fd_bootloader_mode) {
     ZoneScoped;
-    bool first_compile_on_device = compile_needed_.find(device->id()) == compile_needed_.end();
-    if (not first_compile_on_device and (not compile_needed_.at(device->id()))) {
+    if (compiled_.contains(device->id())) {
         return;
     }
 
@@ -1126,7 +1207,7 @@ void Program::compile(Device *device, bool fd_bootloader_mode) {
     if (detail::MemoryReporter::enabled()) {
         detail::MemoryReporter::inst().flush_program_memory_usage(*this, device);
     }
-    compile_needed_[device->id()] = false;
+    compiled_.insert(device->id());
 }
 
 void Program::set_runtime_id(uint64_t id) { this->runtime_id = id; }
@@ -1139,7 +1220,7 @@ uint32_t Program::get_sem_base_addr(Device *device, CoreCoord logical_core, Core
 
     uint32_t base_addr = device->using_fast_dispatch ?
         device->sysmem_manager().get_config_buffer_mgr().get_last_slot_addr(programmable_core_type) :
-        hal.get_dev_addr(programmable_core_type, HalMemAddrType::KERNEL_CONFIG);
+        hal.get_dev_addr(programmable_core_type, HalL1MemAddrType::KERNEL_CONFIG);
 
     return base_addr + this->program_configs_[index].sem_offset;
 }
@@ -1152,7 +1233,7 @@ uint32_t Program::get_cb_base_addr(Device *device, CoreCoord logical_core, CoreT
 
     uint32_t base_addr = device->using_fast_dispatch ?
         device->sysmem_manager().get_config_buffer_mgr().get_last_slot_addr(programmable_core_type) :
-        hal.get_dev_addr(programmable_core_type, HalMemAddrType::KERNEL_CONFIG);
+        hal.get_dev_addr(programmable_core_type, HalL1MemAddrType::KERNEL_CONFIG);
 
     return base_addr + this->program_configs_[index].cb_offset;
 }

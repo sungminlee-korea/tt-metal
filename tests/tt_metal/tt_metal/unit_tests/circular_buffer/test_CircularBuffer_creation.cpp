@@ -33,7 +33,6 @@ bool test_cb_config_written_to_core(Program &program, Device *device, const Core
 
                     for (const auto &[buffer_index, golden_cb_config] : cb_config_per_buffer_index) {
                         auto base_index = UINT32_WORDS_PER_CIRCULAR_BUFFER_CONFIG * buffer_index;
-                        fprintf(stderr, "testing %d\n", buffer_index);
                         pass &= (golden_cb_config.at(0) == cb_config_vector.at(base_index));    // address
                         pass &= (golden_cb_config.at(1) == cb_config_vector.at(base_index + 1)); // size
                         pass &= (golden_cb_config.at(2) == cb_config_vector.at(base_index + 2)); // num pages
@@ -55,11 +54,12 @@ TEST_F(DeviceFixture, TestCreateCircularBufferAtValidIndices) {
     Program program;
     initialize_program(program, cr_set);
 
+    uint32_t l1_unreserved_base = devices_.at(0)->get_base_allocator_addr(HalMemType::L1);
     std::map<uint8_t, std::vector<uint32_t>> golden_cb_config = {
-        {0, {L1_UNRESERVED_BASE >> 4, cb_config.page_size >> 4, cb_config.num_pages}},
-        {2, {L1_UNRESERVED_BASE >> 4, cb_config.page_size >> 4, cb_config.num_pages}},
-        {16, {L1_UNRESERVED_BASE >> 4, cb_config.page_size >> 4, cb_config.num_pages}},
-        {24, {L1_UNRESERVED_BASE >> 4, cb_config.page_size >> 4, cb_config.num_pages}}
+        {0, {l1_unreserved_base >> 4, cb_config.page_size >> 4, cb_config.num_pages}},
+        {2, {l1_unreserved_base >> 4, cb_config.page_size >> 4, cb_config.num_pages}},
+        {16, {l1_unreserved_base >> 4, cb_config.page_size >> 4, cb_config.num_pages}},
+        {24, {l1_unreserved_base >> 4, cb_config.page_size >> 4, cb_config.num_pages}}
     };
     std::map<uint8_t, tt::DataFormat> data_format_spec = {
         {0, cb_config.data_format},
@@ -74,9 +74,8 @@ TEST_F(DeviceFixture, TestCreateCircularBufferAtValidIndices) {
         .set_page_size(24, cb_config.page_size);
     auto cb = CreateCircularBuffer(program, cr_set, config);
 
-    program.finalize();
-
     for (unsigned int id = 0; id < num_devices_; id++) {
+        program.finalize(devices_.at(id));
         EXPECT_TRUE(test_cb_config_written_to_core(program, this->devices_.at(id), cr_set, golden_cb_config));
     }
 }

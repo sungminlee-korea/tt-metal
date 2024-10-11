@@ -22,7 +22,6 @@
 #include "generated_bank_to_noc_coord_mapping.h"
 #include "circular_buffer.h"
 #include "dataflow_api.h"
-#include "tt_metal/impl/dispatch/dispatch_address_map.hpp"
 
 #include "debug/watcher_common.h"
 #include "debug/waypoint.h"
@@ -36,7 +35,6 @@ uint32_t noc_nonposted_writes_num_issued[NUM_NOCS] __attribute__((used));
 uint32_t noc_nonposted_writes_acked[NUM_NOCS] __attribute__((used));
 uint32_t noc_nonposted_atomics_acked[NUM_NOCS] __attribute__((used));
 uint32_t noc_posted_writes_num_issued[NUM_NOCS] __attribute__((used));
-uint32_t atomic_ret_val __attribute__ ((section ("l1_data"))) __attribute__((used));
 
 uint32_t tt_l1_ptr *rta_l1_base __attribute__((used));
 uint32_t tt_l1_ptr *crta_l1_base __attribute__((used));
@@ -103,7 +101,7 @@ int main() {
 
     risc_init();
     //device_setup();
-    noc_init();
+    noc_init(MEM_NOC_ATOMIC_RET_VAL_ADDR);
 
     mailboxes->go_message.signal = RUN_MSG_DONE;
     mailboxes->launch_msg_rd_ptr = 0; // Initialize the rdptr to 0

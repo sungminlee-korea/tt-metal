@@ -19,6 +19,7 @@
 #include "tools/profiler/common.hpp"
 #include "tools/profiler/profiler_state.hpp"
 #include "tt_metal/impl/kernels/kernel.hpp"
+#include "tt_metal/impl/dispatch/command_queue_interface.hpp"
 
 namespace fs = std::filesystem;
 
@@ -105,7 +106,7 @@ void JitBuildEnv::init(uint32_t build_key, tt::ARCH arch) {
     }
 
     if (tt::llrt::OptionsG.get_feature_enabled(tt::llrt::RunTimeDebugFeatureDprint)) {
-        this->defines_ += "-DDEBUG_PRINT_ENABLED ";
+        this->defines_ += "-DDEBUG_PRINT_ENABLED -DL1_UNRESERVED_BASE=" + to_string(hal.get_dev_addr(HalProgrammableCoreType::TENSIX, HalL1MemAddrType::UNRESERVED)) + " ";
     }
 
     if (tt::llrt::OptionsG.get_record_noc_transfers()) {
@@ -139,8 +140,8 @@ void JitBuildEnv::init(uint32_t build_key, tt::ARCH arch) {
     this->lflags_ += "-fno-exceptions -Wl,-z,max-page-size=16 -Wl,-z,common-page-size=16 -nostartfiles ";
 }
 
-JitBuildState::JitBuildState(const JitBuildEnv& env, int which, bool is_fw) :
-    env_(env), core_id_(which), is_fw_(is_fw) {}
+JitBuildState::JitBuildState(const JitBuildEnv& env, const JitBuiltStateConfig &build_config) :
+    env_(env), core_id_(build_config.processor_id), is_fw_(build_config.is_fw), dispatch_message_addr_(build_config.dispatch_message_addr) {}
 
 // Fill in common state derived from the default state set up in the constructors
 void JitBuildState::finish_init() {
@@ -149,6 +150,7 @@ void JitBuildState::finish_init() {
     } else {
         this->defines_ += "-DKERNEL_BUILD ";
     }
+    this->defines_ += "-DDISPATCH_MESSAGE_ADDR=" + to_string(this->dispatch_message_addr_) + " ";
 
     // Create the objs from the srcs
     for (string src : srcs_) {
@@ -192,11 +194,11 @@ void JitBuildState::finish_init() {
 
     // Note the preceding slash which defies convention as this gets appended to
     // the kernel name used as a path which doesn't have a slash
-    this->target_full_path_ = "/" + this->target_name_ + "/" + this->target_name_ + ".hex";
+    this->target_full_path_ = "/" + this->target_name_ + "/" + this->target_name_ + ".elf";
 }
 
-JitBuildDataMovement::JitBuildDataMovement(const JitBuildEnv& env, int which, bool is_fw) :
-    JitBuildState(env, which, is_fw) {
+JitBuildDataMovement::JitBuildDataMovement(const JitBuildEnv& env, const JitBuiltStateConfig &build_config) :
+    JitBuildState(env, build_config) {
     TT_ASSERT(this->core_id_ >= 0 && this->core_id_ < 2, "Invalid data movement processor");
 
     this->out_path_ = this->is_fw_ ? env_.out_firmware_root_ : env_.out_kernel_root_;
@@ -263,7 +265,7 @@ JitBuildDataMovement::JitBuildDataMovement(const JitBuildEnv& env, int which, bo
     finish_init();
 }
 
-JitBuildCompute::JitBuildCompute(const JitBuildEnv& env, int which, bool is_fw) : JitBuildState(env, which, is_fw) {
+JitBuildCompute::JitBuildCompute(const JitBuildEnv& env, const JitBuiltStateConfig &build_config) : JitBuildState(env, build_config) {
     TT_ASSERT(this->core_id_ >= 0 && this->core_id_ < 3, "Invalid compute processor");
 
     this->out_path_ = this->is_fw_ ? env_.out_firmware_root_ : env_.out_kernel_root_;
@@ -348,7 +350,7 @@ JitBuildCompute::JitBuildCompute(const JitBuildEnv& env, int which, bool is_fw) 
     finish_init();
 }
 
-JitBuildEthernet::JitBuildEthernet(const JitBuildEnv& env, int which, bool is_fw) : JitBuildState(env, which, is_fw) {
+JitBuildEthernet::JitBuildEthernet(const JitBuildEnv& env, const JitBuiltStateConfig &build_config) : JitBuildState(env, build_config) {
     TT_ASSERT(this->core_id_ >= 0 && this->core_id_ < 2, "Invalid ethernet processor");
     this->out_path_ = this->is_fw_ ? env_.out_firmware_root_ : env_.out_kernel_root_;
 
@@ -528,70 +530,6 @@ void JitBuildState::link(const string& log_file, const string& out_dir) const {
     }
 }
 
-void JitBuildState::elf_to_hex8(const string& log_file, const string& out_dir) const {
-    ZoneScoped;
-    string cmd;
-    cmd = "cd " + out_dir + " && ";
-    cmd += env_.objcopy_;
-    cmd += " -O verilog " + this->target_name_ + ".elf" + " " + this->target_name_ + ".hex.tmp";
-
-    log_debug(tt::LogBuildKernels, "    objcopy cmd: {}", cmd);
-    if (!tt::utils::run_command(cmd, log_file, false)) {
-        build_failure(this->target_name_, "objcopy", cmd, log_file);
-    }
-}
-
-void JitBuildState::hex8_to_hex32(const string& log_file, const string& out_dir) const {
-    ZoneScoped;
-    auto write_data = [](std::ofstream& outf, std::vector<uint64_t>& data, uint64_t& ptr) {
-        if (!data.empty()) {
-            outf << "@" << std::setfill('0') << std::setw(8) << std::hex << (ptr >> 2) << "\n";
-            for (size_t i = 0; i < data.size(); i += 4) {
-                for (int j = 3; j >= 0; --j) {
-                    if (i + j < data.size()) {
-                        outf << std::setfill('0') << std::setw(2) << std::hex << data[i + j];
-                    }
-                }
-                outf << "\n";
-            }
-        }
-        data.clear();
-    };
-
-    auto pad_zeroes = [](std::vector<uint64_t>& data, uint32_t num) {
-        for (unsigned int i = 0; i < num; i++) {
-            data.push_back(0);
-        }
-    };
-
-    std::ifstream inf(out_dir + this->target_name_ + ".hex.tmp");
-    std::ofstream outf(out_dir + this->target_name_ + ".hex");
-    std::string line;
-    std::vector<uint64_t> data;
-    uint64_t ptr = 0;
-
-    while (std::getline(inf, line)) {
-        if (line[0] == '@') {
-            uint64_t addr = std::stol(line.substr(1), nullptr, 16);
-            if (addr > ptr + 4) {
-                write_data(outf, data, ptr);
-                ptr = addr;
-                pad_zeroes(data, (ptr % 4));
-                ptr -= ptr % 4;
-            } else {
-                pad_zeroes(data, (addr - ptr - data.size()));
-            }
-        } else {
-            std::istringstream iss(line);
-            std::string tok;
-            while (iss >> tok) {
-                data.push_back(std::stol(tok, nullptr, 16));
-            }
-        }
-    }
-    write_data(outf, data, ptr);
-}
-
 // Given this elf (A) and a later elf (B):
 // weakens symbols in A so that it can be used as a "library" for B. B imports A's weakened symbols, B's symbols of the
 // same name don't result in duplicate symbols but B can reference A's symbols. Force the fw_export symbols to remain
@@ -642,8 +580,6 @@ void JitBuildState::build(const JitBuildSettings* settings) const {
 
     compile(log_file, out_dir, settings);
     link(log_file, out_dir);
-    elf_to_hex8(log_file, out_dir);
-    hex8_to_hex32(log_file, out_dir);
     if (this->is_fw_) {
         weaken(log_file, out_dir);
     }

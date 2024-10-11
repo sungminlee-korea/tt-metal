@@ -10,6 +10,7 @@
 #include "tt_metal/impl/dispatch/dispatch_core_manager.hpp"
 #include "tt_metal/impl/kernels/runtime_args_data.hpp"
 #include "tt_metal/impl/program/program.hpp"
+#include "tt_metal/impl/device/device.hpp"
 
 /** @file */
 
@@ -29,6 +30,7 @@ class CoreRangeSet;
 namespace tt {
 
 namespace tt_metal {
+inline namespace v0 {
 
 class Program;
 class Device;
@@ -48,6 +50,13 @@ class Buffer;
  * Return value: size_t
  */
 size_t GetNumAvailableDevices();
+
+/**
+ * Returns whether Tenstorrent devices are in a Galaxy cluster
+ *
+ * Return value: bool
+ */
+bool IsGalaxyCluster();
 
 /**
  * Returns number of Tenstorrent devices that are connected to host via PCIe and can be targeted
@@ -649,6 +658,7 @@ bool EventQuery(const std::shared_ptr<Event> &event);
  */
 void Synchronize(Device *device, const std::optional<uint8_t> cq_id = std::nullopt);
 
+}  // namespace v0
 }  // namespace tt_metal
 
 }  // namespace tt

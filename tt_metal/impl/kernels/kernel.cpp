@@ -28,7 +28,6 @@ Kernel::Kernel(
     const std::map<std::string, std::string> &defines) :
     kernel_src_(kernel_src),
     core_range_set_(core_range_set),
-    binary_size16_(0),
     max_runtime_args_per_core_(0),
     core_with_max_runtime_args_({0, 0}),
     compile_time_args_(compile_args),
@@ -105,6 +104,7 @@ void DataMovementKernel::process_defines(
     const std::function<void(const string &define, const string &value)> callback) const {
     Kernel::process_defines(callback);
     callback("NOC_INDEX", std::to_string(this->config_.noc));
+    callback("NOC_MODE", std::to_string(this->config_.noc_mode));
 }
 
 void ComputeKernel::process_defines(
@@ -112,12 +112,16 @@ void ComputeKernel::process_defines(
     for (const auto &[define, value] : this->defines_) {
         callback(define, value);
     }
+    // pass default noc mode as compute does not need it, just for compile to pass
+    callback("NOC_MODE", std::to_string(NOC_MODE::DM_DEDICATED_NOC));
 }
 
 void EthernetKernel::process_defines(
     const std::function<void(const string &define, const string &value)> callback) const {
     Kernel::process_defines(callback);
     callback("NOC_INDEX", std::to_string(this->config_.noc));
+    // pass default noc mode as eth does not need it, just for compile to pass
+    callback("NOC_MODE", std::to_string(NOC_MODE::DM_DEDICATED_NOC));
 }
 
 void Kernel::process_compile_time_args(const std::function<void(int i, uint32_t value)> callback) const {
@@ -159,10 +163,11 @@ std::string EthernetKernel::config_hash() const {
 
 std::string ComputeKernel::config_hash() const {
     return fmt::format(
-        "{}_{}_{}",
+        "{}_{}_{}_{}",
         magic_enum::enum_name(this->config_.math_fidelity),
         this->config_.fp32_dest_acc_en,
-        this->config_.math_approx_mode);
+        this->config_.math_approx_mode,
+        this->config_.dst_full_sync_en);
 }
 
 std::string Kernel::compute_hash() const {
@@ -289,6 +294,20 @@ bool Kernel::is_idle_eth() {
     return std::holds_alternative<EthernetConfig>(this->config()) && std::get<EthernetConfig>(this->config()).eth_mode == Eth::IDLE;
 }
 
+uint32_t Kernel::get_binary_packed_size(Device *device, int index) const {
+    // In testing situations we can query the size w/o a binary
+    return (this->binaries_.find(device->build_key()) != this->binaries_.end()) ?
+        this->binaries_.at(device->build_key())[index].get_packed_size() :
+        0;
+}
+
+uint32_t Kernel::get_binary_text_size(Device *device, int index) const {
+    // In testing situations we can query the size w/o a binary
+    return (this->binaries_.find(device->build_key()) != this->binaries_.end()) ?
+        this->binaries_.at(device->build_key())[index].get_text_size() :
+        0;
+}
+
 void DataMovementKernel::set_build_options(JitBuildOptions &build_options) const {
     ZoneScoped;
     switch (this->config_.processor) {
@@ -310,6 +329,7 @@ void ComputeKernel::set_build_options(JitBuildOptions &build_options) const {
     build_options.set_hlk_math_fidelity_all_cores(this->config_.math_fidelity);
     build_options.set_hlk_math_approx_mode_all_cores(this->config_.math_approx_mode);
     build_options.fp32_dest_acc_en = this->config_.fp32_dest_acc_en;
+    build_options.dst_full_sync_en = this->config_.dst_full_sync_en;
     build_options.unpack_to_dest_mode = this->config_.unpack_to_dest_mode;
     build_options.hlk_defines = this->defines_;
 }
@@ -351,10 +371,9 @@ void DataMovementKernel::read_binaries(Device *device) {
     int riscv_id = static_cast<std::underlying_type<DataMovementProcessor>::type>(this->config_.processor);
     const JitBuildState &build_state = device->build_kernel_state(JitBuildProcessorType::DATA_MOVEMENT, riscv_id);
     ll_api::memory binary_mem = llrt::get_risc_binary(build_state.get_target_out_path(this->kernel_full_name_), riscv_id, llrt::PackSpans::PACK);
-    this->binary_size16_ = llrt::get_binary_code_size16(binary_mem, riscv_id);
-    log_debug(LogLoader, "RISC {} kernel binary size: {} in bytes", riscv_id, this->binary_size16_ * 16);
-
     binaries.push_back(binary_mem);
+    uint32_t binary_size = binary_mem.get_packed_size();
+    log_debug(LogLoader, "RISC {} kernel binary size: {} in bytes", riscv_id, binary_size);
     this->set_binaries(device->build_key(), std::move(binaries));
 }
 
@@ -366,6 +385,8 @@ void EthernetKernel::read_binaries(Device *device) {
     const JitBuildState &build_state = device->build_kernel_state(JitBuildProcessorType::ETHERNET, erisc_id);
     ll_api::memory binary_mem = llrt::get_risc_binary(build_state.get_target_out_path(this->kernel_full_name_), erisc_id + 5, llrt::PackSpans::PACK);
     binaries.push_back(binary_mem);
+    uint32_t binary_size = binary_mem.get_packed_size();
+    log_debug(LogLoader, "ERISC {} kernel binary size: {} in bytes", erisc_id, binary_size);
     this->set_binaries(device->build_key(), std::move(binaries));
 }
 
@@ -375,9 +396,9 @@ void ComputeKernel::read_binaries(Device *device) {
     for (int trisc_id = 0; trisc_id <= 2; trisc_id++) {
         const JitBuildState &build_state = device->build_kernel_state(JitBuildProcessorType::COMPUTE, trisc_id);
         ll_api::memory binary_mem = llrt::get_risc_binary(build_state.get_target_out_path(this->kernel_full_name_), trisc_id + 2, llrt::PackSpans::PACK);
-        this->binary_size16_ = llrt::get_binary_code_size16(binary_mem, trisc_id + 2);
-        log_debug(LogLoader, "RISC {} kernel binary size: {} in bytes", trisc_id + 2, this->binary_size16_ * 16);
         binaries.push_back(binary_mem);
+        uint32_t binary_size = binary_mem.get_packed_size();
+        log_debug(LogLoader, "RISC {} kernel binary size: {} in bytes", trisc_id + 2, binary_size);
     }
     this->set_binaries(device->build_key(), std::move(binaries));
 }

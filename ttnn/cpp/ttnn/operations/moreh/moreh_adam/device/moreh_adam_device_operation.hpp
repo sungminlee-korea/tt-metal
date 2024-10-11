@@ -21,8 +21,8 @@ struct MorehAdamOperation {
         uint32_t step = 0;
         bool amsgrad = false;
 
-        const MemoryConfig output_mem_config;
-        const std::optional<DeviceComputeKernelConfig> compute_kernel_config;
+        const MemoryConfig memory_config;
+        const DeviceComputeKernelConfig compute_kernel_config;
     };
 
     struct tensor_args_t {

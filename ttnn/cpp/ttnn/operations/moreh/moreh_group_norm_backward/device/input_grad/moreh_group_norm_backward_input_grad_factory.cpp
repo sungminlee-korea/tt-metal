@@ -6,7 +6,7 @@
 
 #include "moreh_group_norm_backward_input_grad_device_operation.hpp"
 #include "tt_metal/common/work_split.hpp"
-#include "ttnn/deprecated/tt_dnn/op_library/moreh_helper_functions.hpp"
+#include "ttnn/operations/moreh/moreh_helper_functions.hpp"
 
 namespace ttnn::operations::moreh::moreh_group_norm_backward {
 MorehGroupNormBackwardInputGradOperation::MorehGroupNormBackwardInputGradFactory::cached_program_t
@@ -109,16 +109,16 @@ MorehGroupNormBackwardInputGradOperation::MorehGroupNormBackwardInputGradFactory
     const auto cb_usage = (in0_t + in1_t + in2_t + in3_t + in4_t + in5_t + in6_t + in7_t + out0_t + im0_t + im1_t +
                            im2_t + im3_t + im4_t + im5_t + im6_t + im7_t) *
                           single_tile_size;
-    const auto available_L1 = device->l1_size_per_core() - L1_UNRESERVED_BASE;
+    const auto available_L1 = device->l1_size_per_core() - device->get_base_allocator_addr(HalMemType::L1);
     const bool use_large_algorithm = cb_usage >= available_L1;
 
     if (use_large_algorithm) {
-        log_info(LogTest, "Large moreh_layernorm_backward_input_grad algorithm is selected.");
+        log_info(LogTest, "Large moreh_layer_norm_backward_input_grad algorithm is selected.");
         im0_t = 1;
         im1_t = 1;
         im7_t = 0;
     } else {
-        log_info(LogTest, "Small moreh_layernorm_backward_input_grad algorithm is selected.");
+        log_info(LogTest, "Small moreh_layer_norm_backward_input_grad algorithm is selected.");
     }
 
     CreateCircularBuffer(

@@ -6,7 +6,7 @@
 
 #include "moreh_adam_device_operation.hpp"
 #include "tt_metal/common/work_split.hpp"
-#include "ttnn/deprecated/tt_dnn/op_library/moreh_helper_functions.hpp"
+#include "ttnn/operations/moreh/moreh_helper_functions.hpp"
 #include "ttnn/operations/core/compute_kernel/compute_kernel_config.hpp"
 
 namespace ttnn::operations::moreh::moreh_adam {
@@ -36,8 +36,7 @@ MorehAdamOperation::ProgramFactory::cached_program_t MorehAdamOperation::Program
     auto step = operation_attributes.step;
     auto amsgrad = operation_attributes.amsgrad;
 
-    auto compute_kernel_config =
-        init_device_compute_kernel_config(param_in.device()->arch(), operation_attributes.compute_kernel_config);
+    auto compute_kernel_config = operation_attributes.compute_kernel_config;
 
     uint32_t num_tiles = param_in.volume() / tt::constants::TILE_HW;
 
@@ -54,7 +53,7 @@ MorehAdamOperation::ProgramFactory::cached_program_t MorehAdamOperation::Program
         tt::tt_metal::split_work_to_cores(grid, num_tiles);
 
     auto arch = param_in.device()->arch();
-    auto [math_fidelity, math_approx_mode, fp32_dest_acc_en, packer_l1_acc] =
+    auto [math_fidelity, math_approx_mode, fp32_dest_acc_en, packer_l1_acc, dst_full_sync_en] =
         get_compute_kernel_config_args(arch, compute_kernel_config);
 
     ////////////////////////////////////////////////////////////////////////////

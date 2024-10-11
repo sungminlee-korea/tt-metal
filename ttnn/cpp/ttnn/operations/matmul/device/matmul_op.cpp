@@ -11,8 +11,8 @@
 
 #include "tt_metal/common/constants.hpp"
 #include "tt_metal/host_api.hpp"
-#include "tt_metal/hostdevcommon/common_values.hpp"
 #include "tt_metal/common/work_split.hpp"
+#include "ttnn/operations/core/compute_kernel/compute_kernel_config.hpp"
 #include "ttnn/run_operation.hpp"
 #include "ttnn/types.hpp"
 
@@ -103,20 +103,7 @@ operation::OpPerformanceModel create_op_performance_model_for_matmul(
     uint32_t batch_size = get_batch_size(out_shape);
     int64_t num_mul_adds = num_mul_adds_per_elem * out_shape[-2] * out_shape[-1] * batch_size;
 
-    MathFidelity math_fidelity = MathFidelity::Invalid;
-
-    std::visit(
-        [&](auto&& compute_kernel_config) {
-            using T = std::decay_t<decltype(compute_kernel_config)>;
-            if constexpr (std::is_same_v<T, ttnn::GrayskullComputeKernelConfig>) {
-                math_fidelity = compute_kernel_config.math_fidelity;
-            } else if constexpr (std::is_same_v<T, ttnn::WormholeComputeKernelConfig>) {
-                math_fidelity = compute_kernel_config.math_fidelity;
-            } else {
-                TT_THROW("arch not supported");
-            }
-        },
-        compute_kernel_config);
+    MathFidelity math_fidelity = ttnn::get_math_fidelity(compute_kernel_config);
 
     int ideal_dev_clock_cycles = std::ceil(
         ((float)num_mul_adds / (float)(num_cores * tensix_mul_adds_per_cycle_lofi)) *
@@ -186,7 +173,7 @@ inline uint32_t get_max_l1_space(const Tensor& input_tensor_a) {
         device->bank_ids_from_logical_core(BufferType::L1, *device->compute_cores_.begin());
     std::optional<uint64_t> lowest_address = allocator::lowest_occupied_l1_address(*device->allocator_, bank_ids[0]);
     uint32_t max_l1_space = lowest_address.has_value() ? lowest_address.value() : device->l1_size_per_core();
-    max_l1_space = max_l1_space - L1_UNRESERVED_BASE;
+    max_l1_space = max_l1_space - device->get_base_allocator_addr(HalMemType::L1);
     return max_l1_space;
 }
 
@@ -234,8 +221,8 @@ MatmulProgramConfig create_matmul_1d_systolic_array_program_config(
     const std::optional<const UnaryWithParam> fused_activation,
     const bool fp32_dest_acc_en,
     const TensorMemoryLayout input_layout_a) {
-    auto a_padded_shape = input_shape_a.with_tile_padding();
-    auto b_padded_shape = input_shape_b.with_tile_padding();
+    auto a_padded_shape = input_shape_a.padded_shape();
+    auto b_padded_shape = input_shape_b.padded_shape();
     auto k_size = a_padded_shape[-1];
     auto m_size = a_padded_shape[-2];
     auto n_size = b_padded_shape[-1];

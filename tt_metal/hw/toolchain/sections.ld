@@ -39,20 +39,15 @@ OUTPUT_FORMAT("elf32-littleriscv", "elf32-littleriscv",
 	      "elf32-littleriscv")
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
-SEARCH_DIR("/opt/riscv32i/riscv32-unknown-elf/lib");
 SECTIONS
 {
-  /* Read-only sections, merged into text segment: */
-  .init TEXT_START :
+  .text TEXT_START :
   {
     /* Because TEXT_START might not be the start of a region, we
        need to force this section to be emitted so that following sections
        do not restart the region, if this one is empty.  */
     . = .;
-    KEEP (*(SORT_NONE(.init)))
-  } > REGION_CODE
-  .text           :
-  {
+    *(.start)
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)
     *(.text.startup .text.startup.*)
@@ -61,18 +56,17 @@ SECTIONS
     /* .gnu.warning sections are handled specially by elf32.em.  */
     *(.gnu.warning)
   } > REGION_CODE
-  .fini           :
+  .init.fini :
   {
-    KEEP (*(SORT_NONE(.fini)))
+    /* We don't use .init/.fini (this isn't the '90s), make sure there aren't any.  */
+    KEEP (*(.init))
+    KEEP (*(.fini))
+    ASSERT(SIZEOF(.init.fini) == 0, ".init/.fini sections present");
   } > REGION_CODE
 
   l1_data :
   {
-    *(l1_data)
-  } > REGION_CODE
-  l1_data_noinit (NOLOAD) :
-  {
-    *(l1_data_noinit)
+    *(l1_data_test_only)
   } > REGION_CODE
 
   . = ALIGN(. + MEM_PAD, MEM_ALIGN);
@@ -87,7 +81,7 @@ SECTIONS
 #endif
 
   PROVIDE(__global_pointer$ = ORIGIN(REGION_DATA) + 0x7f0);
-  .ldm_data DATA_START :
+  .data DATA_START :
   {
      . = .; /* Force section emission.  */
      __ldm_data_start = .;
@@ -123,10 +117,10 @@ SECTIONS
     SORT(CONSTRUCTORS)
     *(.data1)
     *(.got.plt) *(.igot.plt) *(.got) *(.igot)
-
-    /* bss is initialized with 4 byte writes */
-    . = ALIGN(4);
     __ldm_data_end = .;
+  }
+  .bss ALIGN(4):
+  {
     __ldm_bss_start = .;
     *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)
     *(.dynsbss)
@@ -149,6 +143,7 @@ SECTIONS
   __fw_export_ldm_end = .;
 #endif
 
+#ifdef TYPE_FIRMWARE
   /* Move to end of local memory for stack */
   .stack :
   {
@@ -156,6 +151,7 @@ SECTIONS
    . += FIRMWARE_STACK_SIZE;
     __stack_top = .;
   } > REGION_STACK
+#endif
 
   /* Stabs debugging sections.  */
   .stab          0 : { *(.stab) }

@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-#include "tt_dnn/op_library/moreh_helper_functions.hpp"
+#include "ttnn/operations/moreh/moreh_helper_functions.hpp"
 #include "ttnn/tensor/tensor.hpp"
 
 namespace ttnn::operations::moreh::moreh_adam {
@@ -82,34 +82,34 @@ MorehAdamOperation::tensor_return_value_t MorehAdamOperation::create_output_tens
     auto device = tensor_args.param_in.device();
 
     std::vector<std::optional<Tensor>> ret;
-    auto output_mem_config = operation_attributes.output_mem_config;
+    auto memory_config = operation_attributes.memory_config;
 
     auto idx = uint32_t{0};
     if (tensor_args.output_tensors.at(idx).has_value()) {
         ret.push_back(tensor_args.output_tensors.at(idx).value());
     } else {
-        ret.push_back(create_device_tensor(output_shapes.at(idx).value(), dtype, layout, device, output_mem_config));
+        ret.push_back(create_device_tensor(output_shapes.at(idx).value(), dtype, layout, device, memory_config));
     }
     ++idx;
 
     if (tensor_args.output_tensors.at(idx).has_value()) {
         ret.push_back(tensor_args.output_tensors.at(idx).value());
     } else {
-        ret.push_back(create_device_tensor(output_shapes.at(idx).value(), dtype, layout, device, output_mem_config));
+        ret.push_back(create_device_tensor(output_shapes.at(idx).value(), dtype, layout, device, memory_config));
     }
     ++idx;
 
     if (tensor_args.output_tensors.at(idx).has_value()) {
         ret.push_back(tensor_args.output_tensors.at(idx).value());
     } else {
-        ret.push_back(create_device_tensor(output_shapes.at(idx).value(), dtype, layout, device, output_mem_config));
+        ret.push_back(create_device_tensor(output_shapes.at(idx).value(), dtype, layout, device, memory_config));
     }
     ++idx;
 
     if (tensor_args.output_tensors.at(idx).has_value()) {
         ret.push_back(tensor_args.output_tensors.at(idx).value());
     } else if (operation_attributes.amsgrad) {
-        ret.push_back(create_device_tensor(output_shapes.at(idx).value(), dtype, layout, device, output_mem_config));
+        ret.push_back(create_device_tensor(output_shapes.at(idx).value(), dtype, layout, device, memory_config));
     }
 
     return std::move(ret);
@@ -146,7 +146,8 @@ std::tuple<MorehAdamOperation::operation_attributes_t, MorehAdamOperation::tenso
             step.value_or(0),
             amsgrad.value_or(false),
             memory_config.value_or(param_in.memory_config()),
-            compute_kernel_config},
+            init_device_compute_kernel_config(param_in.device()->arch(), compute_kernel_config, MathFidelity::HiFi4),
+        },
         tensor_args_t{
             param_in,
             grad,

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include "third_party/magic_enum/magic_enum.hpp"
+#include <magic_enum.hpp>
 #include "ttnn/operations/data_movement/bcast/bcast.hpp"
 #include "tt_metal/common/constants.hpp"
 #include "ttnn/common/constants.hpp"
@@ -10,7 +10,7 @@
 #include "tt_metal/tools/profiler/op_profiler.hpp"
 #include "ttnn/operations/eltwise/unary/unary.hpp"
 #include "ttnn/operations/eltwise/binary/binary.hpp"
-#include "ttnn/deprecated/tt_dnn/op_library/moreh_sum/moreh_sum_op.hpp"
+#include "ttnn/operations/moreh/moreh_sum/moreh_sum.hpp"
 #include "ttnn/operations/data_movement/permute/permute.hpp"
 #include "ttnn/operations/data_movement/pad/pad.hpp"
 #include "ttnn/operations/data_movement/slice/slice.hpp"
@@ -259,28 +259,6 @@ std::vector<Tensor> ExecuteUnaryBackwardMultigammaln::invoke(const Tensor& grad,
     return grad_tensor;
 }
 
-
-std::vector<Tensor> _unary_comp_bw(const Tensor& grad, const std::optional<MemoryConfig>& output_mem_config) {
-    std::vector<Tensor> grad_tensor;
-    Tensor zero_grad = ttnn::zeros_like(grad, grad.get_dtype(), grad.get_layout(), std::nullopt, output_mem_config);
-    grad_tensor.emplace_back(zero_grad);
-    return grad_tensor;
-}
-
-std::vector<Tensor> _eq_bw(
-    const Tensor& grad, const Tensor& input, float other, const std::optional<MemoryConfig>& output_mem_config) {
-    return _unary_comp_bw(grad, output_mem_config);
-}
-
-std::vector<Tensor> _gt_bw(
-    const Tensor& grad, const Tensor& input, float other, const std::optional<MemoryConfig>& output_mem_config) {
-    return _unary_comp_bw(grad, output_mem_config);
-}
-
-std::vector<Tensor> _ge_bw(
-    const Tensor& grad, const Tensor& input, float other, const std::optional<MemoryConfig>& output_mem_config) {
-    return _unary_comp_bw(grad, output_mem_config);
-}
 
 std::vector<Tensor> ExecuteUnaryBackwardLgamma::invoke(const Tensor& grad, const Tensor& input, const std::optional<MemoryConfig>& output_mem_config) {
     auto output_memory_config = output_mem_config.value_or(input.memory_config()); //TODO: Remove after ternary forward ops migration is completed
@@ -1425,12 +1403,13 @@ std::vector<Tensor> ExecuteUnaryBackwardRepeat::invoke(
         TT_FATAL(shape[1] == 1 && shape[2] == 1 && shape[3] == 1, "repeat[1], [2], [3] should be 1");
         std::array<std::uint32_t, 4> intended_shape_array = {1, shape_wh[1], shape_wh[2], shape_wh[3]};
         const ttnn::Shape required = ttnn::Shape(intended_shape_array);
-        Tensor result = tt::operations::primary::moreh_sum(
+        Tensor result = ttnn::moreh_sum(
             grad,
             dim,
             true,
             ttnn::zeros(required, input.get_dtype(), input.get_layout(), std::optional<std::reference_wrapper<tt::tt_metal::Device>>(*ttnn_device), output_memory_config),
-            output_memory_config);
+            output_memory_config,
+            std::nullopt);
         grad_tensor.emplace_back(result);
         return grad_tensor;
     } else if (shape[1] > 1) {
@@ -1438,12 +1417,13 @@ std::vector<Tensor> ExecuteUnaryBackwardRepeat::invoke(
         TT_FATAL(shape[0] == 1 && shape[2] == 1 && shape[3] == 1, "repeat[0], [2], [3] should be 1");
         std::array<std::uint32_t, 4> intended_shape_array = {shape_wh[0], 1, shape_wh[2], shape_wh[3]};
         const ttnn::Shape required = ttnn::Shape(intended_shape_array);
-        Tensor result = tt::operations::primary::moreh_sum(
+        Tensor result = ttnn::moreh_sum(
             grad,
             dim,
             true,
             ttnn::zeros(required, input.get_dtype(), input.get_layout(), std::optional<std::reference_wrapper<tt::tt_metal::Device>>(*ttnn_device), output_memory_config),
-            output_memory_config);
+            output_memory_config,
+            std::nullopt);
         grad_tensor.emplace_back(result);
         return grad_tensor;
     }
@@ -1485,7 +1465,7 @@ std::vector<Tensor> ExecuteUnaryBackwardProd::invoke(
     // all_dimensions = False
     Tensor updated_grad = prod_result;
     auto step = std::vector<uint32_t>({1, 1, 1, 1});
-    if (prod_result.get_legacy_shape().without_padding() != grad.get_legacy_shape()) {
+    if (prod_result.get_logical_shape() != grad.get_padded_shape()) {
         if (dim == 3 || dim == -1) {
             std::vector<int64_t> after_permute_dims = {0, 3, 1, 2};
             Tensor required = ttnn::permute(grad, after_permute_dims, output_memory_config);

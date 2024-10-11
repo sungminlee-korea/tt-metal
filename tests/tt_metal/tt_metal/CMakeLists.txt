@@ -52,8 +52,6 @@ foreach (TEST_SRC ${TT_METAL_TESTS_SRCS})
     list(APPEND METAL_TEST_TARGETS ${TEST})
 endforeach()
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/tt_metal/programming_examples ${PROJECT_BINARY_DIR}/programming_examples)
-
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/unit_tests_common)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/unit_tests)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/unit_tests_fast_dispatch)
@@ -62,7 +60,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/unit_tests_frequent)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/perf_microbenchmark)
 
 add_custom_target(metal_tests DEPENDS
-    programming_examples
     ${METAL_TEST_TARGETS}
     unit_tests
     unit_tests_fast_dispatch

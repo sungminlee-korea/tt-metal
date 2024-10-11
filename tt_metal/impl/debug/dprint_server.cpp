@@ -194,9 +194,14 @@ static void PrintTileSlice(ostream& stream, uint8_t* ptr, int hart_id) {
     TT_ASSERT(offsetof(TileSliceHostDev<0>, samples_) % sizeof(uint16_t) == 0, "TileSliceHostDev<0> samples_ field is not properly aligned");
     uint16_t *samples_ = reinterpret_cast<uint16_t *>(ptr) + offsetof(TileSliceHostDev<0>, samples_) / sizeof(uint16_t);
 
+    enum CB cb = static_cast<enum CB>(ts->cb_id_);
     if (ts->w0_ == 0xFFFF) {
-        stream << "BAD TILE POINTER" << std::flush;
-        stream << " count=" << ts->count_ << std::flush;
+        uint32_t ptr = ts->ptr_;
+        uint8_t count = ts->count_;
+        stream << fmt::format("Tried printing {}: BAD TILE POINTER (ptr={}, count={})\n", cb, ptr, count) << std::flush;
+    } else if (ts->w1_ == 0xFFFF) {
+        tt::DataFormat data_format = static_cast<tt::DataFormat>(ts->data_format_);
+        stream << fmt::format("Tried printing {}: Unsupported data format ({})\n", cb, data_format);
     } else {
         uint32_t i = 0;
         bool count_exceeded = false;
@@ -248,7 +253,7 @@ static float make_float(uint8_t exp_bit_count, uint8_t mantissa_bit_count, uint3
 }
 
 // Prints a given datum in the array, given the data_format
-static void PrintTensixRegisterData(ostream& stream, int setwidth, uint32_t raw_element_count, uint32_t datum, uint16_t data_format) {
+static void PrintTensixRegisterData(ostream& stream, int setwidth, uint32_t datum, uint16_t data_format) {
     switch (data_format) {
         case static_cast<std::uint8_t>(tt::DataFormat::Float16):
         case static_cast<std::uint8_t>(tt::DataFormat::Bfp8):
@@ -269,7 +274,11 @@ static void PrintTensixRegisterData(ostream& stream, int setwidth, uint32_t raw_
             stream << setw(setwidth) << make_float(8, 10, datum) << " ";
             break;
         case static_cast<std::uint8_t>(tt::DataFormat::Float32):
-            stream << setw(setwidth) << *reinterpret_cast<float*>(&datum) << " "; // Treat datum as if it stores bits for a float
+            {
+                float value;
+                memcpy(&value, &datum, sizeof(float));
+                stream << setw(setwidth) << value << " ";
+            }
             break;
         case static_cast<std::uint8_t>(tt::DataFormat::UInt32):
             stream << setw(setwidth) << datum << " ";
@@ -300,7 +309,7 @@ static void PrintTypedUint32Array(ostream& stream, int setwidth, uint32_t raw_el
                 stream << std::hex << "0x" << data[i] << " ";
                 break;
             case TypedU32_ARRAY_Format_Tensix_Config_Register_Data_Format_Type:
-                PrintTensixRegisterData(stream, setwidth, raw_element_count, data[i], array_subtype);
+                PrintTensixRegisterData(stream, setwidth, data[i], array_subtype);
                 break;
             default:
                 stream << "Unknown type " << array_type;

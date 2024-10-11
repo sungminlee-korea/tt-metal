@@ -2,17 +2,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include "ttnn/tensor/tensor_utils.hpp"
-#include "ttnn/operations/experimental/auto_format/auto_format.hpp"
 #include "ttnn/operations/conv/conv2d/device/optimized_conv_op.hpp"
-#include "ttnn/deprecated/tt_dnn/op_library/sharding_utilities.hpp"
 #include "ttnn/operations/sliding_window/sliding_window.hpp"
 #include "tt_metal/common/work_split.hpp"
 #include "tt_metal/common/constants.hpp"
 #include "tt_metal/detail/tt_metal.hpp"
 #include "tt_metal/detail/util.hpp"
 #include "tt_metal/host_api.hpp"
-#include "tt_stl/reflection.hpp"
 
 using namespace tt::constants;
 
@@ -51,7 +47,6 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_width_sharded_v2_impl(
     bool fuse_relu,
     const OptimizedConvParallelizationConfig& parallelization_config,
     const OptimizedConvBlockConfig& block_config,
-    uint32_t extra_padding_for_32B_alignment,
     bool use_shallow_conv_variant,
     bool transpose_mcast,
     Tensor& output,
@@ -348,7 +343,6 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
     bool fuse_relu,
     const OptimizedConvParallelizationConfig& parallelization_config,
     const OptimizedConvBlockConfig& block_config,
-    uint32_t extra_padding_for_32B_alignment,
     bool use_shallow_conv_variant,
     bool transpose_mcast,
     Tensor& output,
@@ -382,32 +376,8 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
     log_debug(LogOp, "out_df: {}", out_df);
     log_debug(LogOp, "bias_df: {}", bias_df);
 
-    // compute kernel config
-    MathFidelity math_fidelity;
-    bool math_approx_mode;
-    bool fp32_dest_acc_en;
-    bool packer_l1_acc;
-
-    std::visit(
-        [&](auto&& compute_kernel_config) {
-            using T = std::decay_t<decltype(compute_kernel_config)>;
-            if constexpr (std::is_same_v<T, GrayskullComputeKernelConfig>) {
-                TT_FATAL(device->arch() == ARCH::GRAYSKULL, "kernel config is not for graykull");
-                math_fidelity = compute_kernel_config.math_fidelity;
-                math_approx_mode = compute_kernel_config.math_approx_mode;
-                fp32_dest_acc_en = false;
-                packer_l1_acc = false;
-            } else if constexpr (std::is_same_v<T, WormholeComputeKernelConfig>) {
-                TT_FATAL(ttnn::device::is_wormhole_or_blackhole(device->arch()), "kernel config is not for wormhole_b0 or blackhole");
-                math_fidelity = compute_kernel_config.math_fidelity;
-                math_approx_mode = compute_kernel_config.math_approx_mode;
-                fp32_dest_acc_en = compute_kernel_config.fp32_dest_acc_en;
-                packer_l1_acc = compute_kernel_config.packer_l1_acc;
-            } else {
-                TT_THROW("arch not supported");
-            }
-        },
-        compute_kernel_config);
+    auto [math_fidelity, math_approx_mode, fp32_dest_acc_en, packer_l1_acc, dst_full_sync_en] =
+        get_compute_kernel_config_args(device->arch(), compute_kernel_config);
 
     if (fp32_dest_acc_en and (out_subblock_h_ntiles * out_subblock_w_ntiles > 4)) {
         if (out_subblock_w_ntiles >= 4) {
@@ -532,7 +502,7 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
     // Compute the 2d matrix shape
     auto [act_matrix_shape, act_matrix_shape_unpadded] =
         optimized_conv_op_utils::compute_opt_conv_activation_as_mm_shape(
-            ashape_with_channels_padded.value, sliding_window_config, out_block_h_ntiles, extra_padding_for_32B_alignment);
+            ashape_with_channels_padded.value, sliding_window_config, out_block_h_ntiles);
     assert(act_matrix_shape.size() == 3);
     assert(act_matrix_shape[0] == 1);
     uint32_t act_matrix_height = (uint32_t)act_matrix_shape[1];
@@ -554,7 +524,7 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
         // Tensor bias is of shape {output_channels}
         TT_FATAL(bias.has_value(), "Error");
         TT_FATAL(bias.value().buffer() != nullptr, "Error");
-        auto bias_shape_without_padding = bias.value().get_legacy_shape().without_padding();
+        auto bias_shape_without_padding = bias.value().get_logical_shape();
         TT_FATAL(bias_shape_without_padding[0] == 1, "Bias should have batch == 1");
     }
 
@@ -685,17 +655,9 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_impl(
         bias_ntiles =
             bias.value().get_legacy_shape()[3] / constants::TILE_WIDTH;  // TODO: support non tile multiple sizes
     }
-
-    auto [conv_output_size_h, conv_output_size_w] = optimized_conv_op_utils::compute_opt_conv_output_face_shape(
-        conv_act_size_h,
-        conv_act_size_w,
-        filter_h,
-        filter_w,
-        stride_h,
-        stride_w,
-        pad_h,
-        pad_w,
-        extra_padding_for_32B_alignment);
+    auto output_shape = sliding_window_config.get_output_shape();
+    uint32_t conv_output_size_h = output_shape[1];
+    uint32_t conv_output_size_w = output_shape[2];
 
     std::map<string, string> reader_defines;
 
@@ -1694,7 +1656,6 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_new(
     MathFidelity math_fidelity,
     const OptimizedConvParallelizationConfig& parallelization_config,
     const OptimizedConvBlockConfig& block_config,
-    uint32_t extra_padding_for_32B_alignment,
     DataType output_dtype,
     std::array<std::uint32_t, 4> input_tensor_shape,
     bool use_shallow_conv_variant,
@@ -1745,7 +1706,6 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_new(
         fuse_relu,
         parallelization_config,
         block_config,
-        extra_padding_for_32B_alignment,
         use_shallow_conv_variant,
         parallel_config.shard_orientation == ShardOrientation::COL_MAJOR,
         output,
@@ -1769,7 +1729,6 @@ operation::ProgramWithCallbacks multi_core_optimized_conv_sharded_v2_new(
         fuse_relu,
         parallelization_config,
         block_config,
-        extra_padding_for_32B_alignment,
         use_shallow_conv_variant,
         parallel_config.shard_orientation == ShardOrientation::COL_MAJOR,
         output,
