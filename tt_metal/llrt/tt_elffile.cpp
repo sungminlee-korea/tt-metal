@@ -263,6 +263,49 @@ void ElfFile::Impl::LoadImage() {
 }
 
 void ElfFile::Impl::XIPify() {
+    // In general there can be several lo12 relocs for a hi20
+    // reloc. This is particularly true for lui/{addi,lw,sw,etc}
+    // pairs -- a load and a store might share a single lui, as
+    // the compiler now emits those insns separately. Thus we have
+    // to build a work list and then process it. Furthermore,
+    // although auipc/lo12 pairings are clear because the lo12
+    // part directly points at the auipc, that is not true of
+    // lui/lo12 pairings. We have to use heuristics to locate the
+    // matching relocs and that could get arbitrarily hard. We
+    // presume (a) the compiler doesn't duplicate lui insns, and
+    // (b) the lui preceeds the lo12 in program counter
+    // order. Thus we look for a hi20 reloc matching the symbol at
+    // a lower offset than the lo12 in question. Fortunately we
+    // only need to do this for relocs that need translating, and
+    // those happen to be rare when all data-like sections are in
+    // the data segment (so putting .rodata in text is
+    // problematic). If that proves insufficient here are some
+    // ideas:
+
+    // * Insert fn boundaries from symbols of FNtype -- you'll
+    //   need to tweak the fn address to not cause collisions in
+    //   the reloc map. this might fail with hot/cold block
+    //   splitting.
+
+    // * Construct the CFG by examining R_RISCV_BRANCH
+    //   relocs. Then walk it (backwards) from each lo12 to find
+    //   the reachable hi20. This would be able to deal with
+    //   hot/cold splitting, if one constructed the complete
+    //   section CFG, not as a per-fn entity. One might get away
+    //   with not disasembling to discover ret instructions that
+    //   terminate the CFG.
+
+    struct ComposedReloc {
+        std::vector<Elf32_Rela *> lo_relocs;
+        Elf32_Rela *hi_reloc = nullptr;  // the high part
+
+        ComposedReloc(Elf32_Rela *hi) : hi_reloc(hi) {}
+    };
+
+    enum { ABS, PCREL, HWM };
+    static char const *const r_names[][2] = {
+        {"R_RISCV_HI20", "R_RISCV_LO12"}, {"R_RISCV_PCREL_HI20", "R_RISCV_PCREL_LO12"}};
+
     auto check_relaxed = [&](Elf32_Rela const &reloc) {
         // If RELOC is the final reloc, this will
         // be out of bounds (and probably fail),
@@ -273,20 +316,20 @@ void ElfFile::Impl::XIPify() {
     auto translate_hi20 = [&](std::span<std::byte> contents,
                               address_t base,
                               Elf32_Rela &reloc,
-                              bool is_pcrel,
+                              unsigned kind,
                               address_t value) {
         uint32_t insn = Read32(contents, reloc.r_offset - base);
         log_debug(
             tt::LogLLRuntime,
-            "{}: translating R_RISCV{}_HI20 at {x} to R_RISCV{}_HI20",
+            "{}: translating {} at {x} to {}",
             path_,
-            is_pcrel ? "_PCREL" : "",
+            r_names[kind][false],
             reloc.r_offset,
-            !is_pcrel ? "_PCREL" : "");
+            r_names[kind == ABS ? PCREL : ABS][false]);
         check_relaxed(reloc);
-        if ((insn & insn_mask_u) != (is_pcrel ? insn_opc_auipc : insn_opc_lui))
+        if ((insn & insn_mask_u) != (kind == ABS ? insn_opc_lui : insn_opc_auipc))
             TT_THROW(
-                "{}: translating instruction at {x} is not `{}'", path_, reloc.r_offset, is_pcrel ? "auipc" : "lui");
+                "{}: translating instruction at {x} is not `{}'", path_, reloc.r_offset, kind == ABS ? "lui" : "auipc");
         insn &= mask_hi20;                      // Remove old immediate
         insn ^= insn_opc_auipc ^ insn_opc_lui;  // Convert opcode
         // Insert new immediate
@@ -296,17 +339,17 @@ void ElfFile::Impl::XIPify() {
     auto translate_lo12 = [&](std::span<std::byte> contents,
                               address_t base,
                               Elf32_Rela &reloc,
+                              unsigned kind,
                               bool is_form_i,
-                              bool is_pcrel,
                               address_t value) {
         uint32_t insn = Read32(contents, reloc.r_offset - base);
         log_debug(
             tt::LogLLRuntime,
             "{}: translating R_RISCV{}_LO12 at {x} to R_RISCV{}_LO12",
             path_,
-            is_pcrel ? "_PCREL" : "",
+            r_names[kind][true],
             reloc.r_offset,
-            !is_pcrel ? "_PCREL" : "");
+            r_names[kind == ABS ? PCREL : ABSE][true]);
         check_relaxed(reloc);
         if (is_form_i) {
             insn &= mask_lo12_i;
@@ -338,48 +381,8 @@ void ElfFile::Impl::XIPify() {
             continue;
 
         num_reloc_sections++;
-
-        // In general there can be several lo12 relocs for a hi20
-        // reloc. This is particularly true for lui/{addi,lw,sw,etc}
-        // pairs -- a load and a store might share a single lui, as
-        // the compiler now emits those insns separately. Thus we have
-        // to build a work list and then process it. Furthermore,
-        // although auipc/lo12 pairings are clear because the lo12
-        // part directly points at the auipc, that is not true of
-        // lui/lo12 pairings. We have to use heuristics to locate the
-        // matching relocs and that could get arbitrarily hard. We
-        // presume (a) the compiler doesn't duplicate lui insns, and
-        // (b) the lui preceeds the lo12 in program counter
-        // order. Thus we look for a hi20 reloc matching the symbol at
-        // a lower offset than the lo12 in question. Fortunately we
-        // only need to do this for relocs that need translating, and
-        // those happen to be rare when all data-like sections are in
-        // the data segment (so putting .rodata in text is
-        // problematic). If that proves insufficient here are some
-        // ideas:
-
-        // * Insert fn boundaries from symbols of FNtype -- you'll
-        //   need to tweak the fn address to not cause collisions in
-        //   the reloc map. this might fail with hot/cold block
-        //   splitting.
-
-        // * Construct the CFG by examining R_RISCV_BRANCH
-        //   relocs. Then walk it (backwards) from each lo12 to find
-        //   the reachable hi20. This would be able to deal with
-        //   hot/cold splitting, if one constructed the complete
-        //   section CFG, not as a per-fn entity. One might get away
-        //   with not disasembling to discover ret instructions that
-        //   terminate the CFG.
-
-        struct ComposedReloc {
-            std::vector<Elf32_Rela *> lo_relocs;
-            Elf32_Rela *hi_reloc = nullptr;  // the high part
-
-            ComposedReloc(Elf32_Rela *hi) : hi_reloc(hi) {}
-        };
-
-        std::map<offset_t, ComposedReloc> pcrel_relocs, abs_relocs;
-        std::vector<Elf32_Rela *> pcrel_todo, abs_todo;
+        std::map<offset_t, ComposedReloc> composed[HWM];
+        std::vector<Elf32_Rela *> lo[HWM];
 
         auto symbols = GetSymbols(GetShdr(relocHdr.sh_link));
         auto relocs = GetRelocations(relocHdr);
@@ -425,33 +428,32 @@ void ElfFile::Impl::XIPify() {
                     goto unpaired_sub;
             }
 
-            // TODO: Verify insn-relocs are in text section.
+            unsigned kind = PCREL;
             switch (type) {
                 // Abs relocs to text will need fixing up
                 case R_RISCV_LO12_I:
                 case R_RISCV_LO12_S:
-                    if (is_to_text)
-                        abs_todo.push_back(&reloc);
-                    break;
-                case R_RISCV_HI20:
-                    if (is_to_text && !is_from_text)
-                        TT_THROW("{}: segment-crossing R_RISCV_HI20 relocation found at {x}", path_, reloc.r_offset);
-
-                    if (is_to_text)
-                        abs_relocs.emplace(reloc.r_offset, ComposedReloc(&reloc));
-                    break;
+                    if (!is_to_text)
+                        break;
+                    kind = ABS;
+                    [[fallthrough]];
 
                 // PCrel relocs not to text will need fixing up. At
                 // this point we don't know the symbol from the LO12
                 // relocs, as that points at the hi20 reloc.
                 case R_RISCV_PCREL_LO12_I:
-                case R_RISCV_PCREL_LO12_S: pcrel_todo.push_back(&reloc); break;
+                case R_RISCV_PCREL_LO12_S: lo[kind].push_back(&reloc); break;
+
+                case R_RISCV_HI20: kind = ABS; [[fallthrough]];
 
                 case R_RISCV_PCREL_HI20:
                     if (is_to_text && !is_from_text)
                         TT_THROW(
-                            "{}: segment-crossing R_RISCV_PCREL_HI20 relocation found at {x}", path_, reloc.r_offset);
-                    pcrel_relocs.emplace(reloc.r_offset, ComposedReloc(&reloc));
+                            "{}: segment-crossing {} relocation found at {x}", path_, r_names[kind][0], reloc.r_offset);
+
+                    if (!is_to_text && kind == ABS)
+                        break;
+                    composed[kind].emplace(reloc.r_offset, ComposedReloc(&reloc));
                     break;
 
                 case R_RISCV_32: {
@@ -488,88 +490,89 @@ void ElfFile::Impl::XIPify() {
             }
         }
 
-        // Combine hi/lo pc-rel relocs
-        for (auto *lo_reloc : pcrel_todo) {
-            uint32_t hi_offset = symbols[ELF32_R_SYM(lo_reloc->r_info)].st_value + lo_reloc->r_addend;
-            auto hi_reloc = pcrel_relocs.find(hi_offset);
-            if (hi_reloc == pcrel_relocs.end())
+        // Combine hi/lo relocs
+
+        // We can't do abs ones in general with complete accuracy,
+        // because there could be multiple possible matching hi
+        // relocs. If we construct the CFG then it becomes more
+        // accurate, but it's always going to be somewhat
+        // heuristic. Let's hope CFG construction is unnecessary. A
+        // first step in that direction might be to insert function
+        // boundaries, to stop the search.
+        for (unsigned kind = HWM; kind--;) {
+            for (auto *lo_reloc : lo[kind]) {
+                // Find the matching hi-reloc by searching backwards. This
+                // presumes block reordering hasn't done something to
+                // break that.
+                unsigned sym_ix = ELF32_R_SYM(lo_reloc->r_info);
+                auto hi_reloc = composed[kind].begin();
+
+                if (kind == ABS) {
+                    hi_reloc = composed[kind].lower_bound(lo_reloc->r_offset);
+                    while (hi_reloc != composed[kind].begin()) {
+                        --hi_reloc;
+                        if (ELF32_R_SYM(hi_reloc->second.hi_reloc->r_info) == sym_ix)
+                            goto found;
+                    }
+                } else {
+                    uint32_t hi_offset = symbols[sym_ix].st_value + lo_reloc->r_addend;
+                    hi_reloc = composed[kind].find(hi_offset);
+                    if (hi_reloc != composed[kind].end())
+                        goto found;
+                }
                 TT_THROW(
-                    "{}: R_RISCV_PCREL_LO12 relocation at {x} has no matching R_RISCV_PCREL_HI20",
+                    "{}: {} relocation at {x} has no matching {}",
                     path_,
-                    lo_reloc->r_offset);
-            hi_reloc->second.lo_relocs.push_back(&*lo_reloc);
-        }
-        // Process them
-        for (auto &slot : pcrel_relocs) {
-            if (slot.second.lo_relocs.empty())
-                TT_THROW(
-                    "{}: R_RISCV_PCREL_HI20 relocation at {x} has no matching R_RISCV_PCREL_LO12", path_, slot.first);
-
-            unsigned sym_ix = ELF32_R_SYM(slot.second.hi_reloc->r_info);
-            auto const &symbol = symbols[sym_ix];
-            bool is_to_text = IsTextSymbol(symbol);
-            if (is_to_text == is_from_text)
-                continue;
-
-            address_t value = symbol.st_value + slot.second.hi_reloc->r_addend;
-
-            // translate hi
-            translate_hi20(GetContents(section), section.sh_addr, *slot.second.hi_reloc, true, value);
-            slot.second.hi_reloc->r_info = ELF32_R_INFO(sym_ix, R_RISCV_HI20);
-
-            // translate lo
-            for (auto *lo_reloc : slot.second.lo_relocs) {
-                bool is_form_i = ELF32_R_TYPE(lo_reloc->r_info) == R_RISCV_PCREL_LO12_I;
-                translate_lo12(GetContents(section), section.sh_addr, *lo_reloc, is_form_i, true, value);
-                lo_reloc->r_info = ELF32_R_INFO(sym_ix, is_form_i ? R_RISCV_LO12_I : R_RISCV_LO12_S);
-                lo_reloc->r_addend = slot.second.hi_reloc->r_addend;
+                    r_names[kind][true],
+                    lo_reloc->r_offset,
+                    r_names[kind][false]);
+            found:
+                hi_reloc->second.lo_relocs.push_back(lo_reloc);
             }
         }
 
-        // Combine hi/lo abs relocs
-        // We can't do this in general with complete accuracy, because
-        // there could be multiple possible matching hi relocs. If we
-        // construct the CFG then it becomes more accurate, but it's
-        // always going to be somewhat heuristic. Let's hope CFG
-        // construction is unnecessary. A first step in that direction
-        // might be to insert function boundaries, to stop the search.
-        for (auto *lo_reloc : abs_todo) {
-            // Find the matching hi-reloc by searching backwards. This
-            // presumes block reordering hasn't done something to
-            // break that.
-            unsigned sym_ix = ELF32_R_SYM(lo_reloc->r_info);
-            auto hi_reloc = abs_relocs.lower_bound(lo_reloc->r_offset);
-            while (hi_reloc != abs_relocs.begin()) {
-                --hi_reloc;
-                if (ELF32_R_SYM(hi_reloc->second.hi_reloc->r_info) == sym_ix)
-                    goto found;
-            }
-            TT_THROW(
-                "{}: R_RISCV_LO12 relocation at {x} has no matching R_RISCV_PCREL_HI20", path_, lo_reloc->r_offset);
-        found:
-            hi_reloc->second.lo_relocs.push_back(lo_reloc);
-        }
+        // Process composed relocations
+        for (unsigned kind = HWM; kind--;) {
+            for (auto &slot : composed[kind]) {
+                if (slot.second.lo_relocs.empty())
+                    TT_THROW(
+                        "{}: R_RISCV_{}HI20 relocation at {x} has no matching R_RISCV_{}LO12",
+                        path_,
+                        r_names[kind][false],
+                        r_names[kind][true],
+                        slot.first);
 
-        // process them
-        for (auto &slot : abs_relocs) {
-            if (slot.second.lo_relocs.empty())
-                TT_THROW("{}: R_RISCV_HI20 relocation at {x} has no matching R_RISCV_LO12", path_, slot.first);
-            unsigned sym_ix = ELF32_R_SYM(slot.second.hi_reloc->r_info);
-            auto const &symbol = symbols[sym_ix];
-            address_t value = symbol.st_value + slot.second.hi_reloc->r_addend - slot.first;
+                unsigned sym_ix = ELF32_R_SYM(slot.second.hi_reloc->r_info);
+                auto const &symbol = symbols[sym_ix];
+                bool is_to_text = IsTextSymbol(symbol);
+                if (is_to_text == is_from_text)
+                    continue;
 
-            // translate hi
-            translate_hi20(GetContents(section), section.sh_addr, *slot.second.hi_reloc, false, value);
-            slot.second.hi_reloc->r_info = ELF32_R_INFO(sym_ix, R_RISCV_PCREL_HI20);
+                address_t value = symbol.st_value + slot.second.hi_reloc->r_addend;
+                if (kind == ABS) {
+                    value -= slot.first;
+                    sym_ix = 0;
+                }
 
-            // translate lo
-            for (auto *lo_reloc : slot.second.lo_relocs) {
-                bool is_form_i = ELF32_R_TYPE(lo_reloc->r_info) == R_RISCV_LO12_I;
-                translate_lo12(GetContents(section), section.sh_addr, *lo_reloc, is_form_i, false, value);
-                // We can't convert with fidelity, as that involves adding a
-                // symbol. Instead, let's use a null symbol and an addend.
-                lo_reloc->r_info = ELF32_R_INFO(0, is_form_i ? R_RISCV_PCREL_LO12_I : R_RISCV_PCREL_LO12_S);
-                lo_reloc->r_addend = slot.second.hi_reloc->r_offset - lo_reloc->r_offset;
+                // translate hi
+                translate_hi20(GetContents(section), section.sh_addr, *slot.second.hi_reloc, kind, value);
+                slot.second.hi_reloc->r_info ^= ELF32_R_INFO(0, R_RISCV_HI20 ^ R_RISCV_PCREL_HI20);
+
+                // translate lo
+                for (auto *lo_reloc : slot.second.lo_relocs) {
+                    unsigned type = ELF32_R_TYPE(lo_reloc->r_info);
+                    bool is_form_i = type == (kind == PCREL ? R_RISCV_PCREL_LO12_I : R_RISCV_LO12_I);
+                    translate_lo12(GetContents(section), section.sh_addr, *lo_reloc, kind, is_form_i, value);
+                    // We can't convert to PCREL with fidelity, as
+                    // that involves adding a symbol. Instead, let's
+                    // use a null symbol and an addend.
+                    lo_reloc->r_info = ELF32_R_INFO(
+                        sym_ix,
+                        type ^ (is_form_i ? (R_RISCV_LO12_I ^ R_RISCV_PCREL_LO12_I)
+                                          : (R_RISCV_LO12_S ^ R_RISCV_PCREL_LO12_S)));
+                    lo_reloc->r_addend = kind == PCREL ? slot.second.hi_reloc->r_addend
+                                                       : slot.second.hi_reloc->r_offset - lo_reloc->r_offset;
+                }
             }
         }
     }
