@@ -142,11 +142,11 @@ class ElfFile::Impl {
         return reinterpret_cast<T const *>(base + offset);
     }
 
-    static uint32_t Read32(std::span<std::byte> contents, uint32_t offset) {
-        return *ByteOffset<uint32_t>(contents.data(), offset);
+    uint32_t Read32(Elf32_Shdr const &shdr, address_t addr) {
+        return *ByteOffset<uint32_t>(GetContents(shdr).data(), addr - shdr.sh_addr);
     }
-    static void Write32(std::span<std::byte> contents, uint32_t offset, uint32_t value) {
-        *ByteOffset<uint32_t>(contents.data(), offset) = value;
+    void Write32(Elf32_Shdr const &shdr, address_t addr, uint32_t value) {
+        *ByteOffset<uint32_t>(GetContents(shdr).data(), addr - shdr.sh_addr) = value;
     }
 };
 
@@ -313,55 +313,6 @@ void ElfFile::Impl::XIPify() {
         if (ELF32_R_TYPE((&reloc)[1].r_info) != R_RISCV_RELAX)
             log_debug(tt::LogLLRuntime, "{}: Relocation at {x} is not relaxed", path_, reloc.r_offset);
     };
-    auto translate_hi20 = [&](std::span<std::byte> contents,
-                              address_t base,
-                              Elf32_Rela &reloc,
-                              unsigned kind,
-                              address_t value) {
-        uint32_t insn = Read32(contents, reloc.r_offset - base);
-        log_debug(
-            tt::LogLLRuntime,
-            "{}: translating {} at {x} to {}",
-            path_,
-            r_names[kind][false],
-            reloc.r_offset,
-            r_names[kind == ABS ? PCREL : ABS][false]);
-        check_relaxed(reloc);
-        if ((insn & insn_mask_u) != (kind == ABS ? insn_opc_lui : insn_opc_auipc))
-            TT_THROW(
-                "{}: translating instruction at {x} is not `{}'", path_, reloc.r_offset, kind == ABS ? "lui" : "auipc");
-        insn &= mask_hi20;                      // Remove old immediate
-        insn ^= insn_opc_auipc ^ insn_opc_lui;  // Convert opcode
-        // Insert new immediate
-        insn |= ((value + (1 << 11)) >> 12) << mask_hi20_shift;
-        Write32(contents, reloc.r_offset - base, insn);
-    };
-    auto translate_lo12 = [&](std::span<std::byte> contents,
-                              address_t base,
-                              Elf32_Rela &reloc,
-                              unsigned kind,
-                              bool is_form_i,
-                              address_t value) {
-        uint32_t insn = Read32(contents, reloc.r_offset - base);
-        log_debug(
-            tt::LogLLRuntime,
-            "{}: translating R_RISCV{}_LO12 at {x} to R_RISCV{}_LO12",
-            path_,
-            r_names[kind][true],
-            reloc.r_offset,
-            r_names[kind == ABS ? PCREL : ABSE][true]);
-        check_relaxed(reloc);
-        if (is_form_i) {
-            insn &= mask_lo12_i;
-            insn |= (value & 0x0fff) << mask_lo12_i_shift;
-        } else {
-            // S form splits the immediate
-            insn &= mask_lo12_s;
-            insn |= (value & ((1 << mask_lo12_s_split) - 1)) << mask_lo12_s_shift_1;
-            insn |= ((value & 0x0fff) >> mask_lo12_s_split) << mask_lo12_s_shift_2;
-        }
-        Write32(contents, reloc.r_offset - base, insn);
-    };
 
     // TODO:We'll eventually place at zero, but this allows the null transformation
     const address_t text_placement = GetSegments().front().address;
@@ -464,7 +415,7 @@ void ElfFile::Impl::XIPify() {
                         tt::LogLLRuntime, "{}: emitting dynamic R_RISCV_32 relocation at {x}", path_, reloc.r_offset);
                     address_t value =
                         (symbol->st_value + reloc.r_addend - GetSegments().front().address + text_placement);
-                    Write32(GetContents(section), reloc.r_offset - section.sh_addr, value);
+                    Write32(section, reloc.r_offset, value);
                     auto &seg = GetSegments()[segment_ix];
                     seg.relocs.push_back(reloc.r_offset - seg.address);
                 } break;
@@ -542,27 +493,66 @@ void ElfFile::Impl::XIPify() {
                         r_names[kind][true],
                         slot.first);
 
-                unsigned sym_ix = ELF32_R_SYM(slot.second.hi_reloc->r_info);
+                auto hi_reloc = slot.second.hi_reloc;
+                unsigned sym_ix = ELF32_R_SYM(hi_reloc->r_info);
                 auto const &symbol = symbols[sym_ix];
                 bool is_to_text = IsTextSymbol(symbol);
                 if (is_to_text == is_from_text)
                     continue;
 
-                address_t value = symbol.st_value + slot.second.hi_reloc->r_addend;
+                address_t value = symbol.st_value + hi_reloc->r_addend;
                 if (kind == ABS) {
                     value -= slot.first;
                     sym_ix = 0;
                 }
 
                 // translate hi
-                translate_hi20(GetContents(section), section.sh_addr, *slot.second.hi_reloc, kind, value);
-                slot.second.hi_reloc->r_info ^= ELF32_R_INFO(0, R_RISCV_HI20 ^ R_RISCV_PCREL_HI20);
+                check_relaxed(*hi_reloc);
+                uint32_t insn = Read32(section, hi_reloc->r_offset);
+                log_debug(
+                    tt::LogLLRuntime,
+                    "{}: translating {} at {x} to {}",
+                    path_,
+                    r_names[kind][false],
+                    hi_reloc->r_offset,
+                    r_names[HWM - 1 - kind][false]);
+                if ((insn & insn_mask_u) != (kind == ABS ? insn_opc_lui : insn_opc_auipc))
+                    TT_THROW(
+                        "{}: translating instruction at {x} is not `{}'",
+                        path_,
+                        hi_reloc->r_offset,
+                        kind == ABS ? "lui" : "auipc");
+                insn &= mask_hi20;                      // Remove old immediate
+                insn ^= insn_opc_auipc ^ insn_opc_lui;  // Convert opcode
+                // Insert new immediate
+                insn |= ((value + (1 << 11)) >> 12) << mask_hi20_shift;
+                Write32(section, hi_reloc->r_offset, insn);
+                hi_reloc->r_info ^= ELF32_R_INFO(0, R_RISCV_HI20 ^ R_RISCV_PCREL_HI20);
 
                 // translate lo
                 for (auto *lo_reloc : slot.second.lo_relocs) {
                     unsigned type = ELF32_R_TYPE(lo_reloc->r_info);
                     bool is_form_i = type == (kind == PCREL ? R_RISCV_PCREL_LO12_I : R_RISCV_LO12_I);
-                    translate_lo12(GetContents(section), section.sh_addr, *lo_reloc, kind, is_form_i, value);
+                    check_relaxed(*lo_reloc);
+                    uint32_t insn = Read32(section, lo_reloc->r_offset);
+                    log_debug(
+                        tt::LogLLRuntime,
+                        "{}: translating R_RISCV{}_LO12 at {x} to R_RISCV{}_LO12",
+                        path_,
+                        r_names[kind][true],
+                        lo_reloc->r_offset,
+                        r_names[HWM - 1 - kind][true]);
+                    if (is_form_i) {
+                        insn &= mask_lo12_i;
+                        insn |= (value & 0x0fff) << mask_lo12_i_shift;
+                    } else {
+                        // S form splits the immediate
+                        insn &= mask_lo12_s;
+                        insn |= (value & ((1 << mask_lo12_s_split) - 1)) << mask_lo12_s_shift_1;
+                        insn |= ((value & 0x0fff) >> mask_lo12_s_split) << mask_lo12_s_shift_2;
+                    }
+                    Write32(section, lo_reloc->r_offset, insn);
+
                     // We can't convert to PCREL with fidelity, as
                     // that involves adding a symbol. Instead, let's
                     // use a null symbol and an addend.
