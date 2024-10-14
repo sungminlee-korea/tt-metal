@@ -32,10 +32,12 @@ memory::memory(std::string const &path) : memory() {
     // The ELF file puts the text segment first, but memory wants
     // ordered spans.
     // FIXME: Perhaps we can relax that?
+    uint32_t total_size = 0;
     auto emit_segment = [&](ElfFile::Segment const& segment) {
         link_spans_.emplace_back(
             segment.address, segment.contents.size());
         data_.insert(data_.end(), segment.contents.begin(), segment.contents.end());
+        total_size += segment.contents.size();
     };
     auto* text = &elf.GetSegments()[0];
     for (auto& segment : std::span(elf.GetSegments()).subspan(1)) {
@@ -47,6 +49,9 @@ memory::memory(std::string const &path) : memory() {
     }
     if (text)
         emit_segment(*text);
+
+    set_text_size(elf.GetSegments()[0].contents.size() * sizeof(uint32_t));
+    set_packed_size(total_size * sizeof(uint32_t));
 }
 
 bool memory::operator==(const memory& other) const {
@@ -106,17 +111,15 @@ void memory::pack_data_into_text(std::uint64_t text_start, std::uint64_t data_st
     // Copy text spans.  May start after data span (ncrisc)
     // TODO: Ideally would be just 1, sometimes init doesn't merge w/ text and we get 2
     // TODO: (and init is just a jump to text and should be removed)
+    int count = 0;
     for (const auto& span : this->link_spans_) {
         if (span.addr >= text_start && span.addr < text_end) {
             if (first_text) {
                 new_span.addr = span.addr;
                 first_text = false;
             } else if (span.addr > new_span.addr + new_len * sizeof(uint32_t)) {
-                uint64_t delta = span.addr - (new_span.addr + new_len * sizeof(uint32_t));
-                delta /= sizeof(uint32_t);
-                // Pad the prior span
-                new_data.resize(new_data.size() + delta);
-                new_len += delta;
+                // There should only be 1 text span at this point
+                TT_ASSERT(0, "Found duplicate text span");
             }
             memcpy(&new_data[new_len], &this->data_[offset], span.len * sizeof(uint32_t));
             new_len += span.len;
