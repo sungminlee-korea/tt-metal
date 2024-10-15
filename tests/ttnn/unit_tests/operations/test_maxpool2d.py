@@ -169,10 +169,10 @@ def run_max_pool_width_shard(
 
     max_cores = device.core_grid.x * device.core_grid.y
     if in_c < max_cores:
-        pytest.skip("Width shareding requires channles >= cores")
+        pytest.skip("Width sharding requires channles >= cores")
 
     if in_c / max_cores < 16:
-        pytest.skip("Width shareding requires large enough channels to shard (at least 16 per core)")
+        pytest.skip("Width sharding requires large enough channels to shard (at least 16 per core)")
 
     torch.manual_seed(0)
     torch.set_printoptions(precision=3, sci_mode=False, linewidth=500, threshold=10000, edgeitems=32)
@@ -262,12 +262,19 @@ def run_max_pool_block_shard(
     stride_h, stride_w = stride
     dilation_h, dilation_w = dilation
 
-    # max_cores = device.core_grid.x * device.core_grid.y
-    # if in_c < max_cores:
-    #     pytest.skip("Width shareding requires channles >= cores")
+    if 2 * pad_h > kernel_h or 2 * pad_w > kernel_w:
+        pytest.skip("Invalid case")
 
-    # if in_c / max_cores < 16:
-    #     pytest.skip("Width shareding requires large enough channels to shard (at least 16 per core)")
+    if (kernel_h == 3 and pad_h != 1) or (kernel_h == 2 and pad_h != 0):
+        pytest.skip("kernel size and padding combination not supported")
+
+    cores_x = device.core_grid.x
+    cores_y = device.core_grid.y
+    if in_c < cores_x:
+        pytest.skip("Block sharding requires channles >= cores")
+
+    if in_c / cores_x < 16:
+        pytest.skip("Block sharding requires large enough channels to shard (at least 16 per core)")
 
     torch.manual_seed(0)
     torch.set_printoptions(precision=3, sci_mode=False, linewidth=500, threshold=10000, edgeitems=32)
@@ -283,8 +290,8 @@ def run_max_pool_block_shard(
     if dtype == ttnn.bfloat8_b:
         if (in_h * in_w) % 32 != 0:
             pytest.skip("For BFP8_B datatype, input height * width should be multiple of 32")
-        # if (in_c / max_cores) % 32 != 0:
-        #     pytest.skip("For BFP8_B datatype, input channels / cores should be multiple of 32")
+        if (in_c / cores_x) % 32 != 0:
+            pytest.skip("For BFP8_B datatype, input channels / cores should be multiple of 32")
         ttact = ttnn.from_torch(act_reshaped, dtype, layout=ttnn.TILE_LAYOUT)
     else:
         ttact = ttnn.from_torch(act_reshaped, dtype)
@@ -470,7 +477,18 @@ def test_run_max_pool_width_shard(
 @pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
 @pytest.mark.parametrize(
     "act_shape",  ## NCHW
-    (([4, 256, 8, 8],)),  ## resnet shapes
+    (
+        (  ## resnet shapes
+            [1, 256, 28, 28],
+            [1, 256, 14, 14],
+            [1, 512, 6, 6],
+            [1, 1024, 6, 6],
+            [1, 2048, 6, 6],
+            [4, 512, 40, 40],
+            [2, 1024, 40, 40],
+            [8, 2048, 10, 16],
+        )
+    ),
 )
 @pytest.mark.parametrize(
     "kernel_size",
