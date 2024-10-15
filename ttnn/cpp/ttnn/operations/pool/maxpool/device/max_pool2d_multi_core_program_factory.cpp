@@ -432,7 +432,7 @@ MaxPool2D::MultiCore::cached_program_t MaxPool2D::MultiCore::create(const operat
     auto dilation_w = sliding_window_config.dilation_hw.second;
     auto num_shards_c = 1;
     if (is_width_sharded) {
-        sliding_window_config.core_range_set.num_cores();
+        num_shards_c = sliding_window_config.core_range_set.num_cores();
     }
     if (is_block_sharded) {
         num_shards_c = sliding_window_config.core_range_set.ranges().begin()->end_coord.x -
