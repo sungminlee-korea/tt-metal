@@ -114,6 +114,7 @@ jobs:
             -w ${{ github.workspace }}
           run: |
             build_command="./build_metal.sh --build-type ${{ inputs.build-type }} --build-tests --build-programming-examples"
+            ccache -s
             echo "${{ inputs.tracy }}"
             if [ "${{ inputs.tracy }}" = "true" ]; then
               build_command="$build_command --enable-profiler"
