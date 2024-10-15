@@ -19,7 +19,6 @@ using std::chrono::steady_clock;
 
 int main(int argc, char** argv) {
   bool pass = true;
-
   try {
     // Initial Runtime Args Parse
     std::vector<std::string> input_args(argv, argv + argc);
@@ -51,17 +50,36 @@ int main(int argc, char** argv) {
     }
     uint64_t buffer_size = stoul(size_string);
 
-    log_info(LogTest, "Measuring performance for buffer_type={}, size={}bytes",
-             buffer_type == 0 ? "DRAM" : "L1", buffer_size);
+    string page_size_string = "";
+    try {
+      std::tie(page_size_string, input_args) =
+          test_args::get_command_option_and_remaining_args(input_args,
+                                                           "--page_size");
+    } catch (const std::exception& e) {
+      TT_THROW("Please input test page size with \"--page_size <page size to test>\"",
+                e.what());
+    }
+    uint64_t page_size = stoul(page_size_string);
+
+    string device_string = "";
+    try {
+      std::tie(device_string, input_args) =
+          test_args::get_command_option_and_remaining_args(input_args,
+                                                           "--device");
+    } catch (const std::exception& e) {
+      TT_THROW("Please input test device ID \"--device <device ID to test>\"",
+                e.what());
+    }
+    uint64_t device_id = stoul(device_string);
 
     // Device Setup
-    int device_id = 0;
+    log_info(LogTest, "Running test using device ID {}", device_id);
     tt_metal::Device* device = tt_metal::CreateDevice(device_id);
     CommandQueue& cq = device->command_queue();
 
-    // Application Setup
-    uint32_t single_tile_size = 2 * 1024;
-    auto page_size = single_tile_size;
+    log_info(LogTest, "Measuring performance for buffer_type={}, size={}bytes, page_size={}bytes",
+             buffer_type == 0 ? "DRAM" : "L1", buffer_size, page_size);
+
     BufferType buff_type = buffer_type == 0 ? tt_metal::BufferType::DRAM
                                               : tt_metal::BufferType::L1;
     tt_metal::InterleavedBufferConfig buff_config{
