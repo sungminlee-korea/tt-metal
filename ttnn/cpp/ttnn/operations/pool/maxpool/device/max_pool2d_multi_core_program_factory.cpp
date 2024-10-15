@@ -34,7 +34,7 @@ MaxPool2D::MultiCore::cached_program_t max_pool_2d_multi_core_sharded_with_halo_
     uint32_t pad_w,
     uint32_t dilation_h,
     uint32_t dilation_w,
-    uint32_t num_shards,
+    uint32_t num_shards_c,
     const MemoryConfig& out_mem_config,
     uint32_t nblocks) {
 
@@ -52,14 +52,13 @@ MaxPool2D::MultiCore::cached_program_t max_pool_2d_multi_core_sharded_with_halo_
     uint32_t in_nbytes = datum_size(in_df);
     uint32_t out_nbytes = datum_size(out_df);
     TensorMemoryLayout in_memory_layout = input.memory_config().memory_layout;
-    uint32_t ncores_c = in_memory_layout == TensorMemoryLayout::HEIGHT_SHARDED ? 1 : num_shards;
 
     TT_FATAL((in_memory_layout == TensorMemoryLayout::HEIGHT_SHARDED) ||
-             (input_shape[3] % num_shards == 0), "For width sharding, input channels should be divisible by num_shards");
+             (input_shape[3] % num_shards_c == 0), "For width sharding, input channels should be divisible by num_shards");
     TT_FATAL((in_memory_layout == TensorMemoryLayout::HEIGHT_SHARDED) ||
-             (output_shape[3] % num_shards == 0), "For width sharding, output channels should be divisible by num_shards");
-    uint32_t in_nbytes_c = input_shape[3] / ncores_c * in_nbytes;                                      // row of input (channels)
-    uint32_t out_nbytes_c = output_shape[3] / ncores_c * out_nbytes;                                // row of output (channels)
+             (output_shape[3] % num_shards_c == 0), "For width sharding, output channels should be divisible by num_shards");
+    uint32_t in_nbytes_c = input_shape[3] / num_shards_c * in_nbytes;                                      // row of input (channels)
+    uint32_t out_nbytes_c = output_shape[3] / num_shards_c * out_nbytes;                                // row of output (channels)
     //TT_ASSERT((in_nbytes_c & (in_nbytes_c - 1)) == 0, "in_nbytes_c should be power of 2");  // in_nbytes_c is power of 2
     //TT_ASSERT(
     //    (out_nbytes_c & (out_nbytes_c - 1)) == 0, "out_nbytes_c should be power of 2");  // out_nbytes_c is power of 2
@@ -71,8 +70,8 @@ MaxPool2D::MultiCore::cached_program_t max_pool_2d_multi_core_sharded_with_halo_
     uint32_t kernel_size_hw = kernel_size_w * kernel_size_h;  // number of valid rows, to read
     uint32_t kernel_size_hw_padded = ceil_multiple_of(kernel_size_hw, tt::constants::TILE_HEIGHT);
     uint32_t in_ntiles_hw = (uint32_t) std::ceil((float) kernel_size_hw_padded / tt::constants::TILE_HEIGHT);
-    uint32_t in_ntiles_c = (uint32_t) std::ceil((float) input_shape[3] / ncores_c / tt::constants::TILE_WIDTH);
-    uint32_t out_ntiles_c = (uint32_t) std::ceil((float) output_shape[3] / ncores_c / tt::constants::TILE_WIDTH);
+    uint32_t in_ntiles_c = (uint32_t) std::ceil((float) input_shape[3] / num_shards_c / tt::constants::TILE_WIDTH);
+    uint32_t out_ntiles_c = (uint32_t) std::ceil((float) output_shape[3] / num_shards_c / tt::constants::TILE_WIDTH);
 
     // Hardware can do reduction of 8 tiles at a time.
     // CB sizes can be restricted to this in case input channels are more than 256 to perform reduction iteratively.
@@ -157,16 +156,16 @@ MaxPool2D::MultiCore::cached_program_t max_pool_2d_multi_core_sharded_with_halo_
     uint32_t in_cb_sz = 0;
     uint32_t in_nblocks_c = 1;
     if (is_large_kernel) {
-        in_cb_sz = (input_shape[3] / ncores_c * kernel_size_hw_padded) > (tt::constants::TILE_HW * MAX_TILES_PER_REDUCTION)
+        in_cb_sz = (input_shape[3] / num_shards_c * kernel_size_hw_padded) > (tt::constants::TILE_HW * MAX_TILES_PER_REDUCTION)
             ? (tt::constants::TILE_HW * MAX_TILES_PER_REDUCTION)
-            : input_shape[3] / ncores_c * kernel_size_hw_padded;
+            : input_shape[3] / num_shards_c * kernel_size_hw_padded;
     } else {
         if (is_wide_reduction) {
             in_cb_sz = MAX_TILES_PER_REDUCTION * tt::constants::TILE_WIDTH * kernel_size_hw_padded;
             TT_FATAL(in_ntiles_c % MAX_TILES_PER_REDUCTION == 0, "input channels should be multiple of {} tiles. General case TODO.", MAX_TILES_PER_REDUCTION);
             in_nblocks_c = in_ntiles_c / MAX_TILES_PER_REDUCTION;
         } else {
-            in_cb_sz = input_shape[3] / ncores_c * kernel_size_hw_padded;
+            in_cb_sz = input_shape[3] / num_shards_c * kernel_size_hw_padded;
         }
     }
     // reader output == input to tilize
@@ -294,7 +293,7 @@ MaxPool2D::MultiCore::cached_program_t max_pool_2d_multi_core_sharded_with_halo_
         in_nbytes_c_log2,
         in_w,
         in_cb_page_padded * in_cb_npages / tile_w,
-        input_shape[3] / ncores_c,
+        input_shape[3] / num_shards_c,
         nblocks,
         split_reader,  // enable split reader
         0,             // split reader id
@@ -310,7 +309,7 @@ MaxPool2D::MultiCore::cached_program_t max_pool_2d_multi_core_sharded_with_halo_
         in_nbytes_c_log2,
         in_w,
         in_cb_page_padded * in_cb_npages / tile_w,
-        input_shape[3] / ncores_c,
+        input_shape[3] / num_shards_c,
         nblocks,
         split_reader,  // enable split reader
         1,             // split reader id
@@ -349,14 +348,14 @@ MaxPool2D::MultiCore::cached_program_t max_pool_2d_multi_core_sharded_with_halo_
         out_h,
         out_w,
         tt::div_up(output_shape[2], tt::constants::TILE_HEIGHT),
-        tt::div_up(output_shape[3], ncores_c * tt::constants::TILE_WIDTH),
+        tt::div_up(output_shape[3], num_shards_c * tt::constants::TILE_WIDTH),
         nblocks,
         out_w_loop_count,
         1,
         out_nhw_per_core,
         split_reader,                // enable split reader
         out_nhw_per_core / nblocks,  // loop count with blocks
-        input_shape[3] / ncores_c,
+        input_shape[3] / num_shards_c,
         in_nblocks_c};
 
     auto reduce_op = tt::tt_metal::ReduceOpMath::MAX;
@@ -404,6 +403,7 @@ MaxPool2D::MultiCore::cached_program_t MaxPool2D::MultiCore::create(const operat
     uint32_t out_h = output_shape[1];
     uint32_t out_w = output_shape[2];
 
+    bool is_width_sharded = input.memory_config().memory_layout == TensorMemoryLayout::WIDTH_SHARDED;
     bool is_block_sharded = input.memory_config().memory_layout == TensorMemoryLayout::BLOCK_SHARDED;
 
     auto pad_metadata = sliding_window::generate_pad_metadata(sliding_window_config);
@@ -430,7 +430,15 @@ MaxPool2D::MultiCore::cached_program_t MaxPool2D::MultiCore::create(const operat
     auto pad_w = sliding_window_config.pad_hw.second;
     auto dilation_h = sliding_window_config.dilation_hw.first;
     auto dilation_w = sliding_window_config.dilation_hw.second;
-    auto num_shards = sliding_window_config.core_range_set.num_cores();
+    auto num_shards_c = 1;
+    if (is_width_sharded) {
+        sliding_window_config.core_range_set.num_cores();
+    }
+    if (is_block_sharded) {
+        num_shards_c = sliding_window_config.core_range_set.ranges().begin()->end_coord.x -
+                       sliding_window_config.core_range_set.ranges().begin()->start_coord.x + 1;
+    }
+
 
     return max_pool_2d_multi_core_sharded_with_halo_v2_impl_new(
         program,
@@ -450,7 +458,7 @@ MaxPool2D::MultiCore::cached_program_t MaxPool2D::MultiCore::create(const operat
         pad_w,
         dilation_h,
         dilation_w,
-        num_shards,
+        num_shards_c,
         out_mem_config,
         1);
 }

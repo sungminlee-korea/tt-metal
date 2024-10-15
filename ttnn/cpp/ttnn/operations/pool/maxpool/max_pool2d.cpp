@@ -45,8 +45,9 @@ Tensor MaxPool2DOp::invoke(uint8_t queue_id,
         // Input is not sharded. Perform sharding.
         applied_shard_scheme = applied_shard_scheme == TensorMemoryLayout::INTERLEAVED ? TensorMemoryLayout::HEIGHT_SHARDED : applied_shard_scheme; // default to height sharding
         TT_FATAL((applied_shard_scheme == TensorMemoryLayout::HEIGHT_SHARDED) ||
-                 (applied_shard_scheme == TensorMemoryLayout::WIDTH_SHARDED),
-                 "Only height or width sharding strategies are supported.");
+                 (applied_shard_scheme == TensorMemoryLayout::WIDTH_SHARDED) ||
+                 (applied_shard_scheme == TensorMemoryLayout::BLOCK_SHARDED),
+                 "Only height, width, or block sharding strategies are supported.");
 
         parallel_config = conv::conv2d::determine_parallel_config(
                                             applied_shard_scheme,
@@ -59,11 +60,6 @@ Tensor MaxPool2DOp::invoke(uint8_t queue_id,
                                             ShardOrientation::ROW_MAJOR,
                                             false);
         num_cores_nhw = conv::conv2d::get_num_cores_nhw_from_parallel_config(parallel_config);
-
-        TT_FATAL(applied_shard_scheme == TensorMemoryLayout::HEIGHT_SHARDED ||
-                 (applied_shard_scheme == TensorMemoryLayout::WIDTH_SHARDED && (num_cores_nhw == 1)),
-                 "If heigh sharding is used num_cores_nhw may vary, but if width sharding is used num_cores_nhw must be 1.");
-
         auto sharded_mem_config = conv::conv2d::create_sharded_memory_config_from_parallel_config(input_tensor_sharded.shape(), parallel_config, is_in_tiled ? tt::constants::TILE_HEIGHT : 1);
         input_tensor_sharded = ttnn::to_memory_config(input_tensor_sharded, sharded_mem_config, std::nullopt); // this converts interleaved to sharded
         memory_config = input_tensor_sharded.memory_config();
@@ -85,7 +81,14 @@ Tensor MaxPool2DOp::invoke(uint8_t queue_id,
     uint32_t ncores_c = 1;
     if (applied_shard_scheme == TensorMemoryLayout::WIDTH_SHARDED) {
         ncores_c = shard_spec.num_cores();
-        TT_FATAL(channels % ncores_c == 0, "For width sharding, input channels should be divisible by num_shards");
+        TT_FATAL(num_cores_nhw == 1, "For width sharding, num_cores_nhw should be 1");
+        TT_FATAL(channels % ncores_c == 0, "For width sharding, input channels should be divisible by the number of cores");
+    }
+    if (applied_shard_scheme == TensorMemoryLayout::BLOCK_SHARDED) {
+        ncores_c = shard_spec.grid.ranges().begin()->end_coord.x - shard_spec.grid.ranges().begin()->start_coord.x + 1;
+        uint32_t check_cores_nhw = shard_spec.grid.ranges().begin()->end_coord.y - shard_spec.grid.ranges().begin()->start_coord.y + 1;
+        TT_FATAL(check_cores_nhw == num_cores_nhw, "For block sharding, num_cores_nhw should equal to the number of x cores");
+        TT_FATAL(channels % ncores_c == 0, "For block sharding, input channels should be divisible by the number of y cores");
     }
     uint32_t output_shard_width_padded = input_tensor.dtype() == DataType::BFLOAT8_B ? tt::round_up(channels / ncores_c, tt::constants::TILE_WIDTH) : tt::round_up(channels / ncores_c * tt::datum_size(tt::tt_metal::datatype_to_dataformat_converter(input_tensor.dtype())), tt::constants::TILE_WIDTH);
     uint32_t output_nhw = output_shape[0] * output_shape[1] * output_shape[2];
