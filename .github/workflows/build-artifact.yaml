@@ -110,6 +110,7 @@ jobs:
             -v /etc/passwd:/etc/passwd:ro
             -v /etc/shadow:/etc/shadow:ro
             -v /etc/bashrc:/etc/bashrc:ro
+            -v /mnt/MLPerf/ccache:/home/ubuntu/.ccache
             -e ARCH_NAME=${{ matrix.arch }}
             -w ${{ github.workspace }}
           run: |
