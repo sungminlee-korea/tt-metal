@@ -158,6 +158,8 @@ cmake_args+=("-B" "$build_dir")
 cmake_args+=("-G" "Ninja")
 cmake_args+=("-DCMAKE_BUILD_TYPE=$build_type")
 cmake_args+=("-DCMAKE_INSTALL_PREFIX=$cmake_install_prefix")
+cmake_args+=("-DCMAKE_DISABLE_PRECOMPILE_HEADERS=TRUE")
+cmake_args+=("-DENABLE_CCACHE=TRUE")
 
 if [ "$enable_ccache" = "ON" ]; then
     cmake_args+=("-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache")
