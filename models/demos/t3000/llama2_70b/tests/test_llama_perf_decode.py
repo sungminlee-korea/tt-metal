@@ -6,12 +6,14 @@ import pytest
 from loguru import logger
 import torch
 import ttnn
-from ttnn import ConcatMeshToTensor
+from ttnn import ConcatMeshToTensor, ShardTensorToMesh
 import time
+from tqdm import tqdm
 
 from models.demos.t3000.llama2_70b.reference.llama.llama import Llama
 
 from models.demos.t3000.llama2_70b.tt.llama_model_optimized import TtLlamaModel_optimized
+from models.demos.t3000.llama2_70b.tt.llama_generation import TtLlamaModelForGeneration
 from models.demos.t3000.llama2_70b.tt.llama_common import (
     setup_llama_env,
     check_mesh_device,
@@ -118,6 +120,7 @@ def run_test_LlamaModel_end_to_end(
         cache_path=cache_path,
         read_cache=True,
     )
+    model = TtLlamaModelForGeneration.from_tt_model(configuration, tt_model)
 
     for i in mesh_device.get_device_ids():
         device = mesh_device.get_device(i)
@@ -127,14 +130,49 @@ def run_test_LlamaModel_end_to_end(
 
     del state_dict
 
+    use_paged_attention = False
+
+    if not use_paged_attention:
+        page_table = None
+        kv_cache = None
+    else:
+        num_blocks = 256
+        block_size = 64
+        head_size = configuration.dim // configuration.n_heads  # 128
+
+        page_table = torch.zeros(batch, num_blocks)
+
+        logger.info("Allocating kv caches for PagedAttention")
+        kv_cache_shape = (num_blocks, configuration.n_kv_heads, block_size, head_size)
+        kv_cache = []
+        cache_kv = torch.zeros(kv_cache_shape)
+        for _ in tqdm(range(n_layers), desc="Allocating kv caches"):
+            kv_tt = [
+                ttnn.as_tensor(
+                    lp,
+                    device=mesh_device,
+                    mesh_mapper=ShardTensorToMesh(mesh_device, dim=1),
+                    layout=ttnn.TILE_LAYOUT,
+                    memory_config=ttnn.DRAM_MEMORY_CONFIG,
+                    dtype=ttnn.bfloat8_b
+                    # TODO: Add caching to speed this up
+                )
+                for lp in (cache_kv, cache_kv)
+            ]
+            kv_cache.append(kv_tt)
+
     ##### Prepare Inputs #####
     prev_pos = total_len - 1
-    tt_inp_emb, prev_pos, rot_mat, cache_idxs, _ = tt_model.prepare_device_inputs(tokens, prev_pos)
+    tt_inp_emb, prev_pos, rot_mat, cache_idxs, tt_page_table, tt_inp, rot_mat_rm = tt_model.prepare_device_inputs(
+        tokens, prev_pos, page_table=page_table, return_tokens=True, return_rot_mat_rm=True
+    )
 
     ##### Compile Model #####
     logger.info("Compiling model")
     profiler.start(f"compile_time")
-    tt_logits = tt_model(tt_inp_emb, rot_mat, prev_pos, cache_idxs=cache_idxs, mode="decode")
+    tt_logits = tt_model(
+        tt_inp_emb, rot_mat, prev_pos, cache_idxs=cache_idxs, page_table=tt_page_table, kv_cache=kv_cache, mode="decode"
+    )
     tt_logits = ttnn.all_gather(tt_logits, dim=3, num_links=1, memory_config=ttnn.DRAM_MEMORY_CONFIG)
     tt_logits_tensors = ttnn.get_device_tensors(tt_logits)
     logits_rm = ttnn.to_layout(tt_logits_tensors[0], ttnn.ROW_MAJOR_LAYOUT)
@@ -147,7 +185,13 @@ def run_test_LlamaModel_end_to_end(
     ##### Capture Trace #####
     logger.info("Capturing trace")
     trace_id = ttnn.begin_trace_capture(mesh_device, cq_id=0)
-    tt_logits = tt_model(tt_inp_emb, rot_mat, prev_pos, cache_idxs=cache_idxs, mode="decode")
+    tt_inp_emb = tt_model.tt_embd(tt_inp)
+    tt_inp_emb = ttnn.interleaved_to_sharded(tt_inp_emb, model_config["WORD_EMBEDDING_OUTPUT_MEMCFG"])
+    rot_mat = ttnn.to_layout(rot_mat_rm, ttnn.TILE_LAYOUT)
+    rot_mat = ttnn.interleaved_to_sharded(rot_mat, model_config["ROT_MAT_MM_IN1_MEMCFG"])
+    tt_logits = tt_model(
+        tt_inp_emb, rot_mat, prev_pos, cache_idxs=cache_idxs, page_table=tt_page_table, kv_cache=kv_cache, mode="decode"
+    )
     tt_logits = ttnn.all_gather(tt_logits, dim=3, num_links=1, memory_config=ttnn.DRAM_MEMORY_CONFIG)
     tt_logits_tensors = ttnn.get_device_tensors(tt_logits)
     logits_rm = ttnn.to_layout(tt_logits_tensors[0], ttnn.ROW_MAJOR_LAYOUT)
@@ -157,8 +201,17 @@ def run_test_LlamaModel_end_to_end(
     logger.info("Executing trace")
     profiler.start(f"end_to_end_inference")
     for i in range(n_iters):
-        ttnn.execute_trace(mesh_device, trace_id, blocking=False)
-        logits = ttnn.to_torch(logits_rm)
+        logits = model.decode_forward_trace(
+            tokens,
+            prev_pos,
+            trace_id,
+            tt_inp,
+            rot_mat_rm,
+            cache_idxs,
+            logits_rm,
+            page_table=page_table,
+            tt_page_table=tt_page_table,
+        )
     profiler.end(f"end_to_end_inference")
     ttnn.release_trace(mesh_device, trace_id)
 

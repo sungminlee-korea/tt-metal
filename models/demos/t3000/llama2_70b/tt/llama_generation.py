@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from loguru import logger
 
 import copy
-from models.demos.t3000.llama2_70b.tt.llama_model_optimized import TtLlamaModel_optimized as TtLlamaModel
+from models.demos.t3000.llama2_70b.tt.llama_model_optimized import TtLlamaModel_optimized
 from models.demos.t3000.llama2_70b.tt.llama_common import (
     BASE_URL,
     load_llama_state_dict,
@@ -24,11 +24,27 @@ from models.demos.t3000.llama2_70b.tt.model_config import (
 
 
 class TtLlamaModelForGeneration:
-    def __init__(self, configuration, state_dict, model_args, tt_args, paged_attention_config=None, vllm=False):
+    def __init__(
+        self,
+        configuration,
+        state_dict=None,
+        model_args=None,
+        tt_args=None,
+        paged_attention_config=None,
+        vllm=False,
+        tt_model: TtLlamaModel_optimized = None,
+    ):
+        self.params = copy.deepcopy(configuration)
+
+        if tt_model is not None:
+            logger.info("Initializing TtLlamaModelForGeneration directly from tt_model")
+            self.tt_model = tt_model
+            self.model_config = tt_model.model_config
+            self.mesh_device = tt_model.mesh_device
+            return
+
         # Cache Weights setup
         n_layers = model_args.num_layers or 80
-
-        self.params = copy.deepcopy(configuration)
 
         self.llama_version = model_args.llama_version
         self.max_batch_size = model_args.max_batch_size
@@ -46,7 +62,7 @@ class TtLlamaModelForGeneration:
         self.model_config = model_config
 
         # TT model -------------------------------------------------------------
-        self.tt_model = TtLlamaModel(
+        self.tt_model = TtLlamaModel_optimized(
             self.mesh_device,
             state_dict,
             BASE_URL,
@@ -60,6 +76,10 @@ class TtLlamaModelForGeneration:
         )
 
         del state_dict
+        
+    @classmethod
+    def from_tt_model(cls, configuration, tt_model):
+        return cls(configuration, tt_model=tt_model)
 
     @classmethod
     def initialize_vllm_model(cls, hf_config, t3k_mesh_device, max_batch_size):
@@ -150,6 +170,7 @@ class TtLlamaModelForGeneration:
             kv_cache=kv_cache,
             mode="decode",
         )
+        tt_logits = self._process_logits(tt_logits)
 
         # Capture trace
         trace_id = ttnn.begin_trace_capture(self.mesh_device, cq_id=0)
@@ -168,6 +189,7 @@ class TtLlamaModelForGeneration:
             kv_cache=kv_cache,
             mode="decode",
         )
+        tt_logits = self._process_logits(tt_logits, to_torch=False)
 
         ttnn.end_trace_capture(self.mesh_device, trace_id, cq_id=0)
         logger.info("Done Capturing Decode Trace")
@@ -207,9 +229,7 @@ class TtLlamaModelForGeneration:
 
         # Run TT model
         ttnn.execute_trace(self.mesh_device, trace_id, cq_id=0, blocking=False)
-        updated_tt_logits = ttnn.from_device(tt_logits)
-
-        logits = self._process_logits(updated_tt_logits)
+        logits = self._process_logits(tt_logits, already_gathered=True)
 
         logits = logits.permute(2, 1, 0, 3).squeeze().unsqueeze(1)  # [batch, 1, vocab_size]
         logits = logits[:batch]  # Remove padded users
@@ -321,11 +341,16 @@ class TtLlamaModelForGeneration:
 
         return output_logits
 
-    def _process_logits(self, tt_logits):
-        logits = ttnn.to_torch(
-            tt_logits, device=self.mesh_device, mesh_composer=ConcatMeshToTensor(self.mesh_device, dim=3)
-        )
-        return logits[..., : self.params.vocab_size].float()
+    def _process_logits(self, tt_logits, to_torch=True, already_gathered=False):
+        if not already_gathered:
+            tt_logits = ttnn.all_gather(tt_logits, dim=3, num_links=1, memory_config=ttnn.DRAM_MEMORY_CONFIG)
+            tt_logits_tensors = ttnn.get_device_tensors(tt_logits)
+            tt_logits = ttnn.to_layout(tt_logits_tensors[0], ttnn.ROW_MAJOR_LAYOUT)
+
+        if to_torch:
+            return ttnn.to_torch(tt_logits)[..., : self.params.vocab_size].float()
+        else:
+            return tt_logits
 
 
 def get_padded_prefill_len(seq_len):
