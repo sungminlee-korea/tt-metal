@@ -36,20 +36,20 @@ ttnn::Tensor ExecuteRepeatInterleave::invoke(const ttnn::Tensor& input_a, uint32
         // TODO: For dim = 1 facing issue with concat_op
         if (normalized_dim) {
             Tensor concat_out = ttnn::concat(combined_tensors, 2);
-            return ttnn::reshape_on_device(concat_out, shape_wh[0], shape_wh[1] * repeat, shape_wh[2], shape_wh[3]);
+            return ttnn::reshape_on_device(concat_out, ttnn::SimpleShape{shape_wh[0], shape_wh[1] * repeat, shape_wh[2], shape_wh[3]});
         } else {
             Tensor concat_out = ttnn::concat(combined_tensors, 1);
-            return ttnn::reshape_on_device(concat_out, shape_wh[0] * repeat, shape_wh[1], shape_wh[2], shape_wh[3]);
+            return ttnn::reshape_on_device(concat_out, ttnn::SimpleShape{shape_wh[0] * repeat, shape_wh[1], shape_wh[2], shape_wh[3]});
         }
     } else {
-        Tensor reshape_out = ttnn::reshape_on_device(input_a, 1, 1, shape_wh[0] * shape_wh[1] * shape_wh[2], shape_wh[3]);
+        Tensor reshape_out = ttnn::reshape_on_device(input_a, ttnn::SimpleShape{1, 1, shape_wh[0] * shape_wh[1] * shape_wh[2], shape_wh[3]});
         for (int i = 0; i < repeat; i++) {
             combined_tensors.push_back(reshape_out);
         }
         Tensor concat_out = ttnn::concat(combined_tensors, 1);
         std::vector<int64_t> permute_dims = {0, 2, 1, 3};
         Tensor permute_out = ttnn::permute(concat_out, permute_dims);
-        return ttnn::reshape_on_device(permute_out, shape_wh[0], shape_wh[1], shape_wh[2] * repeat, shape_wh[3]);
+        return ttnn::reshape_on_device(permute_out, ttnn::SimpleShape{shape_wh[0], shape_wh[1], shape_wh[2] * repeat, shape_wh[3]});
     }
 }
 
