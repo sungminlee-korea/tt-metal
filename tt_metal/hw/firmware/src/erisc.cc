@@ -12,8 +12,6 @@
 #include "tools/profiler/kernel_profiler.hpp"
 #include "debug/watcher_common.h"
 
-extern "C" void ApplicationHandler(void);
-
 #if defined(PROFILE_KERNEL)
 namespace kernel_profiler {
     uint32_t wIndex __attribute__((used));
@@ -118,7 +116,7 @@ void __attribute__((noinline)) Application(void) {
 // usage.
 
 __attribute__((section(".start"), naked, optimize("Os")))
-void ApplicationHandler(void) {
+extern "C" void _start(void) {
 
   { // ApplicationHander pseudo-scope
     // Save callee saves.
