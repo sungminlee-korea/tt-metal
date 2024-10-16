@@ -117,7 +117,7 @@ void __attribute__((noinline)) Application(void) {
 // The function relies on optimization to avoid unexpected register
 // usage.
 
-__attribute__((section("erisc_l1_code.0"), naked, optimize("Os")))
+__attribute__((section(".start"), naked, optimize("Os")))
 void ApplicationHandler(void) {
 
   { // ApplicationHander pseudo-scope
