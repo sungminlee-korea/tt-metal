@@ -389,6 +389,7 @@ std::vector<std::vector<uint16_t>> generate_sliding_window_op_config(const std::
         for(size_t i = output_shard_start; i < output_shard_end + 1; i++) {
             local_top_left_indices.push_back(op_trace_metadata[i] - op_trace_metadata[output_shard_start]);
         }
+        printf("local_top_left_indices size: %ld\n", local_top_left_indices.size());
         sharded_input_top_left_indices.push_back(local_top_left_indices);
     }
     if (pad_tile) {

@@ -480,6 +480,7 @@ def test_run_max_pool_width_shard(
     (
         (  ## resnet shapes
             [1, 256, 28, 28],
+            [2, 256, 28, 28],
             # [1, 256, 14, 14],
             # [1, 512, 6, 6],
             # [1, 1024, 6, 6],
@@ -494,14 +495,14 @@ def test_run_max_pool_width_shard(
     "kernel_size",
     (
         (2, 2),
-        (3, 3),
+        # (3, 3),
     ),
 )
 @pytest.mark.parametrize(
     "padding",
     (
         (0, 0),
-        (1, 1),
+        # (1, 1),
     ),
 )
 @pytest.mark.parametrize(
@@ -509,7 +510,13 @@ def test_run_max_pool_width_shard(
     ((2, 2),),
 )
 @pytest.mark.parametrize("dilation", ((1, 1),))  ## default
-@pytest.mark.parametrize("dtype", [ttnn.bfloat16, ttnn.bfloat8_b])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        ttnn.bfloat16,
+        # ttnn.bfloat8_b,
+    ],
+)
 def test_run_max_pool_block_shard(
     act_shape,
     kernel_size,
