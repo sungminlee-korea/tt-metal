@@ -67,7 +67,9 @@ def run(
     )(input_shape)
 
     scalar = torch.tensor(1, dtype=torch.bfloat16).uniform_(0, 100)
-    torch_output_tensor = torch.nn.functional.hardshrink(torch_input_tensor_a, scalar)
+
+    golden_function = ttnn.get_golden_function(ttnn.hardshrink)
+    torch_output_tensor = golden_function(torch_input_tensor_a, lambd=scalar)
 
     input_tensor_a = ttnn.from_torch(
         torch_input_tensor_a,
