@@ -836,9 +836,8 @@ operation::ProgramWithCallbacks reduce_scatter_with_workers(
         receiver_device_id,
         sender_device_id);
 
-    std::size_t total_num_workers = worker_cores.size();
     auto override_runtime_arguments_callback =
-        [topology_config, worker_receiver_kernel_id, worker_sender_kernel_id, worker_cores, total_num_workers, ring_index](
+        [worker_receiver_kernel_id, worker_sender_kernel_id, optional_line_start_ccl_send_kernel](
             const void* operation,
             Program& program,
             const std::vector<Tensor>& input_tensors,
@@ -848,13 +847,28 @@ operation::ProgramWithCallbacks reduce_scatter_with_workers(
             const auto& output = output_tensors.at(0);
             auto &worker_receiver_runtime_args_by_core = GetRuntimeArgs(program, worker_receiver_kernel_id);
             auto &worker_sender_runtime_args_by_core = GetRuntimeArgs(program, worker_sender_kernel_id);
-            for (uint32_t i = 0; i < worker_cores.size(); ++i) {
-                auto core = worker_cores.at(i);
-                auto& worker_receiver_runtime_args = worker_receiver_runtime_args_by_core[core.x][core.y];
-                worker_receiver_runtime_args.at(0) = input.buffer()->address();
+            for (size_t core_x = 0; core_x < worker_receiver_runtime_args_by_core.size(); core_x++) {
+                for (size_t core_y = 0; core_y < worker_receiver_runtime_args_by_core[core_x].size(); core_y++) {
+                    auto& worker_receiver_runtime_args = worker_receiver_runtime_args_by_core[core_x][core_y];
+                    worker_receiver_runtime_args.at(0) = input.buffer()->address();
+                    worker_receiver_runtime_args.at(1) = output.buffer()->address();
+                }
+            }
+            for (size_t core_x = 0; core_x < worker_sender_runtime_args_by_core.size(); core_x++) {
+                for (size_t core_y = 0; core_y < worker_sender_runtime_args_by_core[core_x].size(); core_y++) {
+                    auto& worker_sender_runtime_args = worker_sender_runtime_args_by_core[core_x][core_y];
+                    worker_sender_runtime_args.at(0) = output.buffer()->address();
+                }
+            }
 
-                auto& worker_sender_runtime_args = worker_sender_runtime_args_by_core[core.x][core.y];
-                worker_sender_runtime_args.at(0) = output.buffer()->address();
+            if (optional_line_start_ccl_send_kernel.has_value()) {
+                auto &ccl_send_kernel_rt_args_by_core = GetRuntimeArgs(program, optional_line_start_ccl_send_kernel.value());
+                for (size_t core_x = 0; core_x < ccl_send_kernel_rt_args_by_core.size(); core_x++) {
+                    for (size_t core_y = 0; core_y < ccl_send_kernel_rt_args_by_core[core_x].size(); core_y++) {
+                        auto& worker_receiver_runtime_args = ccl_send_kernel_rt_args_by_core[core_x][core_y];
+                        worker_receiver_runtime_args.at(0) = input.buffer()->address();
+                    }
+                }
             }
         };
 
