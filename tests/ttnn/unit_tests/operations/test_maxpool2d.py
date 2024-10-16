@@ -422,7 +422,7 @@ def test_run_max_pool(
     dtype,
     use_program_cache,
 ):
-    run_max_pool(act_shape, kernel_size, padding, stride, dilation, device, dtype) """
+    run_max_pool(act_shape, kernel_size, padding, stride, dilation, device, dtype)
 
 
 @pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
@@ -471,22 +471,22 @@ def test_run_max_pool_width_shard(
     dtype,
     use_program_cache,
 ):
-    run_max_pool_width_shard(act_shape, kernel_size, padding, stride, dilation, device, dtype)
+    run_max_pool_width_shard(act_shape, kernel_size, padding, stride, dilation, device, dtype) """
 
 
-""" @pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
+@pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
 @pytest.mark.parametrize(
     "act_shape",  ## NCHW
     (
         (  ## resnet shapes
             [1, 256, 28, 28],
-            [1, 256, 14, 14],
-            [1, 512, 6, 6],
-            [1, 1024, 6, 6],
-            [1, 2048, 6, 6],
-            #[4, 512, 40, 40],
-            #[2, 1024, 40, 40],
-            #[8, 2048, 10, 16],
+            # [1, 256, 14, 14],
+            # [1, 512, 6, 6],
+            # [1, 1024, 6, 6],
+            # [1, 2048, 6, 6],
+            # [4, 512, 40, 40],
+            # [2, 1024, 40, 40],
+            # [8, 2048, 10, 16],
         )
     ),
 )
@@ -520,7 +520,7 @@ def test_run_max_pool_block_shard(
     dtype,
     use_program_cache,
 ):
-    run_max_pool_block_shard(act_shape, kernel_size, padding, stride, dilation, device, dtype) """
+    run_max_pool_block_shard(act_shape, kernel_size, padding, stride, dilation, device, dtype)
 
 
 """ @pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)

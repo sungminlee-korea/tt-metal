@@ -842,6 +842,9 @@ DeviceBuffer to_device_buffer(
             }
             if constexpr (std::is_same_v<StorageType, OwnedStorage> or std::is_same_v<StorageType, BorrowedStorage>) {
                 auto data_to_write = host_buffer::get_as<T>(storage.buffer);
+                printf("data_to_Write size: %ld\n", data_to_write.size());
+                printf("Shape size: %ld\n", shape.as_vector().size());
+                printf("shape: %d, %d, %d, %d\n", shape.as_vector()[0], shape.as_vector()[1], shape.as_vector()[2], shape.as_vector()[3]);
                 TT_ASSERT(
                     compute_buffer_size(shape, data_type) == data_to_write.size(),
                         "Tensor buffer size and number of data elements does not match: {} != {}",
