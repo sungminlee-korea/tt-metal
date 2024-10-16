@@ -49,9 +49,8 @@ void kernel_main() {
 
     const int32_t pad_w = get_compile_time_arg_val(3);
 
-    // channel size in bytes, multiple of 32
+    // channel size in bytes
     const uint32_t in_nbytes_c = get_compile_time_arg_val(4);
-    const uint32_t in_nbytes_c_log2 = get_compile_time_arg_val(5);
 
     // input tensor height / width / channels
     const int32_t in_w = get_compile_time_arg_val(6);
@@ -125,7 +124,7 @@ void kernel_main() {
                 for (uint32_t h = 0; h < window_h; ++h, h_multiples += in_w_padded) {
                     uint32_t stick_offset = top_left_local_index + h_multiples;
                     uint32_t read_offset =
-                        j * MAX_ELE_PER_REDUCTION + in_l1_read_base_addr + (stick_offset << in_nbytes_c_log2);
+                        j * MAX_ELE_PER_REDUCTION + in_l1_read_base_addr + (stick_offset * in_nbytes_c);
                     for (uint32_t w = 0; w < window_w; w++) {
                         noc_async_read_one_packet(get_noc_addr(read_offset), out_l1_write_addr, read_bytes);
                         out_l1_write_addr += read_bytes;
