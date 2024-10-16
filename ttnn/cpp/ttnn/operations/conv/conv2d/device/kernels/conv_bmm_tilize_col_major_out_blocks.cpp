@@ -17,7 +17,18 @@
 
 #include "compute_kernel_api/eltwise_unary/sfpu_split_includes.h"
 
-#define DEBUG_PRINT 0
+#define DEBUG_PRINT 1
+#include "debug/dprint.h"
+
+inline void print_full_tile(uint32_t cb_id, uint32_t tile_id = 0, bool untilize = false) {
+   DPRINT_UNPACK(DPRINT << "======" << ENDL());
+   for (uint16_t r = 0; r < 32; ++ r) {
+   //for (int32_t r = 0; r < 1; ++ r) {
+     SliceRange sr = SliceRange{.h0 = r, .h1 = (uint16_t)(r+1), .hs = 1, .w0 = 0, .w1 = 32, .ws = 1};
+     DPRINT_UNPACK(DPRINT << (uint)r << " " << TileSlice(cb_id, tile_id, sr, true, untilize) << ENDL());
+   }
+   DPRINT_UNPACK(DPRINT << "++++++" << ENDL());
+}
 
 // #include "debug_macros.h"
 
@@ -39,6 +50,7 @@ inline void tilize_in(
             cb_wait_front(in_cb_id, in_block_w);
             cb_reserve_back(out_cb_id, in_block_w);
             tilize_block(in_cb_id, in_block_w, out_cb_id);
+            print_full_tile(in_cb_id);
             cb_push_back(out_cb_id, in_block_w);
             cb_pop_front(in_cb_id, in_block_w);
         }
@@ -101,11 +113,7 @@ void MAIN {
     constexpr uint32_t out_subblock_num_tiles = get_compile_time_arg_val(13); // out_subblock_h * out_subblock_w;
     constexpr bool tilize_in0                 = get_compile_time_arg_val(14);
     constexpr bool untilize_out               = get_compile_time_arg_val(15);
-
-
-    #ifdef WIDTH_SHARDED
-    constexpr uint32_t in0_nblocks_w_tilize   = get_compile_time_arg_val(17);
-    #endif
+    constexpr uint32_t out_cb_id               = get_compile_time_arg_val(17);
 
     constexpr uint32_t out_block_num_tiles    = in0_num_subblocks * in1_num_subblocks * out_subblock_num_tiles;
     constexpr uint32_t out_block_w = in1_block_w;
@@ -119,7 +127,13 @@ void MAIN {
     constexpr uint32_t matmul_partials_cb                       = tt::CB::c_intermed0;
     constexpr uint32_t tilized_in0_cb_id                        = tt::CB::c_intermed1;
     //constexpr uint32_t untilize_mode_reblock_cb                 = tt::CB::c_intermed2;
-    constexpr uint32_t out_cb_id                                = tt::CB::c_out0;
+    /*constexpr uint32_t out_cb_id                                = tt::CB::c_out0;*/
+    print_full_tile(in1_cb_id, 0);
+    print_full_tile(in1_cb_id, 1);
+    print_full_tile(in1_cb_id, 2);
+    print_full_tile(in1_cb_id, 3);
+    print_full_tile(in1_cb_id, 4);
+    print_full_tile(in1_cb_id, 5);
 
     constexpr uint32_t untilize_mode_out_cb_id = untilize_out ? matmul_partials_cb : out_cb_id;
 
@@ -169,16 +183,6 @@ void MAIN {
             PACK( const uint32_t partials_cb_write_ptr = cb_interface[matmul_partials_cb].fifo_wr_ptr );
             uint32_t curr_matmul_out_cb = matmul_partials_cb;
             for(uint32_t in0_block_w_i = 0; in0_block_w_i < in0_num_blocks_w; ++in0_block_w_i) {
-                #ifdef WIDTH_SHARDED
-                if(in0_block_w_i % in0_nblocks_w_tilize == 0) {
-                    unpack_reconfig_data_format_srca(in1_cb_id, in0_pretilize_cb_id);
-
-                    // DPRINT_MATH(DPRINT<<"Tilize Loop "<<in0_block_h_i<<" "<<in0_block_w_i<<"\n";)
-                    tilize_in(in0_pretilize_cb_id, in0_subblock_h, in0_block_w, in0_num_subblocks, tilized_in0_cb_id);
-
-                    mm_block_init_short_with_dt(in0_cb_id, in1_cb_id, in0_pretilize_cb_id, false, out_subblock_w, out_subblock_h, in0_block_w);
-                }
-                #endif
                 bool last_out = (in0_block_w_i == in0_num_blocks_w - 1);
                 if constexpr (tilize_in0) {
                     #if defined PACK_RELU and not defined FUSE_BIAS
@@ -188,8 +192,8 @@ void MAIN {
                     }
                     #endif
                     #ifdef PACKER_L1_ACC
-                        pack_reconfig_data_format(curr_matmul_out_cb, tilized_in0_cb_id);
                         pack_reconfig_l1_acc(0);
+                        pack_reconfig_data_format(curr_matmul_out_cb, tilized_in0_cb_id);
                     #endif
 
                     unpack_reconfig_data_format_srca(in1_cb_id, in0_cb_id);
@@ -350,10 +354,10 @@ void MAIN {
             // if last block we pack the final result with relu enabled
             PACK(( llk_pack_relu_config(ReluType::ZERO_RELU) ));
             #endif
-            pack_reconfig_data_format(matmul_partials_cb, out_cb_id);
             #ifdef PACKER_L1_ACC
             pack_reconfig_l1_acc(0);
             #endif
+            pack_reconfig_data_format(matmul_partials_cb, out_cb_id);
             unpack_reconfig_data_format(in1_cb_id, matmul_partials_cb, mm_in0_cb_id, bias_cb_id);
             add_bcast_rows_init_short(matmul_partials_cb, bias_cb_id);
 
@@ -396,8 +400,8 @@ void MAIN {
             #endif
             if constexpr(untilize_out) {
                 #if defined PACKER_L1_ACC and not defined FUSE_BIAS
-                pack_reconfig_data_format(matmul_partials_cb, out_cb_id);
                 pack_reconfig_l1_acc(0);
+                pack_reconfig_data_format(matmul_partials_cb, out_cb_id);
                 #endif
                 #ifdef PACK_RELU
                 PACK(( llk_pack_relu_config(ReluType::NO_RELU) ));
