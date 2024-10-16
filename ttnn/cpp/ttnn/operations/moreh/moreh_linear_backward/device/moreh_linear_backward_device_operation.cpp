@@ -46,22 +46,22 @@ void MorehBiasAddBackwardOperation::validate_on_program_cache_hit(
 
 MorehBiasAddBackwardOperation::shape_return_value_t MorehBiasAddBackwardOperation::compute_output_shapes(
     const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
-    return tensor_args.bias.value().get_shape();
+    return tensor_args.bias_grad.value().get_shape();
 };
 
 MorehBiasAddBackwardOperation::tensor_return_value_t MorehBiasAddBackwardOperation::create_output_tensors(
     const operation_attributes_t& operation_attributes, const tensor_args_t& tensor_args) {
-    const auto& output_shape = compute_output_shapes(operation_attributes, tensor_args);
-    auto dtype = tensor_args.bias.value().get_dtype();
-    Layout layout{Layout::TILE};
-    auto device = tensor_args.bias.value().device();
+    // TODO(dongjin)
+    return tensor_args.bias_grad.value();
 
-    auto bias_grad_memory_config = operation_attributes.bias_grad_memory_config;
+    // const auto& output_shape = compute_output_shapes(operation_attributes, tensor_args);
+    // auto dtype = tensor_args.bias.value().get_dtype();
+    // Layout layout{Layout::TILE};
+    // auto device = tensor_args.bias.value().device();
 
-    if (tensor_args.bias_grad.has_value()) {
-        return tensor_args.bias_grad.value();
-    }
-    return create_device_tensor(output_shape, dtype, layout, device, bias_grad_memory_config);
+    // auto bias_grad_memory_config = operation_attributes.bias_grad_memory_config;
+
+    // return create_device_tensor(output_shape, dtype, layout, device, bias_grad_memory_config);
 }
 
 std::tuple<MorehBiasAddBackwardOperation::operation_attributes_t, MorehBiasAddBackwardOperation::tensor_args_t>
