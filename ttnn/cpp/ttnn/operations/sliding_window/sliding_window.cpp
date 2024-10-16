@@ -45,7 +45,6 @@ uint32_t SlidingWindowConfig::get_output_shard_y(bool snap_to_tile) const {
     uint32_t output_nhw = output_shape[0] * output_shape[1] * output_shape[2];
     uint32_t output_nhw_padded = tt::round_up(output_nhw, num_cores_nhw * (snap_to_tile ? tt:: constants::TILE_HEIGHT : 1));
     log_debug(tt::LogOp, "output_nhw: {} output_nhw_padded: {} num_cores_nhw: {}", output_nhw, output_nhw_padded, num_cores_nhw);
-    printf("output_nhw: %d output_nhw_padded: %d num_cores_nhw: %d\n", output_nhw, output_nhw_padded, num_cores_nhw);
     return (output_nhw_padded / num_cores_nhw);
 }
 
@@ -90,7 +89,6 @@ std::vector<std::pair<uint32_pair_t, uint32_pair_t>> generate_shard_boundaries(c
     std::vector<std::pair<uint32_pair_t, uint32_pair_t>> shard_boundaries;
     uint32_t num_cores = config.num_cores_nhw;
     uint32_t output_shard_h = config.get_output_shard_y(config.snap_to_tile);
-    printf("output_shard_h: %d\n", output_shard_h);
     uint32_t padded_input_w = config.input_hw.second + 2 * config.pad_hw.second;
     uint32_t max_index = op_trace_metadata.size();
 
@@ -375,10 +373,7 @@ std::tuple<std::vector<std::vector<uint16_t>>, std::vector<std::vector<uint16_t>
 
 std::vector<std::vector<uint16_t>> generate_sliding_window_op_config(const std::vector<uint32_t>& op_trace_metadata, const std::vector<std::pair<uint32_pair_t, uint32_pair_t>>& shard_boundaries, bool pad_tile, bool pad_cores) {
     std::vector<std::vector<uint16_t>> sharded_input_top_left_indices;
-    printf("shard_boundaries size: %ld\n", shard_boundaries.size());
-    printf("Shard boundaries:\n");
     for(const auto& item : shard_boundaries) {
-        printf("output shard start: %d, output shard end: %d, input shard start: %d, input shard end: %d\n", item.first.first, item.first.second, item.second.first, item.second.second);
         const auto& [output_shard_start, output_shard_end] = item.first;
         const auto& [input_shard_start, input_shard_end] = item.second;
         std::vector<uint16_t> local_top_left_indices;
@@ -390,7 +385,6 @@ std::vector<std::vector<uint16_t>> generate_sliding_window_op_config(const std::
         for(size_t i = output_shard_start; i < output_shard_end + 1; i++) {
             local_top_left_indices.push_back(op_trace_metadata[i] - op_trace_metadata[output_shard_start]);
         }
-        printf("local_top_left_indices size: %ld\n", local_top_left_indices.size());
         sharded_input_top_left_indices.push_back(local_top_left_indices);
     }
     if (pad_tile) {
@@ -412,7 +406,6 @@ std::vector<std::vector<uint16_t>> generate_sliding_window_op_config(const std::
             }
             TT_FATAL(core_idx < sharded_input_top_left_indices.size(), "Invalid core_idx {} for sharded_input_top_left_indices", core_idx);
             uint32_t indices_length_this_core = sharded_input_top_left_indices[core_idx].size();
-            printf("indices_length_this_core: %d, indices_length_per_core: %d\n", indices_length_this_core, indices_length_per_core);
             if (indices_length_per_core - indices_length_this_core > 0) {
                 std::vector<uint16_t> extend_v(indices_length_per_core - indices_length_this_core, 0);
                 sharded_input_top_left_indices[core_idx].insert(sharded_input_top_left_indices[core_idx].end(), extend_v.begin(), extend_v.end());
@@ -436,25 +429,11 @@ std::vector<uint16_t> flatten(const std::vector<std::vector<uint16_t>>& input, u
 }
 
 Tensor construct_on_host_config_tensor(const std::vector<std::vector<uint16_t>>& config, const SlidingWindowConfig& sw_config, const ParallelConfig& p_config) {
-    printf("config:\n");
-    for (auto i : config) {
-        for (auto j : i) {
-            printf("%d, ", j);
-        }
-        printf("\n");
-    }
-    printf("\n");
-
     // we need the last dim of tensors to be multiple of 2, pad if needed
     uint32_t extend_with_zeroes = config[0].size() % 2;
     extend_with_zeroes = extend_with_zeroes > 0 ? 2 - extend_with_zeroes : 0;
     Shape config_shape = Shape(std::vector<uint32_t>{(uint32_t) config.size(), (uint32_t) config[0].size() + extend_with_zeroes});
     std::vector<uint16_t> config_vector = flatten(config, extend_with_zeroes);
-    printf("config vector:\n"); // this has 204 elements in it, 204 x repeat_factor(which is 8) = 1632... which is the size of the tensor storage
-    for (auto i : config_vector) {
-        printf("%d, ", i);
-    }
-    printf("\n");
     if (p_config.shard_scheme == TensorMemoryLayout::HEIGHT_SHARDED) {
         auto config_buffer = owned_buffer::create<uint16_t>(std::move(config_vector));
         log_debug(tt::LogOp, "config_shape: ({}, {})", config_shape[0], config_shape[1]);
@@ -469,7 +448,6 @@ Tensor construct_on_host_config_tensor(const std::vector<std::vector<uint16_t>>&
             config_shape = Shape(std::vector<uint32_t>{config_shape[0] * repeat_factor, config_shape[1]});
             return Tensor(OwnedStorage{config_buffer}, config_shape, DataType::UINT16, Layout::ROW_MAJOR);
     } else if (p_config.shard_scheme == TensorMemoryLayout::BLOCK_SHARDED) {
-        printf("HIT BLOCK PATH\n");
         TT_ASSERT(p_config.grid.ranges().size() == 1, "BLOCK_SHARDED should have just a single core range");
         // NOTE: it is assumed that the range start is always (0, 0)
         uint32_t ncores_y = p_config.grid.ranges().begin()->end_coord.y + 1;
@@ -485,7 +463,6 @@ Tensor construct_on_host_config_tensor(const std::vector<std::vector<uint16_t>>&
         } else {
             TT_ASSERT(false, "Unsupported shard orientation");
         }
-        printf("repeat factor: %d\n", repeat_factor);
         for (uint32_t i = 0; i < repeat_factor; ++ i) {
             repeat_config.insert(repeat_config.end(), config_vector.begin(), config_vector.end());
         }

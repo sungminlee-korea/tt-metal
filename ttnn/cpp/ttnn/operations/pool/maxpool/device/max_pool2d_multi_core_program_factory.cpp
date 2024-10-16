@@ -410,14 +410,12 @@ MaxPool2D::MultiCore::cached_program_t MaxPool2D::MultiCore::create(const operat
     auto op_trace_metadata = sliding_window::generate_op_trace_metadata(sliding_window_config);
     auto shard_boundaries = sliding_window::generate_shard_boundaries(sliding_window_config, op_trace_metadata);
     auto top_left_indices =
-        sliding_window::generate_sliding_window_op_config(op_trace_metadata, shard_boundaries, false, true);
+        sliding_window::generate_sliding_window_op_config(op_trace_metadata, shard_boundaries, false, is_block_sharded); // should we always pad cores or only for block sharding?
     auto reader_indices =
         sliding_window::construct_on_host_config_tensor(top_left_indices, sliding_window_config, parallel_config);
     log_debug(tt::LogOp, "reader_indices shape: {}", reader_indices.shape());
-    printf("HIT READ INDICES\n");
     auto reader_indices_on_device =
         sliding_window::move_config_tensor_to_device(reader_indices, parallel_config, is_block_sharded, input.device());
-    printf("PAST READ INDICES\n");
 
     tt::tt_metal::detail::AddConfigBuffer(program, reader_indices_on_device.device_buffer());
 

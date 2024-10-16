@@ -349,7 +349,7 @@ def run_max_pool_block_shard(
         assert isequal
 
 
-""" @pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
+@pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
 @pytest.mark.parametrize(
     "act_shape",  ## NCHW
     (
@@ -471,7 +471,7 @@ def test_run_max_pool_width_shard(
     dtype,
     use_program_cache,
 ):
-    run_max_pool_width_shard(act_shape, kernel_size, padding, stride, dilation, device, dtype) """
+    run_max_pool_width_shard(act_shape, kernel_size, padding, stride, dilation, device, dtype)
 
 
 @pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
@@ -542,7 +542,7 @@ def test_run_max_pool_block_shard(
     run_max_pool_block_shard(act_shape, kernel_size, padding, stride, dilation, device, dtype)
 
 
-""" @pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
+@pytest.mark.parametrize("device_params", [{"l1_small_size": 24576}], indirect=True)
 @pytest.mark.parametrize(
     "act_shape",  ## NCHW
     (([1, 512, 10, 10],)),  ## yolov4 shapes
@@ -830,4 +830,4 @@ def test_pool_core_nondivis(
     assert allclose
     assert isclose
     if dtype == ttnn.bfloat16:
-        assert isequal """
+        assert isequal
