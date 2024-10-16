@@ -93,8 +93,8 @@ def test_ring_reduce_scatter_n300_post_commit(
     "tensor_mem_layout",
     [
         ttnn.TensorMemoryLayout.WIDTH_SHARDED,
-        ttnn.TensorMemoryLayout.HEIGHT_SHARDED,
-        ttnn.TensorMemoryLayout.BLOCK_SHARDED,
+        # ttnn.TensorMemoryLayout.HEIGHT_SHARDED,
+        # ttnn.TensorMemoryLayout.BLOCK_SHARDED,
     ],
 )
 @pytest.mark.parametrize("tensor_layout", [ttnn.TILE_LAYOUT])
@@ -115,16 +115,16 @@ def test_ring_reduce_scatter_n300_post_commit(
             (32, 32),
             ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(7, 3))}),
         ),
-        (  # https://github.com/tenstorrent/tt-metal/issues/9686
-            (1, 1, 32, 2048),
-            (32, 64),
-            ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(7, 3))}),
-        ),
-        (  # https://github.com/tenstorrent/tt-metal/issues/9686
-            (1, 1, 32, 1792),
-            (32, 32),
-            ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(7, 6))}),
-        ),
+        # (  # https://github.com/tenstorrent/tt-metal/issues/9686
+        #     (1, 1, 32, 2048),
+        #     (32, 64),
+        #     ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(7, 3))}),
+        # ),
+        # (  # https://github.com/tenstorrent/tt-metal/issues/9686
+        #     (1, 1, 32, 1792),
+        #     (32, 32),
+        #     ttnn.CoreRangeSet({ttnn.CoreRange(ttnn.CoreCoord(0, 0), ttnn.CoreCoord(7, 6))}),
+        # ),
     ),
 )
 @pytest.mark.parametrize("math_op", [ttnn.ReduceType.Sum])

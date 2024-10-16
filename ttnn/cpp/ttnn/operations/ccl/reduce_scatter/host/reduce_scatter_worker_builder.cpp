@@ -146,10 +146,10 @@ std::vector<uint32_t> ReduceScatterWorkerArgBuilder::generate_receiver_kernel_ct
         // TODO: rangeify
         auto const& input_sharded_tensor_args = ShardedAddrGenArgBuilder::emit_ct_args(local_input_tensor);
         std::copy(input_sharded_tensor_args.begin(), input_sharded_tensor_args.end(), std::back_inserter(args));
+        ShardedAddrGenArgBuilder::log_sharded_tensor_kernel_args(local_input_tensor, "input");
+
         auto const& output_sharded_tensor_args = ShardedAddrGenArgBuilder::emit_ct_args(local_output_tensor);
         std::copy(output_sharded_tensor_args.begin(), output_sharded_tensor_args.end(), std::back_inserter(args));
-
-        ShardedAddrGenArgBuilder::log_sharded_tensor_kernel_args(local_input_tensor, "input");
         ShardedAddrGenArgBuilder::log_sharded_tensor_kernel_args(local_output_tensor, "output");
     }
 

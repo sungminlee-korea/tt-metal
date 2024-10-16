@@ -158,70 +158,55 @@ auto build_source_address_generator(std::size_t &arg_idx, address_t tensor_addre
 
     using addrgen_type = typename source_tensor_addrgen<tensor_layout, buffer_type, page_layout>::type;
 
-    #ifdef SHARDED_MEM_LAYOUT
-    uint32_t input_shard_grid_nrows = get_arg_val<uint32_t>(arg_idx++);
-    const uint32_t * const input_shard_grid_row_map = reinterpret_cast<const uint32_t * const>(get_arg_addr(arg_idx));
-    arg_idx += input_shard_grid_nrows;
-    uint32_t input_shard_grid_ncols = get_arg_val<uint32_t>(arg_idx++);
-    const uint32_t * const input_shard_grid_col_map = reinterpret_cast<const uint32_t * const>(get_arg_addr(arg_idx));
-    arg_idx += input_shard_grid_ncols;
-    #else
-    uint32_t input_shard_grid_nrows = 0;
-    const uint32_t * const input_shard_grid_row_map = nullptr;
-    uint32_t input_shard_grid_ncols = 0;
-    const uint32_t * const input_shard_grid_col_map = nullptr;
-    #endif
-
-    if constexpr (is_row_major_layout) {
-        if constexpr (is_interleaved) {
+    if constexpr (tensor_layout == tt::tt_metal::TensorMemoryLayout::INTERLEAVED) {
+        if constexpr (is_row_major_layout) {
             return addrgen_type{
                 .bank_base_address = tensor_address, .page_size = page_size};
-        } else if constexpr (is_sharded) {
-            return tt::tt_metal::address_generators::build_sharded_addr_gen<tensor_layout>(
-                tt::tt_metal::address_generators::HarvestedWormholeWorkerToNocLookup(
-                    input_shard_grid_nrows,
-                    input_shard_grid_row_map,
-                    input_shard_grid_ncols,
-                    input_shard_grid_col_map),
-                typename tt::tt_metal::address_generators::DeviceShardSpecTypeGetter<tensor_layout>::type(
-                    input_tensor_shard_pages_per_shard_y,
-                    input_tensor_shard_pages_per_shard_x,
-                    input_tensor_shard_grid_height,
-                    input_tensor_shard_grid_width,
-                    input_tensor_shard_grid_start_y_logical,
-                    input_tensor_shard_grid_start_x_logical,
-                    input_tensor_shard_grid_transposed
-                ),
-                page_size,
-                tensor_address
-            );
-            ASSERT(false); // unimplemented and untested
-        }
-    } else if constexpr (is_tile_page_layout) {
-        if constexpr (is_interleaved) {
+        } else {
             return addrgen_type{
                 .bank_base_address = tensor_address, .page_size = page_size, .data_format = get_dataformat(cb_id_in0)};
-        } else if constexpr (is_sharded) {
-            ASSERT(false);//"Sharded support has not been added to ccl_send yet");
-            return tt::tt_metal::address_generators::build_sharded_addr_gen<tensor_layout>(
-                tt::tt_metal::address_generators::HarvestedWormholeWorkerToNocLookup(
-                    input_shard_grid_nrows,
-                    input_shard_grid_row_map,
-                    input_shard_grid_ncols,
-                    input_shard_grid_col_map),
-                typename tt::tt_metal::address_generators::DeviceShardSpecTypeGetter<tensor_layout>::type(
-                    input_tensor_shard_pages_per_shard_y,
-                    input_tensor_shard_pages_per_shard_x,
-                    input_tensor_shard_grid_height,
-                    input_tensor_shard_grid_width,
-                    input_tensor_shard_grid_start_y_logical,
-                    input_tensor_shard_grid_start_x_logical,
-                    input_tensor_shard_grid_transposed
-                ),
-                page_size,
-                tensor_address
-            );
         }
+    } else if constexpr (
+        tensor_layout == tt::tt_metal::TensorMemoryLayout::BLOCK_SHARDED ||
+        tensor_layout == tt::tt_metal::TensorMemoryLayout::HEIGHT_SHARDED ||
+        tensor_layout == tt::tt_metal::TensorMemoryLayout::WIDTH_SHARDED) {
+        size_t input_shard_grid_nrows = get_arg_val<uint32_t>(arg_idx++);
+        const auto * const input_shard_grid_row_map = reinterpret_cast<const uint32_t * const>(get_arg_addr(arg_idx));
+        arg_idx += input_shard_grid_nrows;
+        size_t input_shard_grid_ncols = get_arg_val<uint32_t>(arg_idx++);
+        const auto * const input_shard_grid_col_map = reinterpret_cast<const uint32_t * const>(get_arg_addr(arg_idx));
+        arg_idx += input_shard_grid_ncols;
+        DPRINT << "input_shard_grid_nrows: " << (uint32_t)input_shard_grid_nrows << ENDL();
+        DPRINT << "input_shard_grid_ncols: " << (uint32_t)input_shard_grid_ncols << ENDL();
+
+        DPRINT << "input_tensor_shard_pages_per_shard_y: " << (uint32_t)input_tensor_shard_pages_per_shard_y << ENDL();
+        DPRINT << "input_tensor_shard_pages_per_shard_x: " << (uint32_t)input_tensor_shard_pages_per_shard_x << ENDL();
+        DPRINT << "input_tensor_shard_grid_height: " << (uint32_t)input_tensor_shard_grid_height << ENDL();
+        DPRINT << "input_tensor_shard_grid_width: " << (uint32_t)input_tensor_shard_grid_width << ENDL();
+        DPRINT << "input_tensor_shard_grid_start_y_logical: " << (uint32_t)input_tensor_shard_grid_start_y_logical << ENDL();
+        DPRINT << "input_tensor_shard_grid_start_x_logical: " << (uint32_t)input_tensor_shard_grid_start_x_logical << ENDL();
+        DPRINT << "input_tensor_shard_grid_transposed: " << (uint32_t)input_tensor_shard_grid_transposed << ENDL();
+
+        return tt::tt_metal::address_generators::build_sharded_addr_gen<tensor_layout>(
+            tt::tt_metal::address_generators::HarvestedWormholeWorkerToNocLookup(
+                input_shard_grid_nrows,
+                input_shard_grid_row_map,
+                input_shard_grid_ncols,
+                input_shard_grid_col_map),
+            typename tt::tt_metal::address_generators::DeviceShardSpecTypeGetter<tensor_layout>::type(
+                input_tensor_shard_pages_per_shard_y,
+                input_tensor_shard_pages_per_shard_x,
+                input_tensor_shard_grid_height,
+                input_tensor_shard_grid_width,
+                input_tensor_shard_grid_start_y_logical,
+                input_tensor_shard_grid_start_x_logical,
+                input_tensor_shard_grid_transposed
+            ),
+            page_size,
+            tensor_address
+        );
+    } else {
+        ASSERT(false);
     }
 }
 
@@ -249,7 +234,9 @@ void kernel_main() {
     const uint32_t packet_size_in_pages = get_arg_val<uint32_t>(arg_idx++);
     const uint32_t page_size = get_arg_val<uint32_t>(arg_idx++);
     auto tensor_addrgen = build_source_address_generator<tensor_layout, buffer_type, page_layout>(arg_idx, tensor_address, page_size, tt::CB::c_in0);
-    volatile uint32_t* my_edm_worker_semaphore_ptr = reinterpret_cast<volatile uint32_t*>(get_semaphore(get_arg_val<uint32_t>(arg_idx++)));
+    auto semaphore_id = get_arg_val<uint32_t>(arg_idx++);
+    DPRINT << "Semaphore ID: " << (uint32_t)semaphore_id << ENDL();
+    volatile uint32_t* my_edm_worker_semaphore_ptr = reinterpret_cast<volatile uint32_t*>(get_semaphore(semaphore_id));
 
     // For now we only support single EDM connection
     ccl::edm::WorkerToEdmSender<termination_mode> sender(
@@ -266,6 +253,7 @@ void kernel_main() {
     // Instead, open up the CB and use it as a raw scratch space6
     cb_reserve_back(cb_id, packet_size_in_pages);
     const uint32_t local_l1_scratch_buffer_address = get_write_ptr(cb_id);
+    DPRINT << "ccl_send has " << (uint32_t)num_commands << " commands" << ENDL();
     for (std::size_t i = 0; i < num_commands; ++i) {
         // Generalized would be to get the command header info and then dispatch accordingly - if the command type is singular
         //
@@ -324,5 +312,7 @@ void kernel_main() {
     }
     ////////////////////////////////////////////////////////////////////////////////////
 
+    DPRINT << "ccl_send done1\n";
     sender.close();
+    DPRINT << "ccl_send done2\n";
 }

@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include "dataflow_api.h"
+#include "debug/dprint.h"
 #include "ttnn/cpp/ttnn/operations/ccl/all_gather/device/kernels/dataflow/worker_ring_gather_utils.hpp"
 #include "ttnn/cpp/ttnn/operations/ccl/kernel_common/worker_edm_utils.hpp"
 #include "ttnn/cpp/ttnn/operations/ccl/shared_with_host/sharded_tensor_addr_gen.hpp"
@@ -255,13 +256,16 @@ void kernel_main() {
             worker_slice_base_offset, worker_slice_shape, output_tensor_shape, num_concurrent_workers);
     }
 
+    DPRINT << "SENDER done0\n";
     ASSERT(total_lifetime_cb_pages_popped_from_math <= total_eltwise_kernel_num_pages);
     for (; total_lifetime_cb_pages_popped_from_math < total_eltwise_kernel_num_pages;
          total_lifetime_cb_pages_popped_from_math++) {
         pop_filler_pages_from_cb(cb_id_in0, 1);
     }
 
+    DPRINT << "SENDER done1\n";
     if (num_transfers > 0) {
         sender.close();
     }
+    DPRINT << "SENDER done2\n";
 }

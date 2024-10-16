@@ -236,7 +236,7 @@ void kernel_main() {
     uint32_t eth_transaction_ack_word_addr = handshake_addr + 16;
     uint32_t eth_transaction_complete_addr = handshake_addr + 32;
 
-    constexpr uint32_t SWITCH_INTERVAL = 4000000;
+    constexpr uint32_t SWITCH_INTERVAL = 10000;
     uint32_t did_nothing_count = 0;
 
     uint32_t num_senders_complete = !enable_sender_side ? sender_num_channels : num_senders_with_no_work;
