@@ -10,8 +10,8 @@ from models.utility_functions import comp_allclose_and_pcc
 from loguru import logger
 
 from tests.ttnn.unit_tests.operations.test_utils import (
-    to_cpu,
-    to_npu,
+    to_torch,
+    to_ttnn,
 )
 
 
@@ -80,13 +80,16 @@ def run_clone(
         pytest.skip("For int32 output, input_dtype must also be int32.")
     if output_dtype != input_dtype and output_dtype and not tilized:
         pytest.skip("When not tilized, dtype conversion is not supported.")
+    if not tilized and shape and shape[-1] % 2 == 1:
+        pytest.skip("TTNN failed to create a ROW_MAJOR_LAYOUT tensor from a PyTorch tensor with an odd last dimension.")
 
-    npu_input = to_npu(
+    npu_input = to_ttnn(
         cpu_input,
-        device,
-        npu_dtype=get_lib_dtype(ttnn, input_dtype),
-        npu_layout=ttnn.TILE_LAYOUT if tilized else ttnn.ROW_MAJOR_LAYOUT,
-    ).to(device, input_memory_config)
+        device=device,
+        dtype=get_lib_dtype(ttnn, input_dtype),
+        layout=ttnn.TILE_LAYOUT if tilized else ttnn.ROW_MAJOR_LAYOUT,
+        memory_config=input_memory_config,
+    )
 
     npu_output = ttnn.clone(
         npu_input,
@@ -94,7 +97,7 @@ def run_clone(
         memory_config=output_memory_config,
     )
 
-    cpu_output = to_cpu(npu_output, shape)
+    cpu_output = to_torch(npu_output, shape=shape)
 
     passing, out = comp_allclose_and_pcc(torch.ops.aten.clone(cpu_input), cpu_output, rtol=0.01, atol=0.01)
     logger.info(out)
@@ -249,7 +252,7 @@ def test_clone_callback(
             device,
         )
         torch_dummy = torch.randn([32, 32])
-        tt_dummy = to_npu(torch_dummy, device)
+        tt_dummy = to_ttnn(torch_dummy, device=device)
         num_program_cache_entries_list.append(device.num_program_cache_entries())
     logger.info(f"num_program_cache_entries_list={num_program_cache_entries_list}")
     assert num_program_cache_entries_list[0] > 0
