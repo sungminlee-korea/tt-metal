@@ -633,6 +633,10 @@ std::vector<uint32_t> ReduceScatterWorkerArgBuilder::generate_line_start_sender_
         static_cast<uint32_t>(tt::CB::c_in0) // cb_id
     };
 
+    auto const& input_tensor = this->op_config.get_input_tensor(0);
+    auto const& addr_gen_rt_args = ttnn::ccl::emit_address_generator_compile_time_args(input_tensor);
+    std::ranges::copy(addr_gen_rt_args, std::back_inserter(args));
+
     return args;
 }
 

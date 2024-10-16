@@ -116,6 +116,38 @@ constexpr Shape4D<T> build_wrapped_row_tensor_slice(T n_pages) {
     return Shape4D<T>{1, 1, 1, n_pages};
 }
 
+///////////////////////////////////////////////////
+// COMPILE TIME ARGS
+///////////////////////////////////////////////////
+
+constexpr TensorMemoryLayout tensor_layout = static_cast<TensorMemoryLayout>(get_compile_time_arg_val(0));
+constexpr BufferType buffer_type = static_cast<BufferType>(get_compile_time_arg_val(1));
+constexpr Layout page_layout = static_cast<Layout>(get_compile_time_arg_val(2));
+constexpr ttnn::ccl::EriscDataMoverTerminationMode termination_mode = static_cast<ttnn::ccl::EriscDataMoverTerminationMode>(get_compile_time_arg_val(3));
+constexpr uint32_t cb_id = get_compile_time_arg_val(4);
+
+
+#ifdef SHARDED_MEM_LAYOUT
+static constexpr bool is_sharded_mode = true;
+static constexpr uint32_t input_tensor_shard_grid_height = get_compile_time_arg_val(5);
+static constexpr uint32_t input_tensor_shard_grid_width = get_compile_time_arg_val(6);
+static constexpr uint32_t input_tensor_shard_grid_start_y_logical = get_compile_time_arg_val(7);
+static constexpr uint32_t input_tensor_shard_grid_start_x_logical = get_compile_time_arg_val(8);
+static constexpr uint32_t input_tensor_shard_pages_per_shard_y = get_compile_time_arg_val(9);
+static constexpr uint32_t input_tensor_shard_pages_per_shard_x = get_compile_time_arg_val(10);
+static constexpr bool input_tensor_shard_grid_transposed = get_compile_time_arg_val(11) != 0;
+#else
+static constexpr bool is_sharded_mode = false;
+static constexpr uint32_t input_tensor_shard_grid_height = 0;
+static constexpr uint32_t input_tensor_shard_grid_width = 0;
+static constexpr uint32_t input_tensor_shard_grid_start_y_logical = 0;
+static constexpr uint32_t input_tensor_shard_grid_start_x_logical = 0;
+static constexpr uint32_t input_tensor_shard_pages_per_shard_y = 0;
+static constexpr uint32_t input_tensor_shard_pages_per_shard_x = 0;
+static constexpr bool input_tensor_shard_grid_transposed = false;
+#endif
+
+
 template <tt::tt_metal::TensorMemoryLayout tensor_layout, tt::tt_metal::BufferType buffer_type, tt::tt_metal::Layout page_layout>
 auto build_source_address_generator(std::size_t &arg_idx, address_t tensor_address, std::size_t page_size, uint32_t cb_id_in0) -> typename source_tensor_addrgen<tensor_layout, buffer_type, page_layout>::type {
     constexpr bool is_sharded = is_sharded_tensor_layout(tensor_layout);
@@ -126,6 +158,20 @@ auto build_source_address_generator(std::size_t &arg_idx, address_t tensor_addre
 
     using addrgen_type = typename source_tensor_addrgen<tensor_layout, buffer_type, page_layout>::type;
 
+    #ifdef SHARDED_MEM_LAYOUT
+    uint32_t input_shard_grid_nrows = get_arg_val<uint32_t>(arg_idx++);
+    const uint32_t * const input_shard_grid_row_map = reinterpret_cast<const uint32_t * const>(get_arg_addr(arg_idx));
+    arg_idx += input_shard_grid_nrows;
+    uint32_t input_shard_grid_ncols = get_arg_val<uint32_t>(arg_idx++);
+    const uint32_t * const input_shard_grid_col_map = reinterpret_cast<const uint32_t * const>(get_arg_addr(arg_idx));
+    arg_idx += input_shard_grid_ncols;
+    #else
+    uint32_t input_shard_grid_nrows = 0;
+    const uint32_t * const input_shard_grid_row_map = nullptr;
+    uint32_t input_shard_grid_ncols = 0;
+    const uint32_t * const input_shard_grid_col_map = nullptr;
+    #endif
+
     if constexpr (is_row_major_layout) {
         if constexpr (is_interleaved) {
             return addrgen_type{
@@ -133,18 +179,18 @@ auto build_source_address_generator(std::size_t &arg_idx, address_t tensor_addre
         } else if constexpr (is_sharded) {
             return tt::tt_metal::address_generators::build_sharded_addr_gen<tensor_layout>(
                 tt::tt_metal::address_generators::HarvestedWormholeWorkerToNocLookup(
-                    0,//output_shard_grid_nrows,
-                    0,//output_shard_grid_row_map,
-                    0,//output_shard_grid_ncols,
-                    0),//output_shard_grid_col_map),
-                tt::tt_metal::address_generators::DeviceShardSpecTypeGetter<tensor_layout>::type(
-                    0,//output_tensor_shard_pages_per_shard_y,
-                    0,//output_tensor_shard_pages_per_shard_x,
-                    0,//output_tensor_shard_grid_height,
-                    0,//output_tensor_shard_grid_width,
-                    0,//output_tensor_shard_grid_start_y_logical,
-                    0,//output_tensor_shard_grid_start_x_logical,
-                    0//output_tensor_shard_grid_transposed
+                    input_shard_grid_nrows,
+                    input_shard_grid_row_map,
+                    input_shard_grid_ncols,
+                    input_shard_grid_col_map),
+                typename tt::tt_metal::address_generators::DeviceShardSpecTypeGetter<tensor_layout>::type(
+                    input_tensor_shard_pages_per_shard_y,
+                    input_tensor_shard_pages_per_shard_x,
+                    input_tensor_shard_grid_height,
+                    input_tensor_shard_grid_width,
+                    input_tensor_shard_grid_start_y_logical,
+                    input_tensor_shard_grid_start_x_logical,
+                    input_tensor_shard_grid_transposed
                 ),
                 page_size,
                 tensor_address
@@ -159,18 +205,18 @@ auto build_source_address_generator(std::size_t &arg_idx, address_t tensor_addre
             ASSERT(false);//"Sharded support has not been added to ccl_send yet");
             return tt::tt_metal::address_generators::build_sharded_addr_gen<tensor_layout>(
                 tt::tt_metal::address_generators::HarvestedWormholeWorkerToNocLookup(
-                    0,//output_shard_grid_nrows,
-                    0,//output_shard_grid_row_map,
-                    0,//output_shard_grid_ncols,
-                    0),//output_shard_grid_col_map),
-                tt::tt_metal::address_generators::DeviceShardSpecTypeGetter<tensor_layout>::type(
-                    0,//output_tensor_shard_pages_per_shard_y,
-                    0,//output_tensor_shard_pages_per_shard_x,
-                    0,//output_tensor_shard_grid_height,
-                    0,//output_tensor_shard_grid_width,
-                    0,//output_tensor_shard_grid_start_y_logical,
-                    0,//output_tensor_shard_grid_start_x_logical,
-                    0//output_tensor_shard_grid_transposed
+                    input_shard_grid_nrows,
+                    input_shard_grid_row_map,
+                    input_shard_grid_ncols,
+                    input_shard_grid_col_map),
+                typename tt::tt_metal::address_generators::DeviceShardSpecTypeGetter<tensor_layout>::type(
+                    input_tensor_shard_pages_per_shard_y,
+                    input_tensor_shard_pages_per_shard_x,
+                    input_tensor_shard_grid_height,
+                    input_tensor_shard_grid_width,
+                    input_tensor_shard_grid_start_y_logical,
+                    input_tensor_shard_grid_start_x_logical,
+                    input_tensor_shard_grid_transposed
                 ),
                 page_size,
                 tensor_address
@@ -189,12 +235,6 @@ void kernel_main() {
     ///////////////////////////////////////////////////
     // ARGS
     ///////////////////////////////////////////////////
-
-    constexpr TensorMemoryLayout tensor_layout = static_cast<TensorMemoryLayout>(get_compile_time_arg_val(0));
-    constexpr BufferType buffer_type = static_cast<BufferType>(get_compile_time_arg_val(1));
-    constexpr Layout page_layout = static_cast<Layout>(get_compile_time_arg_val(2));
-    constexpr ttnn::ccl::EriscDataMoverTerminationMode termination_mode = static_cast<ttnn::ccl::EriscDataMoverTerminationMode>(get_compile_time_arg_val(3));
-    constexpr uint32_t cb_id = get_compile_time_arg_val(4);
 
     // Load the input tensor spec
     address_t tensor_address = get_arg_val<address_t>(arg_idx++);
