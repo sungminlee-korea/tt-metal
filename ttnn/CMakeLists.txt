@@ -536,16 +536,17 @@ set(TTNN_FINAL_SRC
     ${TENSOR_SRCS}
     ${TT_DNN_SRCS})
 
-set(TTNN_PUBLIC_INCLUDE_DIRS
+set(TTNN_PRIVATE_INCLUDE_DIRS
     ${UMD_HOME}
     ${PROJECT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}/tt_metal
     ${CMAKE_CURRENT_SOURCE_DIR} # ${PROJECT_SOURCE_DIR}/ttnn
     ${CMAKE_CURRENT_SOURCE_DIR}/cpp/ttnn/deprecated # symlink to tt_eager; should become native folder once merge complete
     ${CMAKE_CURRENT_SOURCE_DIR}/cpp
-    ${PROJECT_SOURCE_DIR}/tt_metal/third_party/fmt)
-set(TTNN_PUBLIC_LINK_LIBRARIES compiler_flags metal_header_directories metal_common_libs tt_metal)
-set(TTNN_PUBLIC_LINK_DIRS "")
+    )
+
+set(TTNN_PRIVATE_LINK_LIBRARIES compiler_flags metal_header_directories metal_common_libs tt_metal)
+set(TTNN_PRIVATE_LINK_DIRS "")
 
 set(TTNN_PRECOMPILED_HEADERS
     ${PROJECT_SOURCE_DIR}/tt_metal/tt_stl/reflection.hpp
@@ -568,14 +569,14 @@ if(WITH_PYTHON_BINDINGS)
         ${PYBIND_SRC}
         ${TT_LIB_SRCS}) # TT_LIB_SRCS from tt_eager/tt_lib/CMakeLists.txt for python bindigns
 
-    list(APPEND TTNN_PUBLIC_INCLUDE_DIRS
+    list(APPEND TTNN_PRIVATE_INCLUDE_DIRS
         ${CMAKE_CURRENT_SOURCE_DIR}/cpp/ttnn/experimental/tt_lib
         ${PROJECT_SOURCE_DIR}/tt_metal/third_party/pybind11/include
         ${Python3_INCLUDE_DIRS})
 
-    list(APPEND TTNN_PUBLIC_LINK_DIRS ${Python3_LIBRARY_DIRS})
+    list(APPEND TTNN_PRIVATE_LINK_DIRS ${Python3_LIBRARY_DIRS})
 
-    list(APPEND TTNN_PUBLIC_LINK_LIBRARIES pch_pybinds ${Python3_LIBRARIES})
+    list(APPEND TTNN_PRIVATE_LINK_LIBRARIES pch_pybinds ${Python3_LIBRARIES})
 endif()
 
 add_library(ttnn SHARED ${TTNN_FINAL_SRC})
@@ -585,9 +586,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_definitions(ttnn PUBLIC DISABLE_NAMESPACE_STATIC_ASSERT)
 endif()
 
-target_include_directories(ttnn PUBLIC ${TTNN_PUBLIC_INCLUDE_DIRS})
-target_link_libraries(ttnn PUBLIC ${TTNN_PUBLIC_LINK_LIBRARIES})
-target_link_directories(ttnn PUBLIC ${TTNN_PUBLIC_LINK_DIRS})
+target_include_directories(ttnn PRIVATE ${TTNN_PRIVATE_INCLUDE_DIRS})
+target_link_libraries(ttnn PRIVATE ${TTNN_PRIVATE_LINK_LIBRARIES})
+target_link_directories(ttnn PRIVATE ${TTNN_PRIVATE_LINK_DIRS})
 target_precompile_headers(ttnn PRIVATE ${TTNN_PRECOMPILED_HEADERS})
 
 #We move the library binaries to a different path rather than PROJECT_BINARY_DIR
