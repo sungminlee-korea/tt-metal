@@ -864,7 +864,9 @@ void add_stagger_defines_if_needed(
     // This is done to mitigate di/dt issues, in case the environment var is set.
     // See issue #9857.
     const bool enable_stagger = std::getenv("TT_ENABLE_MATMUL_STAGGER");
-    if (enable_stagger && arch == tt::ARCH::WORMHOLE_B0 && num_cores > WH_B0_MM_MAX_CORES_NO_STAGGER) {
+    bool enable_wh_stagger = enable_stagger && arch == tt::ARCH::WORMHOLE_B0 && num_cores > WH_B0_MM_MAX_CORES_NO_STAGGER;
+    bool enable_bh_stagger = enable_stagger && arch == tt::ARCH::BLACKHOLE;
+    if (enable_wh_stagger or enable_bh_stagger) {
         mm_kernel_defines["MM_STAGGER_ODD_ROWS"] = "1";
         log_warning(tt::LogOp, "Stagger enabled for matmul op using {} cores.", num_cores);
     }
