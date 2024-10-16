@@ -45,6 +45,7 @@ uint32_t SlidingWindowConfig::get_output_shard_y(bool snap_to_tile) const {
     uint32_t output_nhw = output_shape[0] * output_shape[1] * output_shape[2];
     uint32_t output_nhw_padded = tt::round_up(output_nhw, num_cores_nhw * (snap_to_tile ? tt:: constants::TILE_HEIGHT : 1));
     log_debug(tt::LogOp, "output_nhw: {} output_nhw_padded: {} num_cores_nhw: {}", output_nhw, output_nhw_padded, num_cores_nhw);
+    printf("output_nhw: %d output_nhw_padded: %d num_cores_nhw: %d\n", output_nhw, output_nhw_padded, num_cores_nhw);
     return (output_nhw_padded / num_cores_nhw);
 }
 
@@ -89,6 +90,7 @@ std::vector<std::pair<uint32_pair_t, uint32_pair_t>> generate_shard_boundaries(c
     std::vector<std::pair<uint32_pair_t, uint32_pair_t>> shard_boundaries;
     uint32_t num_cores = config.num_cores_nhw;
     uint32_t output_shard_h = config.get_output_shard_y(config.snap_to_tile);
+    printf("output_shard_h: %d\n", output_shard_h);
     uint32_t padded_input_w = config.input_hw.second + 2 * config.pad_hw.second;
     uint32_t max_index = op_trace_metadata.size();
 
@@ -372,6 +374,11 @@ std::tuple<std::vector<std::vector<uint16_t>>, std::vector<std::vector<uint16_t>
 }
 
 std::vector<std::vector<uint16_t>> generate_sliding_window_op_config(const std::vector<uint32_t>& op_trace_metadata, const std::vector<std::pair<uint32_pair_t, uint32_pair_t>>& shard_boundaries, bool pad_tile, bool pad_last_core) {
+    uint32_t lowest_pad_core_idx = shard_boundaries.size();
+    if (pad_last_core) {
+        lowest_pad_core_idx = shard_boundaries.size() - 1;
+        TT_FATAL(lowest_pad_core_idx > 0, "invalid 0th shard boundary, must have at least one valid boundary");
+    }
     std::vector<std::vector<uint16_t>> sharded_input_top_left_indices;
     printf("shard_boundaries size: %ld\n", shard_boundaries.size());
     printf("Shard boundaries:\n");
@@ -379,13 +386,19 @@ std::vector<std::vector<uint16_t>> generate_sliding_window_op_config(const std::
         printf("output shard start: %d, output shard end: %d, input shard start: %d, input shard end: %d\n", item.first.first, item.first.second, item.second.first, item.second.second);
         const auto& [output_shard_start, output_shard_end] = item.first;
         const auto& [input_shard_start, input_shard_end] = item.second;
+        std::vector<uint16_t> local_top_left_indices;
         // sanity check
-        if (output_shard_start >= op_trace_metadata.size()) {
-            // this core has no output
+        if (output_shard_start >= output_shard_end) {
+            printf("hit pad core\n");
+            lowest_pad_core_idx = std::min(lowest_pad_core_idx, (uint32_t) sharded_input_top_left_indices.size());
+            printf("lowest_pad_core_idx: %d\n", lowest_pad_core_idx);
+            TT_FATAL(lowest_pad_core_idx > 0, "invalid 0th shard boundary, must have at least one valid boundary");
+            // this core has no output, but we still need the core represented in config, it will just be padded with zeros below
+            printf("top_left_indices size: %ld\n", local_top_left_indices.size());
+            sharded_input_top_left_indices.push_back(local_top_left_indices);
             continue;
         }
         TT_ASSERT(input_shard_start == op_trace_metadata[output_shard_start]);
-        std::vector<uint16_t> local_top_left_indices;
         for(size_t i = output_shard_start; i < output_shard_end + 1; i++) {
             local_top_left_indices.push_back(op_trace_metadata[i] - op_trace_metadata[output_shard_start]);
         }
@@ -402,14 +415,16 @@ std::vector<std::vector<uint16_t>> generate_sliding_window_op_config(const std::
             }
         }
     }
-    if (pad_last_core) {
+    printf("lowest_pad_core_idx: %d\n", lowest_pad_core_idx);
+    for (uint32_t core_idx = lowest_pad_core_idx; core_idx < shard_boundaries.size(); core_idx++) {
         // Pad indices for last core if not equal to other cores
         uint32_t indices_length_per_core = sharded_input_top_left_indices[0].size();
-        uint32_t indices_length_last_core = sharded_input_top_left_indices.back().size();
-        TT_ASSERT(indices_length_last_core <= indices_length_per_core, "indices length for last core {} larger than indices length per core {}", indices_length_last_core, indices_length_per_core);
-        if (indices_length_per_core - indices_length_last_core > 0) {
-            std::vector<uint16_t> extend_v(indices_length_per_core - indices_length_last_core, 0);
-            sharded_input_top_left_indices.back().insert(sharded_input_top_left_indices.back().end(), extend_v.begin(), extend_v.end());
+        uint32_t indices_length_this_core = sharded_input_top_left_indices[core_idx].size();
+        printf("indices_length_this_core: %d, indices_length_per_core: %d\n", indices_length_this_core, indices_length_per_core);
+        TT_ASSERT(indices_length_this_core <= indices_length_per_core, "indices length for next core to be padded {} is larger than indices length per core {}", indices_length_this_core, indices_length_per_core);
+        if (indices_length_per_core - indices_length_this_core > 0) {
+            std::vector<uint16_t> extend_v(indices_length_per_core - indices_length_this_core, 0);
+            sharded_input_top_left_indices[core_idx].insert(sharded_input_top_left_indices.back().end(), extend_v.begin(), extend_v.end());
         }
 
     }
