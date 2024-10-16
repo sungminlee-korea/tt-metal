@@ -12,28 +12,8 @@ from loguru import logger
 from tests.ttnn.unit_tests.operations.test_utils import (
     to_torch,
     to_ttnn,
+    get_lib_dtype,
 )
-
-
-def get_lib_dtype(lib, dtype):
-    """
-    Maps string-based data types to their corresponding library-specific dtypes.
-
-    Parameters:
-    lib: library module (e.g., torch, ttnn)
-        The library for which the dtype mapping is required.
-    dtype: str
-        The string representation of the data type (e.g., 'bfloat16', 'float32', 'int32').
-
-    Returns:
-    Corresponding library-specific dtype or None if not found.
-    """
-    dtype_map = {
-        "bfloat16": lib.bfloat16,
-        "float32": lib.float32,
-        "int32": lib.int32,
-    }
-    return dtype_map.get(dtype, None)
 
 
 def run_clone(
