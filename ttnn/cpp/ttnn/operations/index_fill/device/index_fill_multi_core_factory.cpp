@@ -33,13 +33,21 @@ IndexFillOperation::MultiCore::cached_program_t IndexFillOperation::MultiCore::c
     const auto n = input_shape.rank();
 
     uint32_t dim = operation_attributes.dim;
+    uint32_t num_rows_to_fill_per_index = 1;
     std::vector<uint32_t> strides(n);
     strides[n - 1] = 1; // Last dimension stride is 1
-    for (int i = n - 2;i >= 0; i--) {
+    for (int i = n - 2;i >= dim; i--) {
         strides[i] = strides[i + 1] * input_shape[i + 1];
     }
+    for (int i = n - 2;i > dim; i--) {
+        num_rows_to_fill_per_index *= input_shape[i];
+    }
+    std::cout << num_rows_to_fill_per_index << std::endl;
+    uint32_t rows_to_fill = input.volume() / input_shape[-1] / input_shape[dim];
 
-
+    for (int i = 0;i < n;i++) {
+        std::cout << "strides[" << i << "]: " << strides[i] << std::endl;
+    }
     auto fill_value = operation_attributes.value;
     if (std::holds_alternative<int>(fill_value)) {
         u.u32 = std::get<int>(fill_value);
@@ -47,7 +55,8 @@ IndexFillOperation::MultiCore::cached_program_t IndexFillOperation::MultiCore::c
         u.f32 = std::get<float>(fill_value);
     }
 
-    auto num_tiles = input.volume() / TILE_HW;
+
+    auto num_rows =  input.volume() / input.get_logical_shape()[-1];
     Program program{};
     Device *device = input.device();
 
@@ -56,7 +65,7 @@ IndexFillOperation::MultiCore::cached_program_t IndexFillOperation::MultiCore::c
     uint32_t num_cores_y = compute_with_storage_grid_size.y;
 
     auto [num_cores, all_cores, core_group_1, core_group_2, num_tiles_per_core_group_1, num_tiles_per_core_group_2] =
-        tt_metal::split_work_to_cores(compute_with_storage_grid_size, num_tiles);
+        tt_metal::split_work_to_cores(compute_with_storage_grid_size, (dim == n - 1) ? num_rows : rows_to_fill);
 
     auto input_data_format = datatype_to_dataformat_converter(input.get_dtype());
     auto index_data_format = datatype_to_dataformat_converter(index.get_dtype());
@@ -90,8 +99,6 @@ IndexFillOperation::MultiCore::cached_program_t IndexFillOperation::MultiCore::c
             .set_page_size(dst_cb_index, rounded_output_unit_size);
     auto batch_cb = tt::tt_metal::CreateCircularBuffer(program, all_cores, dst_cb_config);
 
-
-
     bool in_is_dram = input.buffer()->buffer_type() == tt::tt_metal::BufferType::DRAM ? 1 : 0;
     bool index_is_dram = index.buffer()->buffer_type() == tt::tt_metal::BufferType::DRAM ? 1 : 0;
     bool out_is_dram = output.buffer()->buffer_type() == tt::tt_metal::BufferType::DRAM ? 1 : 0;
@@ -103,12 +110,14 @@ IndexFillOperation::MultiCore::cached_program_t IndexFillOperation::MultiCore::c
         (std::uint32_t) index_is_dram,
         (std::uint32_t) src_cb_index,
         (std::uint32_t) index_cb_index,
-        (std::uint32_t) strides[dim]
+        (std::uint32_t) strides[dim],
+        (std::uint32_t) (dim == n-1),
+        (std::uint32_t) (dim == 0)
     };
 
     auto reader_kernel_id = tt::tt_metal::CreateKernel(
         program,
-        "ttnn/cpp/ttnn/operations/data_movement/indexed_fill/device/kernels/dataflow/indexed_fill_reader.cpp",
+        "ttnn/cpp/ttnn/operations/index_fill/device/kernels/reader_index_fill.cpp",
         all_cores,
         tt::tt_metal::ReaderDataMovementConfig(
             reader_compile_time_args));
@@ -120,11 +129,9 @@ IndexFillOperation::MultiCore::cached_program_t IndexFillOperation::MultiCore::c
 
     auto writer_kernel_id = tt::tt_metal::CreateKernel(
         program,
-        "ttnn/cpp/ttnn/deprecated/tt_dnn/kernels/dataflow/writer_unary_stick_layout_interleaved_start_id.cpp",
+        "ttnn/cpp/ttnn/operations/index_fill/device/kernels/writer_index_fill.cpp",
         all_cores,
         tt::tt_metal::WriterDataMovementConfig(writer_compile_time_args));
-
-    // auto cores = grid_to_cores(num_cores_x*num_cores_y, num_cores_x, num_cores_y, false);
 
 
     uint32_t unit_offset = 0;
@@ -139,7 +146,6 @@ IndexFillOperation::MultiCore::cached_program_t IndexFillOperation::MultiCore::c
         } else {
             TT_ASSERT(false, "Core not in specified core ranges");
         }
-
         SetRuntimeArgs(
             program,
             reader_kernel_id,
@@ -149,7 +155,11 @@ IndexFillOperation::MultiCore::cached_program_t IndexFillOperation::MultiCore::c
                 index.buffer()->address(),
                 u.u32,
                 input_unit_size,
-                index_unit_size
+                index_unit_size,
+                unit_offset,
+                num_tiles_per_core,
+                rows_to_fill,
+                num_rows_to_fill_per_index
             }
         );
         SetRuntimeArgs(
@@ -159,7 +169,10 @@ IndexFillOperation::MultiCore::cached_program_t IndexFillOperation::MultiCore::c
             {
                 output.buffer()->address(),
                 num_tiles_per_core,
-                unit_offset
+                unit_offset,
+                output_unit_size,
+                rows_to_fill,
+                num_rows_to_fill_per_index
             }
         );
 
@@ -168,7 +181,7 @@ IndexFillOperation::MultiCore::cached_program_t IndexFillOperation::MultiCore::c
 
     return {
         std::move(program),
-        {reader_kernel_id, writer_kernel_id, num_cores_x, num_cores_y}};
+        {reader_kernel_id, writer_kernel_id, num_cores, num_cores_y}};
 }
 
 void IndexFillOperation::MultiCore::override_runtime_arguments(
