@@ -167,14 +167,14 @@ static_assert(sizeof(DebugPrintMemLayout) == DPRINT_BUFFER_SIZE);
 static_assert(sizeof(DebugPrintMemLayout().data) >= sizeof(uint32_t) * 8 * sizeof(uint32_t));
 
 // Size of datum in bytes, dprint-specific to support device-side and bfp* DataFormats
-inline constexpr static uint32_t dprint_datum_size(const CommonDataFormat& format) {
+static inline constexpr uint32_t dprint_datum_size(const CommonDataFormat& format) {
     switch (format) {
         case CommonDataFormat::Bfp2:
         case CommonDataFormat::Bfp2_b:
         case CommonDataFormat::Bfp4:
         case CommonDataFormat::Bfp4_b:
         case CommonDataFormat::Bfp8:
-        case CommonDataFormat::Bfp8_b: return 0; // TODO
+        case CommonDataFormat::Bfp8_b: return 1; // Round up to 1 byte
         case CommonDataFormat::Float16:
         case CommonDataFormat::Float16_b: return 2;
         case CommonDataFormat::Float32: return 4;
@@ -186,5 +186,49 @@ inline constexpr static uint32_t dprint_datum_size(const CommonDataFormat& forma
         case CommonDataFormat::Int32: return 4;
         case CommonDataFormat::Invalid: return 0; // Invalid
         default: return 0; // Unknown
+    }
+}
+
+static inline constexpr bool is_bfp(const CommonDataFormat& format) {
+    switch (format) {
+        case CommonDataFormat::Bfp2:
+        case CommonDataFormat::Bfp2_b:
+        case CommonDataFormat::Bfp4:
+        case CommonDataFormat::Bfp4_b:
+        case CommonDataFormat::Bfp8:
+        case CommonDataFormat::Bfp8_b: return true;
+        case CommonDataFormat::Float16:
+        case CommonDataFormat::Float16_b:
+        case CommonDataFormat::Float32:
+        case CommonDataFormat::Int8:
+        case CommonDataFormat::Lf8:
+        case CommonDataFormat::UInt8:
+        case CommonDataFormat::UInt16:
+        case CommonDataFormat::UInt32:
+        case CommonDataFormat::Int32:
+        case CommonDataFormat::Invalid:
+        default: return false;
+    }
+}
+
+static inline constexpr bool is_supported_format(const CommonDataFormat& format) {
+    switch (format) {
+        case CommonDataFormat::Bfp2:
+        case CommonDataFormat::Bfp2_b:
+        case CommonDataFormat::Bfp4:
+        case CommonDataFormat::Bfp4_b:
+        case CommonDataFormat::Bfp8:
+        case CommonDataFormat::Bfp8_b: return false;
+        case CommonDataFormat::Float16: return false;
+        case CommonDataFormat::Float16_b: return true;
+        case CommonDataFormat::Float32: return true;
+        case CommonDataFormat::Int8:
+        case CommonDataFormat::Lf8:
+        case CommonDataFormat::UInt8:
+        case CommonDataFormat::UInt16:
+        case CommonDataFormat::UInt32:
+        case CommonDataFormat::Int32:
+        case CommonDataFormat::Invalid:
+        default: return false;
     }
 }

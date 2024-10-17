@@ -42,6 +42,61 @@ typedef bool dprint_tslice_cb_t;
 #define TSLICE_INPUT_CB true
 #define TSLICE_OUTPUT_SB false
 
+typedef struct {
+    uint32_t tile_dim_r;
+    uint32_t tile_dim_c;
+    uint32_t tile_size;
+    uint32_t face_dim_r;
+    uint32_t face_dim_c;
+    uint32_t num_faces;
+    uint32_t cb_ptr;
+    uint8_t data_format;
+} tile_info_t;
+
+inline tile_info_t get_tile_info(
+#if defined(COMPILE_FOR_NCRISC) || defined(COMPILE_FOR_BRISC)
+    uint8_t cb,
+    dprint_tslice_cb_t cb_type,
+    dprint_tslice_ptr_t ptr_type
+#else
+    uint8_t cb
+#endif
+) {
+    tile_info_t info = {0};
+#if defined(UCK_CHLKC_PACK)
+        info.cb_ptr = CB_WR_PTR(cb);  // PACK only has write pointer
+        info.data_format = pack_dst_format[cb];
+        info.tile_dim_r = pack_tile_r_dim[cb];
+        info.tile_dim_c = pack_tile_c_dim[cb];
+        info.tile_size = pack_tile_size[cb];
+        info.face_dim_r = pack_tile_face_r_dim[cb];
+        info.num_faces = pack_tile_num_faces[cb];
+#elif defined(UCK_CHLKC_UNPACK)
+        info.cb_ptr = CB_RD_PTR(cb);  // UNPACK only has read pointer
+        info.data_format = unpack_src_format[cb];
+        info.tile_dim_r = unpack_tile_r_dim[cb];
+        info.tile_dim_c = unpack_tile_c_dim[cb];
+        info.tile_size = unpack_tile_size[cb];
+        info.face_dim_r = unpack_tile_face_r_dim[cb];
+        info.num_faces = unpack_tile_num_faces[cb];
+#elif defined(COMPILE_FOR_NCRISC) || defined(COMPILE_FOR_BRISC)
+        // For BRISC/NCRISC, user chooses which pointer, and specifies whether the CB is input/output
+        info.cb_ptr = (ptr_type == TSLICE_WR_PTR) ? CB_WR_PTR(cb) : CB_RD_PTR(cb);
+        info.data_format = (cb_type == TSLICE_INPUT_CB) ? unpack_src_format[cb] : pack_dst_format[cb];
+        info.tile_dim_r = (cb_type == TSLICE_INPUT_CB) ? unpack_tile_r_dim[cb] : pack_tile_r_dim[cb];
+        info.tile_dim_c = (cb_type == TSLICE_INPUT_CB) ? unpack_tile_c_dim[cb] : pack_tile_c_dim[cb];
+        info.tile_size = (cb_type == TSLICE_INPUT_CB) ? unpack_tile_size[cb] : pack_tile_size[cb];
+        info.face_dim_r = (cb_type == TSLICE_INPUT_CB) ? unpack_tile_face_r_dim[cb] : pack_tile_face_r_dim[cb];
+        info.num_faces = (cb_type == TSLICE_INPUT_CB) ? unpack_tile_num_faces[cb] : pack_tile_num_faces[cb];
+#else
+        info.cb_ptr = 0;
+        info.data_format = static_cast<uint8_t>(DataFormat::Invalid);
+        return info;
+#endif
+    info.face_dim_c = info.tile_dim_r * info.tile_dim_c / info.num_faces / info.face_dim_r;
+    return info;
+}
+
 // Specialization of TileSliceHostDev, with device-side implementation
 template <int MAX_BYTES=32*2>
 struct TileSlice : TileSliceHostDev<MAX_BYTES> {
@@ -91,49 +146,27 @@ struct TileSlice : TileSliceHostDev<MAX_BYTES> {
         this->return_code = DPrintOK;
 
         // DataFormat, rd/wr pointer, and Tile size all depend on RISC + in/out
-        uint32_t tile_dim_r = 0, tile_dim_c = 0;
-        uint32_t face_dim_r = 0;
-        uint32_t tile_size = 0;
-#if defined(UCK_CHLKC_PACK)
-        this->cb_ptr = CB_WR_PTR(cb);  // PACK only has write pointer
-        this->data_format = pack_dst_format[cb];
-        tile_dim_r = pack_tile_r_dim[cb];
-        tile_dim_c = pack_tile_c_dim[cb];
-        face_dim_r = pack_tile_face_r_dim[cb];
-        tile_size = pack_tile_size[cb];
-#elif defined(UCK_CHLKC_UNPACK)
-        this->cb_ptr = CB_RD_PTR(cb);  // UNPACK only has read pointer
-        this->data_format = unpack_src_format[cb];
-        tile_dim_r = unpack_tile_r_dim[cb];
-        tile_dim_c = unpack_tile_c_dim[cb];
-        face_dim_r = unpack_tile_face_r_dim[cb];
-        tile_size = unpack_tile_size[cb];
-#elif defined(COMPILE_FOR_NCRISC) || defined(COMPILE_FOR_BRISC)
-        // For BRISC/NCRISC, user chooses which pointer, and specifies whether the CB is input/output
-        this->cb_ptr = (ptr_type == TSLICE_WR_PTR) ? CB_WR_PTR(cb) : CB_RD_PTR(cb);
-        this->data_format = (cb_type == TSLICE_INPUT_CB) ? unpack_src_format[cb] : pack_dst_format[cb];
-        tile_dim_r = (cb_type == TSLICE_INPUT_CB) ? unpack_tile_r_dim[cb] : pack_tile_r_dim[cb];
-        tile_dim_c = (cb_type == TSLICE_INPUT_CB) ? unpack_tile_c_dim[cb] : pack_tile_c_dim[cb];
-        face_dim_r = (cb_type == TSLICE_INPUT_CB) ? unpack_tile_face_r_dim[cb] : pack_tile_face_r_dim[cb];
-        tile_size = (cb_type == TSLICE_INPUT_CB) ? unpack_tile_size[cb] : pack_tile_size[cb];
+#if defined(COMPILE_FOR_NCRISC) || defined(COMPILE_FOR_BRISC)
+        tile_info_t tile_info = get_tile_info(cb, ptr_type, cb_type);
 #else
-        this->cb_ptr = 0;
-        this->data_format = static_cast<uint8_t>(DataFormat::Invalid);
+        tile_info_t tile_info = get_tile_info(cb);
 #endif
+        this->cb_ptr = tile_info.cb_ptr;
+        this->data_format = tile_info.data_format;
 
         // If the data format is unsupported or corrupted, don't continue
-        if (this->data_format != static_cast<uint8_t>(DataFormat::Float16_b) &&
-            this->data_format != static_cast<uint8_t>(DataFormat::Float32)) {
+        if (!is_supported_format(static_cast<DataFormat>(this->data_format))) {
             this->return_code = DPrintErrorUnsupportedFormat;
             return; // Unsupported type, return
         }
 
         // Move the pointer to the tile at index requested by user
         uint32_t bytes_per_datum = dprint_datum_size(static_cast<DataFormat>(this->data_format));
-        this->cb_ptr += tile_idx * tile_size;
+        bool is_bfp_format = is_bfp(static_cast<DataFormat>(this->data_format));
+        this->cb_ptr += tile_idx * tile_info.tile_size;
 
         // Check for unprintable data, and return error as necessary
-        if ((tile_idx + 1) * tile_size > CB_PAGE_SIZE(this->cb_id)) {
+        if ((tile_idx + 1) * tile_info.tile_size > CB_PAGE_SIZE(this->cb_id)) {
             this->cb_ptr = CB_PAGE_SIZE(this->cb_id); // Save the page size we weren't expecting so host can read.
             this->return_code = DPrintErrorBadTileIdx;
             return;
@@ -146,18 +179,42 @@ struct TileSlice : TileSliceHostDev<MAX_BYTES> {
         // Stride through the data in the CB and place in print data buffer
         uint8_t *cb_data = reinterpret_cast<uint8_t *>(this->cb_ptr);
         bool max_count_exceeded = false;
+        uint32_t byte_idx = 0;
         for (uint32_t h = slice_range.h0; h < slice_range.h1; h += slice_range.hs) {
             for (uint32_t w = slice_range.w0; w < slice_range.w1; w += slice_range.ws) {
                 // Convert w_idx, h_idx to 1D index using num_rows
-                uint32_t i = w + h * tile_dim_r;
-                if (print_untilized) i = TileSlice::tilize_rm_index(i); // tilize the index
-                for (uint32_t offset = 0; offset < bytes_per_datum; offset++) {
-                    uint32_t data_idx = this->data_count * bytes_per_datum + offset;
-                    this->data[this->data_count * bytes_per_datum + offset] = cb_data[i * bytes_per_datum + offset];
-                    // If we've gone over the maximum data points to print, break
-                    if (data_idx >= MAX_BYTES) {
+                uint32_t i = w + h * tile_info.tile_dim_r;
+                if (is_bfp_format) {
+                    uint32_t data_offset = tile_info.face_dim_r * tile_info.num_faces;
+                    // Write 1 byte exponent before each datum. Need to do this since requested stride could put us on
+                    // any of the faces.
+                    uint32_t row_in_face = h % tile_info.face_dim_r;
+                    uint32_t col_in_face = w % tile_info.face_dim_c;
+                    uint32_t face_idx_r = h / tile_info.face_dim_r;
+                    uint32_t face_idx_c = w / tile_info.face_dim_c;
+                    uint32_t num_faces_c = tile_info.tile_dim_c / tile_info.face_dim_c;
+                    uint32_t face_idx = face_idx_r * num_faces_c + face_idx_c;
+                    uint32_t exponent_idx = face_idx * tile_info.face_dim_r + row_in_face;
+                    this->data[byte_idx++] = cb_data[exponent_idx];
+                    for (uint32_t offset = 0; offset < bytes_per_datum; offset++) {
+                        uint32_t data_idx = face_idx * tile_info.face_dim_r * tile_info.face_dim_c +
+                                            row_in_face * tile_info.face_dim_c + col_in_face;
+                        this->data[byte_idx++] = cb_data[data_offset + data_idx];
+                    }
+                    if (byte_idx >= MAX_BYTES) {
                         max_count_exceeded = true;
                         break;
+                    }
+                } else {
+                    if (print_untilized)
+                        i = TileSlice::tilize_rm_index(i);  // tilize the index
+                    for (uint32_t offset = 0; offset < bytes_per_datum; offset++) {
+                        this->data[byte_idx++] = cb_data[i * bytes_per_datum + offset];
+                        // If we've gone over the maximum data points to print, break
+                        if (byte_idx - 1 >= MAX_BYTES) {
+                            max_count_exceeded = true;
+                            break;
+                        }
                     }
                 }
                 if (max_count_exceeded)
