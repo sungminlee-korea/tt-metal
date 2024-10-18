@@ -124,7 +124,7 @@ void MAIN {
     // DPRINT << "out_subblock_num_tiles  = " << out_subblock_num_tiles << ENDL();
     // DPRINT << "batch                   = " << batch << ENDL();
     // DPRINT << "out_block_num_tiles     = " << out_block_num_tiles << ENDL();
-    // DPRINT << "untilize_out            = " << int(untilize_out) << ENDL();
+    // DPRINT << "untilize_out            = " << static_cast<int>(untilize_out) << ENDL();
     // DPRINT << "out_block_w             = " << out_block_w << ENDL();
     // DPRINT << "in0_cb_id               = " << in0_cb_id << ENDL();
     // DPRINT << "in1_cb_id               = " << in1_cb_id << ENDL();
