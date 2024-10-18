@@ -8,7 +8,7 @@
 #include "compute_kernel_api/pack_untilize.h"
 #include "compute_kernel_api/tile_move_copy.h"
 #include "mod_div_lib.h"
-
+#include "tt_metal/tools/profiler/kernel_profiler.hpp"
 #ifdef FUSE_BIAS
 #include "compute_kernel_api/bcast.h"
 #endif
@@ -30,6 +30,7 @@ FORCE_INLINE void reload_from_cb_to_dst(
     uint32_t out_subblock_w,
     uint32_t out_subblock_h,
     uint32_t in0_block_w) {
+    DeviceZoneScopedN("RELOAD");
     // Reconfigure input
     copy_tile_to_dst_init_short_with_dt(in1_cb_id, mm_partials_cb_id);
     cb_wait_front(mm_partials_cb_id, out_subblock_num_tiles);
@@ -42,6 +43,7 @@ FORCE_INLINE void reload_from_cb_to_dst(
     // Reconfigure srcA back
     mm_block_init_short_with_dt(
         in0_cb_id, in1_cb_id, mm_partials_cb_id, false, out_subblock_w, out_subblock_h, in0_block_w);
+
 }
 
 template <uint32_t out_subblock_w, uint32_t out_block_w>
@@ -178,6 +180,7 @@ void MAIN {
                     uint32_t in0_index = in0_index_subblock_offset;  // offset into in0 block
                     uint32_t in1_index = in1_index_subblock_offset;  // offset into in1 block
                     // inner dim that we accumualte is the inner dim of in0/in1, which is in0_block_w
+                    DeviceZoneScopedN("MATMUL");
                     for (uint32_t inner_dim_idx = 0; inner_dim_idx < in0_block_w; ++inner_dim_idx) {
                         // matmul outer product of (out_subblock_h x out_subblock_w) tiles that fill dst
                         // accumulation is done by iterating matmul_block across inner dim
@@ -195,6 +198,7 @@ void MAIN {
                         in0_index++;                  // stride right by 1
                         in1_index += in1_per_core_w;  // to stride down by 1 need to stride by in_per_core_w (should be
                                                       // called in1_block_w)
+
                     }
 #endif  // SKIP_COMPUTE
 
