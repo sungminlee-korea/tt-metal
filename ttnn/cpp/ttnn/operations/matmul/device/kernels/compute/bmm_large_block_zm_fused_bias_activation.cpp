@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2023 Tenstorrent Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
-
+#include "debug/dprint.h"
 #include <cstdint>
 
 #include "compute_kernel_api/matmul.h"
@@ -92,13 +92,10 @@ void MAIN {
 
     constexpr uint32_t in0_block_w = get_compile_time_arg_val(0);        // inner block size in tiles
     constexpr uint32_t in0_num_subblocks = get_compile_time_arg_val(1);  // outer row block size (in inner row blocks)
-    constexpr uint32_t in0_block_num_tiles =
-        get_compile_time_arg_val(2);  // out_subblock_h*in0_block_w*in0_num_subblocks;
+    constexpr uint32_t in0_block_num_tiles =    get_compile_time_arg_val(2);  // out_subblock_h*in0_block_w*in0_num_subblocks;
     constexpr uint32_t in0_subblock_num_tiles = get_compile_time_arg_val(3);  // out_subblock_h*in0_block_w
-    constexpr uint32_t in1_num_subblocks =
-        get_compile_time_arg_val(4);  // outer column block size (in inner column blocks)
-    constexpr uint32_t in1_block_num_tiles =
-        get_compile_time_arg_val(5);                                  // out_subblock_w*in0_block_w* in1_num_subblocks;
+    constexpr uint32_t in1_num_subblocks =  get_compile_time_arg_val(4);  // outer column block size (in inner column blocks)
+    constexpr uint32_t in1_block_num_tiles =  get_compile_time_arg_val(5);  // out_subblock_w*in0_block_w* in1_num_subblocks;
     constexpr uint32_t in1_per_core_w = get_compile_time_arg_val(6);  // out_subblock_w*in1_num_subblocks
     constexpr uint32_t num_blocks = get_compile_time_arg_val(7);      // outer inner dim (in inner dim blocks)
     constexpr uint32_t out_subblock_h = get_compile_time_arg_val(8);  // inner row block size in tiles
@@ -107,15 +104,39 @@ void MAIN {
     constexpr uint32_t batch = get_compile_time_arg_val(11);                   // batch dim
     constexpr uint32_t out_block_num_tiles = get_compile_time_arg_val(12);     // number of tiles in out_block
     constexpr bool untilize_out = get_compile_time_arg_val(13);                // untilize output
-
     constexpr uint32_t out_block_w = out_subblock_w * in1_num_subblocks;
-
     constexpr uint32_t in0_cb_id = tt::CB::c_in0;
     constexpr uint32_t in1_cb_id = tt::CB::c_in1;
     constexpr uint32_t out_cb_id = tt::CB::c_out0;
     constexpr uint32_t mm_partials_cb_id = tt::CB::c_intermed0;
-
     constexpr uint32_t untilize_mode_out_cb_id = untilize_out ? mm_partials_cb_id : out_cb_id;
+
+    // DPRINT << "in0_block_w             = " << in0_block_w << ENDL();
+    // DPRINT << "in0_num_subblocks       = " << in0_num_subblocks << ENDL();
+    // DPRINT << "in0_block_num_tiles     = " << in0_block_num_tiles << ENDL();
+    // DPRINT << "in0_subblock_num_tiles  = " << in0_subblock_num_tiles << ENDL();
+    // DPRINT << "in1_num_subblocks       = " << in1_num_subblocks << ENDL();
+    // DPRINT << "in1_block_num_tiles     = " << in1_block_num_tiles << ENDL();
+    // DPRINT << "in1_per_core_w          = " << in1_per_core_w << ENDL();
+    // DPRINT << "num_blocks              = " << num_blocks << ENDL();
+    // DPRINT << "out_subblock_h          = " << out_subblock_h << ENDL();
+    // DPRINT << "out_subblock_w          = " << out_subblock_w << ENDL();
+    // DPRINT << "out_subblock_num_tiles  = " << out_subblock_num_tiles << ENDL();
+    // DPRINT << "batch                   = " << batch << ENDL();
+    // DPRINT << "out_block_num_tiles     = " << out_block_num_tiles << ENDL();
+    /DPRINT << "untilize_out            = " << int(untilize_out) << ENDL();
+    // DPRINT << "out_block_w             = " << out_block_w << ENDL();
+    // DPRINT << "in0_cb_id               = " << in0_cb_id << ENDL();
+    // DPRINT << "in1_cb_id               = " << in1_cb_id << ENDL();
+    // DPRINT << "out_cb_id               = " << out_cb_id << ENDL();
+    // DPRINT << "mm_partials_cb_id       = " << mm_partials_cb_id << ENDL();
+    // DPRINT << "untilize_mode_out_cb_id = " << untilize_mode_out_cb_id << ENDL();
+
+
+
+
+
+
 
 #ifdef FUSE_BIAS
     constexpr uint32_t bias_cb_id = tt::CB::c_in3;
@@ -159,9 +180,9 @@ void MAIN {
             cb_wait_front(in0_cb_id, in0_block_num_tiles);
             cb_wait_front(in1_cb_id, in1_block_num_tiles);
             int in0_index_subblock_offset = 0;
-            for (uint32_t in0_subblock = 0; in0_subblock < in0_num_subblocks; in0_subblock++) {
+            for (uint32_t in0_subblock = 0; in0_subblock < in0_num_subblocks; in0_subblock++) { //10
                 int in1_index_subblock_offset = 0;
-                for (uint32_t in1_subblock = 0; in1_subblock < in1_num_subblocks; in1_subblock++) {
+                for (uint32_t in1_subblock = 0; in1_subblock < in1_num_subblocks; in1_subblock++) { //2
                     tile_regs_acquire();
                     if (enable_reload) {
                         reload_from_cb_to_dst(
@@ -180,8 +201,8 @@ void MAIN {
                     uint32_t in0_index = in0_index_subblock_offset;  // offset into in0 block
                     uint32_t in1_index = in1_index_subblock_offset;  // offset into in1 block
                     // inner dim that we accumualte is the inner dim of in0/in1, which is in0_block_w
-                    DeviceZoneScopedN("MATMUL");
-                    for (uint32_t inner_dim_idx = 0; inner_dim_idx < in0_block_w; ++inner_dim_idx) {
+                    // DeviceZoneScopedN("MATMUL");
+                    for (uint32_t inner_dim_idx = 0; inner_dim_idx < in0_block_w; ++inner_dim_idx) {///10
                         // matmul outer product of (out_subblock_h x out_subblock_w) tiles that fill dst
                         // accumulation is done by iterating matmul_block across inner dim
                         // in0_block_w is passed as innder dim (kt) to matmul_block, interally used to stride in0
