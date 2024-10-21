@@ -441,7 +441,7 @@ void JitBuildState::compile_one(
     cmd += "-c -o " + obj + " " + src;
 
     log_debug(tt::LogBuildKernels, "    g++ compile cmd: {}", cmd);
-
+    log_debug(tt::LogBuildKernels, "    HELLO");
     if (tt::llrt::OptionsG.get_watcher_enabled() && settings) {
         log_kernel_defines_and_args(out_dir, settings->get_full_kernel_name(), defines);
     }
