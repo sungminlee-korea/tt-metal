@@ -433,18 +433,26 @@ void JitBuildState::compile_one(
     }
 
     string cmd;
+    ////////////////////////////
+    std::string target_kernel = "bmm_large_block_zm_fused_bias_activation";
+    std::string target_trisc  = "trisc1";
+    bool condition = (out_dir.find(target_kernel) != std::string::npos) && (out_dir.find(target_trisc) != std::string::npos);
+    if (condition)
+    {
+        log_debug(tt::LogBuildKernels, "    KENREL, TRISC .. {}, {}", target_kernel, target_trisc);
+    }
+    ////////////////////////////
     cmd = "cd " + out_dir + " && ";
     cmd += env_.gpp_;
     cmd += this->cflags_;
     cmd += defines;
     cmd += this->includes_;
     cmd += "-c -o " + obj + " " + src;
-
     log_debug(tt::LogBuildKernels, "    g++ compile cmd: {}", cmd);
-    log_debug(tt::LogBuildKernels, "    env_.gpp_      : {}", env_.gpp_);
-    log_debug(tt::LogBuildKernels, "    this->cflags_  : {}", this->cflags_);
-    log_debug(tt::LogBuildKernels, "    defines        : {}", defines);
-    log_debug(tt::LogBuildKernels, "    this->includes_: {}", this->includes_);
+    // log_debug(tt::LogBuildKernels, "    env_.gpp_      : {}", env_.gpp_);
+    // log_debug(tt::LogBuildKernels, "    this->cflags_  : {}", this->cflags_);
+    // log_debug(tt::LogBuildKernels, "    defines        : {}", defines);
+    // log_debug(tt::LogBuildKernels, "    this->includes_: {}", this->includes_);
     if (tt::llrt::OptionsG.get_watcher_enabled() && settings) {
         log_kernel_defines_and_args(out_dir, settings->get_full_kernel_name(), defines);
     }
