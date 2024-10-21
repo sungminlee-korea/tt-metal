@@ -435,7 +435,7 @@ void JitBuildState::compile_one(
     string cmd;
     ////////////////////////////
     std::string target_kernel = "bmm_large_block_zm_fused_bias_activation";
-    std::string target_trisc  = "trisc1";
+    std::string target_trisc  = "trisc";
     bool condition = (out_dir.find(target_kernel) != std::string::npos) && (out_dir.find(target_trisc) != std::string::npos);
     ////////////////////////////
     cmd = "cd " + out_dir + " && ";
