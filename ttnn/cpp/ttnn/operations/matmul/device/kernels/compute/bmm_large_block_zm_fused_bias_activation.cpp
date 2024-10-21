@@ -196,16 +196,30 @@ void MAIN {
                     }
 
 #ifndef SKIP_COMPUTE
-                    // Compute output sub-block
-                    uint32_t dst_index = 0;  // start at 0, each call to matmul_block internally increments dst_index
-                    uint32_t in0_index = in0_index_subblock_offset;  // offset into in0 block
-                    uint32_t in1_index = in1_index_subblock_offset;  // offset into in1 block
-                    // inner dim that we accumualte is the inner dim of in0/in1, which is in0_block_w
-                    DeviceZoneScopedN("MATMUL");
-                    for (uint32_t inner_dim_idx = 0; inner_dim_idx < in0_block_w; ++inner_dim_idx) {///10
-                        // matmul outer product of (out_subblock_h x out_subblock_w) tiles that fill dst
-                        // accumulation is done by iterating matmul_block across inner dim
-                        // in0_block_w is passed as innder dim (kt) to matmul_block, interally used to stride in0
+                // Compute output sub-block
+                uint32_t dst_index = 0;
+                uint32_t in0_index = in0_index_subblock_offset;
+                uint32_t in1_index = in1_index_subblock_offset;
+                DeviceZoneScopedN("MATMUL");
+
+                // Unrolled loop
+                for (uint32_t inner_dim_idx = 0; inner_dim_idx < in0_block_w; inner_dim_idx += 2) {
+                    // First iteration
+                    matmul_block(
+                        in0_cb_id,
+                        in1_cb_id,
+                        in0_index,
+                        in1_index,
+                        dst_index,
+                        false,
+                        out_subblock_w,
+                        out_subblock_h,
+                        in0_block_w);
+                    in0_index++;
+                    in1_index += in1_per_core_w;
+
+                    // Second iteration
+                    if (inner_dim_idx + 1 < in0_block_w) {
                         matmul_block(
                             in0_cb_id,
                             in1_cb_id,
@@ -216,11 +230,10 @@ void MAIN {
                             out_subblock_w,
                             out_subblock_h,
                             in0_block_w);
-                        in0_index++;                  // stride right by 1
-                        in1_index += in1_per_core_w;  // to stride down by 1 need to stride by in_per_core_w (should be
-                                                      // called in1_block_w)
-
+                        in0_index++;
+                        in1_index += in1_per_core_w;
                     }
+                }
 #endif  // SKIP_COMPUTE
 
                     if (last_out) {
