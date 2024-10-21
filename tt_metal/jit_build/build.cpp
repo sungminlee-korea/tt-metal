@@ -437,14 +437,18 @@ void JitBuildState::compile_one(
     std::string target_kernel = "bmm_large_block_zm_fused_bias_activation";
     std::string target_trisc  = "trisc1";
     bool condition = (out_dir.find(target_kernel) != std::string::npos) && (out_dir.find(target_trisc) != std::string::npos);
-    if (condition)
-    {
-        log_debug(tt::LogBuildKernels, "    KENREL, TRISC .. {}, {}", target_kernel, target_trisc);
-    }
     ////////////////////////////
     cmd = "cd " + out_dir + " && ";
     cmd += env_.gpp_;
-    cmd += this->cflags_;
+    if (condition)
+    {
+        // log_debug(tt::LogBuildKernels, "    KENREL, TRISC .. {}, {}", target_kernel, target_trisc);
+        std::string cflags_ =  this->cflags_+" -fopt-info-loop-optimized=loop_info.txt ";
+        cmd += cflags_;
+    }
+    else{
+        cmd += this->cflags_;
+    }
     cmd += defines;
     cmd += this->includes_;
     cmd += "-c -o " + obj + " " + src;
