@@ -443,7 +443,7 @@ void JitBuildState::compile_one(
     if (condition)
     {
         // log_debug(tt::LogBuildKernels, "    KENREL, TRISC .. {}, {}", target_kernel, target_trisc);
-        std::string cflags_ =  this->cflags_+" -fopt-info-loop-optimized=loop_info.txt ";
+        std::string cflags_ =  this->cflags_+" -funroll-loops ";
         cmd += cflags_;
     }
     else{
